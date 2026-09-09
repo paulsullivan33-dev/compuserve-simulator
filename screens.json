@@ -1,0 +1,231 @@
+{
+  "main": {
+    "title": "CompuServe Information Service",
+    "options": {
+      "1": "Electronic Mail",
+      "2": "Forums",
+      "3": "CB Simulator",
+      "4": "News Services",
+      "5": "Business & Financial",
+      "6": "Travel Services",
+      "7": "Reference Data Bases",
+      "8": "Comp-U-Store & Classifieds",
+      "9": "Games and Entertainment",
+      "10": "User Information"
+    }
+  },
+
+  "mail": {
+    "title": "EasyPlex Electronic Mail",
+    "options": {
+      "1": "Read Messages",
+      "2": "Send Message",
+      "3": "Mail Folders",
+      "4": "Mail Settings"
+    }
+  },
+
+  "forums": {
+    "title": "Forums Directory",
+    "options": {
+      "1": "IBM Hardware Forum",
+      "2": "Gamers Forum",
+      "3": "MacDev Forum",
+      "4": "Photography Forum",
+      "5": "Amateur Radio Forum",
+      "6": "Science Forum",
+      "7": "Commodore and Amiga Forum",
+      "8": "Apple II Forum",
+      "9": "Atari ST Forum",
+      "10": "DOS Software Forum"
+    }
+  },
+
+  "cb": {
+    "title": "CB Simulator",
+    "options": {
+      "1": "Enter Channel 1",
+      "2": "Enter Channel 2",
+      "3": "Enter Channel 3",
+      "4": "Private Messages",
+      "5": "CB Help & Commands",
+      "6": "Channel Directory / Who Is On"
+    }
+  },
+
+  "news": {
+    "title": "News Services",
+    "options": {
+      "1": "World News",
+      "2": "Business News",
+      "3": "Technology News",
+      "4": "Science News",
+      "5": "December 1988 News Edition",
+      "6": "Update Current News",
+      "7": "Online Weekly Magazine"
+    }
+  },
+
+  "finance": {
+    "title": "Business & Financial",
+    "options": {
+      "1": "$ MicroQuote",
+      "2": "Market Reports",
+      "3": "$ Standard & Poor's",
+      "4": "Foreign Exchange Rates",
+      "5": "Portfolio Center",
+      "6": "Economic Indicators / Research Packet",
+      "7": "December Market Challenge",
+      "8": "Investment Club Market Watch"
+    }
+  },
+
+  "travel": {
+    "title": "Travel Services",
+    "options": {
+      "1": "$ Official Airline Guide",
+      "2": "Hotel and Motel Directory",
+      "3": "Travelgrams",
+      "4": "Travel Service Instructions",
+      "5": "My Trip Folder",
+      "6": "Rail, Rental Cars and Traveler Profile",
+      "7": "Combined Trip Planner",
+      "8": "Live Weather Wire (Internet)",
+      "9": "Weather Operations Center"
+    }
+  },
+
+  "reference": {
+    "title": "Reference Data Bases",
+    "options": {
+      "1": "$ Academic American Encyclopedia",
+      "2": "$ Medical Information",
+      "3": "Science and Technology Index",
+      "4": "Electronic Library",
+      "5": "Live General Reference (Internet)",
+      "6": "Live Academic Reference (OpenAlex)",
+      "7": "Special Desk Case Index"
+    }
+  },
+
+  "shopping": {
+    "title": "Comp-U-Store & Classifieds",
+    "options": {
+      "1": "Comp-U-Store",
+      "2": "Electronic Classifieds",
+      "3": "Consumer Product Information",
+      "4": "Shopping Instructions",
+      "5": "Owned Equipment and Support"
+    }
+  },
+
+  "games": {
+    "title": "Games and Entertainment",
+    "options": {
+      "1": "Adventure and Strategy Games",
+      "2": "$ MegaWars",
+      "3": "Trivia Tournament",
+      "4": "Game Instructions",
+      "5": "Player Records",
+      "6": "Online Adventure League"
+    }
+  },
+
+  "support": {
+    "title": "User Information",
+    "options": {
+      "1": "Command Summary & Usage Tips",
+      "2": "Billing Information",
+      "3": "Terminal and Access Help",
+      "4": "FEEDBACK to Customer Service",
+      "5": "Account and Password",
+      "6": "Personal Calendar",
+      "7": "Personal Notebook",
+      "8": "Download Center",
+      "9": "Achievements and Session Economics",
+      "10": "Guided Tour and Service Representatives",
+      "11": "Monthly Usage Statement"
+    }
+  },
+
+  "ibmhw": {
+    "title": "IBM PC Hardware Forum",
+    "options": {
+      "1": "Hardware Discussion",
+      "2": "Technical Support",
+      "3": "Libraries & Downloads",
+      "4": "Hardware Reviews",
+      "5": "Tips & Techniques",
+      "6": "Vendor Support Areas",
+      "7": "Sysop Announcements",
+      "8": "Help & Forum Rules"
+    }
+  },
+
+  "gamers": {
+    "title": "Gamers Forum",
+    "options": {
+      "1": "General Gaming",
+      "2": "PC Games",
+      "3": "Console Games",
+      "4": "Game Reviews"
+    }
+  },
+
+  "ibmhw_libs": {
+    "title": "IBMHW Libraries & Downloads",
+    "options": {
+      "1": "Library 1: Diagnostics",
+      "2": "Library 2: BIOS Updates",
+      "3": "Library 3: Motherboard Docs",
+      "4": "Library 4: Benchmark Tools"
+    }
+  },
+
+  "ibmhw_lib1": {
+    "title": "Library 1: Diagnostics",
+    "options": {
+      "1": "MEMTEST Utility",
+      "2": "DISKCHECK Tool",
+      "3": "IRQ Analyzer",
+      "4": "POST Code Reference"
+    }
+  },
+
+  "ibmhw_lib2": {
+    "title": "Library 2: BIOS Updates",
+    "options": {
+      "1": "Award BIOS Updates",
+      "2": "AMI BIOS Updates",
+      "3": "Phoenix BIOS Updates"
+    }
+  },
+
+  "ibmhw_lib3": {
+    "title": "Library 3: Motherboard Docs",
+    "options": {
+      "1": "AT Bus Timing Notes",
+      "2": "286 Jumper Reference",
+      "3": "386 Memory Configuration",
+      "4": "CMOS Setup Guide"
+    }
+  },
+
+  "ibmhw_lib4": {
+    "title": "Library 4: Benchmark Tools",
+    "options": {
+      "1": "DHRYSTONE Benchmark",
+      "2": "DISKPERF Utility",
+      "3": "VIDEO Speed Test",
+      "4": "Benchmark Results Archive"
+    }
+  },
+
+  "paul": {
+  	"title": "Paul test",
+	"options": {
+	  "1": "Test 1",
+	  "2": "test 2"
+	}
+  }
+}

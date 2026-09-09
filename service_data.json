@@ -1,0 +1,39 @@
+{
+  "quotes": {
+    "IBM": {"last": 121.50, "change": 0.75},
+    "AAPL": {"last": 41.25, "change": -0.50},
+    "T": {"last": 28.75, "change": 0.25},
+    "DEC": {"last": 96.00, "change": 1.25},
+    "MOT": {"last": 47.25, "change": 0.38},
+    "INTC": {"last": 32.75, "change": -0.13},
+    "MSFT": {"last": 56.50, "change": 0.63},
+    "S": {"last": 38.25, "change": -0.25},
+    "GM": {"last": 82.75, "change": 0.50},
+    "F": {"last": 49.50, "change": 0.25},
+    "BA": {"last": 58.25, "change": 0.75},
+    "KO": {"last": 43.75, "change": 0.13}
+  },
+  "exchange": {"CAD": 1.23, "GBP": 0.56, "JPY": 124.50, "DEM": 1.78},
+  "hotels": {
+    "CHICAGO": ["Palmer House", "Chicago Hilton", "Hyatt Regency"],
+    "NEW YORK": ["Statler Hilton", "Waldorf-Astoria", "Plaza Hotel"],
+    "DALLAS": ["Adolphus Hotel", "Hyatt Regency", "Fairmont Dallas"]
+  },
+  "reference": [
+    {"term": "MODEM", "text": "A modulator-demodulator converts digital computer signals for transmission over telephone circuits."},
+    {"term": "MICROPROCESSOR", "text": "A central processing unit implemented on one or a small number of integrated circuits."},
+    {"term": "HALLEY", "text": "Halley's Comet is a periodic comet returning to the inner solar system approximately every 76 years."},
+    {"term": "SUPERCONDUCTIVITY", "text": "The disappearance of electrical resistance below a material's critical temperature."}
+  ],
+  "catalog": [
+    {"number": 1101, "name": "1200 Baud External Modem", "price": 189.95},
+    {"number": 1102, "name": "IBM PC Serial Cable", "price": 24.95},
+    {"number": 1103, "name": "5.25-inch Diskette Box", "price": 19.95},
+    {"number": 1104, "name": "CompuServe User's Guide", "price": 9.95}
+  ],
+  "classifieds": [
+    "FOR SALE: Hayes Smartmodem 1200, excellent condition. USER 72345,1122",
+    "WANTED: EGA monitor in Midwest area. USER 73456,0091",
+    "FOR SALE: IBM PC XT, 20MB hard disk, DOS 3.3. USER 74567,3310"
+  ]
+}

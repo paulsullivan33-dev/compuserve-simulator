@@ -1,0 +1,401 @@
+{
+  "title": "Online Weekly",
+  "notice": "An original fictional magazine for this simulation; not an archived CompuServe publication.",
+  "issues": [
+    {
+      "id": "OW881201",
+      "date": "1988-12-01",
+      "title": "A Month at the Keyboard",
+      "articles": [
+        {
+          "id": "OW881201-1",
+          "department": "Editorial",
+          "title": "The second cup of coffee",
+          "author": "June Mercer",
+          "paragraphs": [
+            "There is a familiar moment in every online evening. The coffee has cooled, the room is quiet, and a message from someone you have never met explains the very problem that occupied your afternoon. You write a reply. What began as a quick call becomes a conversation.",
+            "Online Weekly is for the time between those conversations. Each issue will contain something to try, something to argue with, and something worth saving for a disconnected afternoon. Our first rule is that a useful small example earns its space. Our second is that a reader should be able to tell an experiment from a promise.",
+            "This is a newly written fictional magazine inside the simulation. Our correspondents and their workshop anecdotes are invented. The questions, however, are familiar: what should I learn next, which part of my setup deserves attention, and how can I explain a problem clearly enough for somebody to help? Keep a notebook nearby. We intend to leave a few blank lines for your own answers."
+          ],
+          "related": [
+            "GO FORUMS - find a community",
+            "GO NOTEBOOK - keep your own notes"
+          ]
+        },
+        {
+          "id": "OW881201-2",
+          "department": "Hardware desk",
+          "title": "Two desks, two different bottlenecks",
+          "author": "Morgan Reed",
+          "paragraphs": [
+            "Our imaginary test room contains two desks. At Desk A, an enthusiastic owner has a faster computer but a dim display, a cramped working surface, and one chair shared with the family. At Desk B, the machine is modest, the screen is comfortable to read, and the manuals are within reach. Which owner finishes a two-page club letter first?",
+            "There is no benchmark number in this comparison. We are comparing the whole task. Desk A spends ten minutes finding last month's address list. Desk B has the list filed with the previous letter. Desk A reformats a page after discovering that its printer settings differ from the document. Desk B has a note describing a working setup.",
+            "A processor upgrade cannot supply those missing notes. Nor should a comfortable desk excuse hardware that cannot run the required application. Write down the job before comparing machines: the program, document size, printer, and time spent waiting. Then ask whether the delay comes from computation, the equipment around it, or the way the work is organized. The answer may be less glamorous than the advertisement and more useful on Monday morning."
+          ],
+          "related": [
+            "GO IBMHW - discuss hardware requirements"
+          ]
+        },
+        {
+          "id": "OW881201-3",
+          "department": "Workshop",
+          "title": "The three-line problem report",
+          "author": "BatchBeth",
+          "paragraphs": [
+            "A good question does not have to fill a screen. Begin with three lines: what I tried, what I expected, and what happened. Add the computer and program version when they matter. The result is a starting point another member can actually use.",
+            "Compare \"My printout is wrong\" with \"I printed a two-page letter using my saved settings. I expected the second page to start at the top margin. Instead it begins halfway down the sheet.\" The second report has not solved the problem, but it tells a helper what to examine. If you can repeat the result using a short sample document, mention that too.",
+            "Do not change five settings while a reply is on its way. Keep the sample, record the starting conditions, and try one proposed change at a time. Report the result even when it does not help. The quiet follow-up saying \"that did not change it\" can save the next reader an evening. When the problem is solved, put the working result into the thread. A closed loop is more useful than a triumphant subject line with no explanation beneath it."
+          ],
+          "related": [
+            "GO DOS - software questions and project notes"
+          ]
+        },
+        {
+          "id": "OW881201-4",
+          "department": "Reader letters",
+          "title": "Must every reply quote the whole message?",
+          "author": "The Mailbag",
+          "paragraphs": [
+            "Dear Editor: I downloaded a discussion in which every reply included every previous reply. By the end, the original question occupied more space than the answers. Is there a polite way to ask for shorter quotations? -- A fictional reader signing as ShortLine",
+            "Our answer: quote the sentence you are answering, then add your response. Include a message number or a clear subject when the context would otherwise be lost. Brevity works best when it preserves the connection between question and answer. A reply consisting only of \"yes\" may be shorter and still force everybody to retrieve the old message.",
+            "Another reader, PaperTrail, asks whether a correction should replace an earlier claim. In a conversation, a follow-up explaining the correction is often clearer: identify the mistaken statement, supply the corrected information, and say what changed your mind. That gives later readers a usable trail. Nobody benefits from a discussion that appears to reach the right answer by magic. These letters are invented, but the invitation is real within the simulation: practice a concise reply in a forum thread."
+          ],
+          "related": [
+            "GO FORUMS - read and reply to discussions"
+          ]
+        },
+        {
+          "id": "OW881201-5",
+          "department": "Weekend project",
+          "title": "Make a useful capture, not a paper mountain",
+          "author": "June Mercer",
+          "paragraphs": [
+            "For this weekend's project, choose one short discussion and turn it into a page you would want to reread. Save the text, give it a descriptive title, and add a note explaining the question it answered. Keep the original message numbers when available. Resist the temptation to capture every menu on the way there.",
+            "The difference between an archive and a heap is often the first sentence of the filename or heading. \"Printer margin test, working result\" will mean more next month than \"session seven.\" If the discussion contains conflicting suggestions, leave a note distinguishing what was tried from what was merely proposed.",
+            "End with a question for your future self: what evidence would make this advice out of date? A different program version, a replacement interface, or a new printer could matter. A saved answer is most useful when its limits travel with it. Our challenge is one clear page, not the largest capture file. Leave some room for the next discovery."
+          ],
+          "related": [
+            "CAPTURE ON / CAPTURE OFF - record terminal output",
+            "Browser Save text - save selected text or the session transcript"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OW881208",
+      "date": "1988-12-08",
+      "title": "The Practical Holiday Desk",
+      "articles": [
+        {
+          "id": "OW881208-1",
+          "department": "Editorial",
+          "title": "A gift that gets used in January",
+          "author": "June Mercer",
+          "paragraphs": [
+            "The holiday computer advertisement is a cheerful catalog of possibility. Every box promises a more capable desk. A useful gift begins with a less dramatic question: what does its recipient already enjoy doing?",
+            "The member who writes club letters may appreciate supplies for a known printer more than another unfamiliar program. A beginning programmer might prefer an afternoon of patient help with a tiny listing. A person who has carefully chosen a system may value a chance to select an accessory rather than an unexpected replacement for a part that already works.",
+            "Our fictional gift desk has no sales counter. We are offering a method: ask about the task, confirm compatibility, and leave the recipient a choice when the answer is uncertain. Manuals, labels, and the time to organize a project rarely appear in the most exciting photographs. They can nevertheless be the gifts still in use after the wrapping paper has disappeared. This week we compare working habits, consider a club exchange, and ask readers what made an earlier gift memorable."
+          ],
+          "related": [
+            "GO SHOP - browse the simulation catalog"
+          ]
+        },
+        {
+          "id": "OW881208-2",
+          "department": "Hardware desk",
+          "title": "A printer comparison without a winner",
+          "author": "Morgan Reed",
+          "paragraphs": [
+            "Imagine two club members comparing printers. One needs inexpensive draft copies and does not mind a noisy afternoon. The other prepares finished letters in a shared room and cares about appearance and disturbance. A review that announces one universal winner has already discarded half the problem.",
+            "Bring a sample of your own work to a demonstration. A page of large display lettering is not the same test as a letter with small text, a table, and a second page. Ask to see the entire process: opening the document, choosing settings, producing the page, and dealing with a simple correction. Note the application and settings so the result can be reproduced.",
+            "Supplies and connections deserve a line on the comparison sheet alongside the purchase itself. So do space and the people who share it. We are not assigning scores to historical models or claiming measurements from a real bench. The comparison is an exercise in choosing the right questions. Decide what a satisfactory page looks like before admiring the fastest demonstration."
+          ],
+          "related": [
+            "GO IBMHW - printer and hardware discussions"
+          ]
+        },
+        {
+          "id": "OW881208-3",
+          "department": "Club life",
+          "title": "The exchange table needs an index",
+          "author": "DiskDaisy",
+          "paragraphs": [
+            "Our fictional club exchange began with a generous pile of disks and an immediate shortage of explanations. One label said \"utilities.\" Another said \"new.\" A third named a person who had already gone home. The first volunteer spent the evening asking what each disk contained.",
+            "For the next meeting, every contribution gets a card: title, version, intended machine, contents, and the contributor's handle. It also says whether the material may be copied. A useful description is more than a list of exciting nouns. \"Plain-text worksheet; no program to install\" tells a newcomer something that \"productivity package\" does not.",
+            "The index should identify a small, understandable starting point. New members do not need to leave with every file on the table. They need one item they can open, try, and discuss. Keep the cards with the contributions and note any corrected versions. A good exchange ends with fewer mysteries than it began with. The most appreciated contribution may be the careful index itself."
+          ],
+          "related": [
+            "GO APPLEII - disk catalog discussions",
+            "GO APPLELIB - printable catalog forms"
+          ]
+        },
+        {
+          "id": "OW881208-4",
+          "department": "Reader letters",
+          "title": "The unwanted upgrade",
+          "author": "The Mailbag",
+          "paragraphs": [
+            "Dear Editor: My family knows I like computers and wants to buy an upgrade. I am pleased, but I have just made my present setup reliable. How can I explain that another project is not the same as a present? -- Fictional correspondent QuietBoot",
+            "We suggest describing something you would enjoy doing with the gift. \"I would like supplies for the newsletter\" is easier to act on than a list of reasons every proposed accessory is wrong. If the family wants a surprise, offer several compatible possibilities. A promise to choose an item together can still be a thoughtful present.",
+            "Reader RibbonRoad remembers a more modest success: a friend labeled a stack of workshop notes and made a readable index. The gift was time, not a machine, and it made the existing equipment more useful. Both letters remind us that the owner's interests come before a product category. The fictional names belong to this magazine; the exercise is to write a short wish list based on tasks rather than advertising slogans."
+          ],
+          "related": [
+            "GO NOTEBOOK - draft a task-based wish list"
+          ]
+        },
+        {
+          "id": "OW881208-5",
+          "department": "Weekend project",
+          "title": "One page, one experiment",
+          "author": "BatchBeth",
+          "paragraphs": [
+            "Choose a task you repeat and prepare a one-page experiment. At the top, write the starting conditions. In the middle, leave room for one change and its result. At the bottom, reserve a line for the next person who will try it.",
+            "An example might compare two ways of organizing a newsletter's working files. Use the same small project in each trial. Time spent locating the correct file counts; so does time spent recovering from an ambiguous name. Do not turn a comparison of filing methods into a simultaneous test of a new editor and a new printer.",
+            "When you finish, explain the result in ordinary language. \"The second arrangement kept originals separate from working copies\" is more useful than declaring it a breakthrough. File the page with the project and bring it to the next club meeting. The experiment is small enough to repeat and concrete enough to argue about. That combination is the beginning of a useful workshop conversation."
+          ],
+          "related": [
+            "GO COMMODORE - application-test worksheets and discussions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OW881215",
+      "date": "1988-12-15",
+      "title": "Small Programs, Real Evenings",
+      "articles": [
+        {
+          "id": "OW881215-1",
+          "department": "Editorial",
+          "title": "The pleasure of finishing something",
+          "author": "June Mercer",
+          "paragraphs": [
+            "The new computer libraries give this week's issue a useful theme: programs small enough to finish reading. A docking game, an arithmetic exercise, a timing calculator, and a one-room adventure make modest promises. You can inspect the numbered lines instead of taking the description on faith.",
+            "That is a different pleasure from opening a large commercial package. The small listing invites questions. Why does this branch run? What does that variable remember? What happens if the player asks for something impossible? A beginner can change a message and see the result without understanding every corner of the machine.",
+            "Our reviews concern original programs supplied with this simulation. They are not claims about recovered 1988 software. The workshop spirit is the part we want to preserve: try a known example, keep the original, and explain one change to somebody else. Finishing a small project does not mean running out of ambition. It means having a result solid enough to build on next week."
+          ],
+          "related": [
+            "GO C64LIB / GO APPLELIB / GO STLIB / GO DOSLIB - the new libraries"
+          ]
+        },
+        {
+          "id": "OW881215-2",
+          "department": "Game review",
+          "title": "DOCK64: gravity reads the instructions",
+          "author": "SectorSam",
+          "paragraphs": [
+            "DOCK64.BAS offers a landing pad, a fuel allowance, and a remarkably unsympathetic gravity calculation. Choose thrust from zero through five each turn. The display reports altitude, downward speed, and remaining fuel. A gentle landing requires a speed of two or less when the craft reaches the pad.",
+            "The useful lesson arrives when a player spends fuel merely postponing the fall. You need a plan for the final descent, not an impressive moment of hovering. The companion C64NOTES.TXT provides a reproducible safe flight, so a newcomer can first verify the listing and then experiment. Follow that flight exactly and the current version should finish with three fuel units.",
+            "We like the visible numbers and the absence of hidden controls. We would not recommend it to someone seeking elaborate graphics or a long campaign. Its replay value comes from understanding a simple model and improving a sequence of choices. The download is an ASCII BASIC listing, not a C64 disk image. Read its type-in instructions before attempting to load it as a native program. Then keep a flight log and see whether your second plan is better than your first."
+          ],
+          "related": [
+            "GO C64LIB - DOCK64.BAS and C64NOTES.TXT",
+            "GO COMMODORE - compare flight logs"
+          ]
+        },
+        {
+          "id": "OW881215-3",
+          "department": "Workshop",
+          "title": "An adventure with three things to remember",
+          "author": "BatchBeth",
+          "paragraphs": [
+            "LOSTDISK.BAS needs only a few pieces of state: the player's choice, whether a key has been found, and whether the missing disk has been collected. Its room description is small because the exercise is about how those facts change the available result.",
+            "Begin by trying the cabinet before the desk. It should remain locked. Try returning the disk before taking it; the program should refuse. Then inspect the desk, revisit the cabinet, and return the recovered disk. These are different paths through the same short listing. Testing only the successful path would miss half the point.",
+            "For a club extension, design one additional object on paper before editing any code. Write down where it is found, which variable remembers it, and what action it enables. Also decide what the program says when that action is attempted too early. Keep the original listing and give your altered version a different name. A larger room is not automatically a better adventure. A clear cause and effect is the improvement worth demonstrating."
+          ],
+          "related": [
+            "GO DOSLIB - LOSTDISK.BAS",
+            "GO DOS - BASIC Workshop"
+          ]
+        },
+        {
+          "id": "OW881215-4",
+          "department": "Reader letters",
+          "title": "Why will this BAS file not load?",
+          "author": "The Mailbag",
+          "paragraphs": [
+            "Dear Editor: I downloaded a listing and expected a ready-to-run disk file. The instructions say to enter the numbered lines. Have I received the wrong file? -- Fictional correspondent LoadAgain",
+            "Not necessarily. The BASIC files in the new community collection are readable text. A native saved program may contain tokens or other structure that a plain listing does not contain. The filename extension alone cannot promise the machine's preferred on-disk representation. Use the instructions for the indicated interpreter and preserve work already in memory before replacing it.",
+            "GW-BASIC can load the supplied DOS ASCII listings directly. For the other intended systems, the collection describes entering the lines or using an emulator's supported text-paste facility. It does not supply disk images. Our checks exercised the shared BASIC logic in PC-BASIC, not every original machine's import process. That distinction belongs in a review as well as a file description. If you report a problem, say how you entered the program and include the exact message, not just \"the download failed.\""
+          ],
+          "related": [
+            "GO DOSLIB - DOSNOTES.TXT",
+            "GO APPLELIB - APPLETIP.TXT"
+          ]
+        },
+        {
+          "id": "OW881215-5",
+          "department": "Project desk",
+          "title": "A calculator needs an answer sheet",
+          "author": "ClockworkST",
+          "paragraphs": [
+            "TEMPO.BAS and CALLCOST.BAS solve different little problems, but they share a useful testing method: start with an input whose answer you already know. At 120 beats per minute, the tempo calculator should report 500 milliseconds for a quarter note and two seconds for a four-beat bar. Thirty minutes at a fictional twelve-dollar hourly rate should produce six dollars in the session calculator.",
+            "Next try a boundary or an invalid input. Does the program reject it, finish, or accept it deliberately? Read the opening instructions before deciding that a result is a defect. TEMPO assumes four quarter-note beats per bar; it is not discovering a song's time signature. CALLCOST omits surcharges and does not change your account.",
+            "Write three expected results beside the listing before making an alteration. Run them again afterward. The answer sheet need not be elaborate to be useful. It is a promise you can check, and it turns a vague feeling that the program still works into a small piece of evidence."
+          ],
+          "related": [
+            "GO STLIB - TEMPO.BAS",
+            "GO DOSLIB - CALLCOST.BAS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OW881222",
+      "date": "1988-12-22",
+      "title": "The Club Comes to Visit",
+      "articles": [
+        {
+          "id": "OW881222-1",
+          "department": "Editorial",
+          "title": "Leave a chair for the beginner",
+          "author": "June Mercer",
+          "paragraphs": [
+            "The most knowledgeable person at a club meeting is not always the easiest person to ask for help. A newcomer may spend the entire evening waiting for a pause in a conversation that assumes years of shared experience. One empty chair and an invitation can change the evening.",
+            "Our fictional holiday workshop gives every demonstration a small beginning. Show the result first. Explain what equipment is involved. Then invite a question before opening the complicated part. A person who has never entered a BASIC line should not have to apologize for wanting to know where to type it.",
+            "There is still room for demanding work. The point is to make the entrance visible. Pair a new member with someone who can explain one listing, one document, or one terminal setting patiently. At the end of the evening, each pair should have something the beginner can repeat. Expertise has done its job when it leaves another person more capable, not merely impressed."
+          ],
+          "related": [
+            "GO FORUMS - choose a workshop community"
+          ]
+        },
+        {
+          "id": "OW881222-2",
+          "department": "Hardware desk",
+          "title": "The demonstration kit",
+          "author": "Morgan Reed",
+          "paragraphs": [
+            "Packing a computer for a fictional club demonstration is an exercise in remembering the uninteresting parts. The impressive machine may be ready while the correct cable, working document, or printed instructions remain on the desk at home.",
+            "Prepare a demonstration card listing the equipment and the exact starting point. Bring a small sample that opens quickly, a known result, and a short explanation of what the audience should watch. A demonstration of document layout needs a readable sample page. A demonstration of a program needs an input that reaches the intended branch. Do not rely on the audience to guess which difference matters.",
+            "The backup plan can be simple: a printout, a saved transcript, or a page of notes that explains the result if the setup cannot be completed. That does not make the live demonstration unimportant. It means the meeting can still teach something when a cable is missing. Rehearse the entire sequence once, including setup and cleanup. The shortest presentation usually rests on the most careful preparation."
+          ],
+          "related": [
+            "GO ATARIST - project handover discussions"
+          ]
+        },
+        {
+          "id": "OW881222-3",
+          "department": "Club life",
+          "title": "A postcard travels between machines",
+          "author": "CopperCat",
+          "paragraphs": [
+            "Our ASCII postcard exchange has an appealing restriction: the drawing must survive as ordinary text. No special color, cursor movement, or machine-specific character set is required. A fixed-width font and preserved spaces do most of the work.",
+            "Start with the cat postcard in the Commodore library or the welcome card in the Apple II library. Make a copy, change one part, and keep the lines short enough for a narrow terminal. Replacing several spaces with a tab may look harmless in one editor and break the picture elsewhere. Inspect the saved text, not just the editor's working view.",
+            "The exchange is also a lesson in making assumptions visible. Say how the picture should be displayed. Credit the starting design and describe your change. If another member's version looks different, ask about the display before declaring the file damaged. Constraints give the project its charm. A small drawing that arrives intact can feel more personal than a complicated demonstration that only its author can open."
+          ],
+          "related": [
+            "GO C64LIB - PIXELCAT.TXT",
+            "GO APPLELIB - APPLEART.TXT"
+          ]
+        },
+        {
+          "id": "OW881222-4",
+          "department": "Reader letters",
+          "title": "Who gets to ask the next question?",
+          "author": "The Mailbag",
+          "paragraphs": [
+            "Dear Editor: Our question period became a conversation between two experts. They were enjoying themselves, but the rest of us never found a place to enter. Should the moderator have stopped them? -- Fictional reader BackRow",
+            "A moderator can acknowledge a useful discussion and still save it for later. Try a short answer to the original question, then ask whether somebody who has not spoken needs clarification. If the experts want to continue, give their topic a name and arrange a separate discussion. That preserves the value without consuming the entire meeting.",
+            "Another fictional reader, FirstListing, reports a better arrangement: every demonstration ended with one question about how to start and one about how to go further. The same program could serve beginners and experienced members. We like the idea because it treats patience as part of technical skill. The aim is not to keep every conversation elementary. It is to let people recognize which conversation they are joining and how to take the next step."
+          ],
+          "related": [
+            "GO CB - practice a concise question and reply"
+          ]
+        },
+        {
+          "id": "OW881222-5",
+          "department": "Weekend project",
+          "title": "Publish a one-screen club bulletin",
+          "author": "GemGwen",
+          "paragraphs": [
+            "This week's publishing assignment is a bulletin that fits on one modest screen. It needs a title, a date, three useful items, and a place to ask a follow-up question. It does not need a decorative border wider than the message itself.",
+            "Choose items someone can act on: a workshop topic, a corrected filename, and a request for a volunteer. Put the most important information first. \"Bring your flight log for DOCK64\" is clearer than \"an exciting interactive computing opportunity.\" Read the bulletin aloud and remove the words that contribute no instruction or meaning.",
+            "Save a plain-text copy and check its appearance at both 40 and 80 columns. If a line wraps, does the sentence still make sense? Can someone identify the date without studying the layout? Finally, ask another member to explain what they would do after reading it. Their answer is a better test than your confidence that the bulletin is obvious. File the finished copy as a model for next month's editor."
+          ],
+          "related": [
+            "GO STLIB - STCLUB.TXT and STDESK.TXT"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OW881229",
+      "date": "1988-12-29",
+      "title": "Keep the Useful Parts",
+      "articles": [
+        {
+          "id": "OW881229-1",
+          "department": "Editorial",
+          "title": "A small shelf for a large year",
+          "author": "June Mercer",
+          "paragraphs": [
+            "The end of a month invites an inventory. There are captures, downloaded files, unfinished notes, and at least one disk whose label made sense when it was written. The temptation is to organize everything before beginning anything new. That is an ambitious way to avoid finishing the first shelf.",
+            "Choose five things worth keeping close: a solved problem, a working example, a useful correspondent, a project to continue, and a question still unanswered. Give each a clear name and a short explanation. Leave the rest in a place where it can be examined later without pretending that every scrap is equally important.",
+            "This is the final December issue of our fictional magazine, not a promise of an endless automatic news service. Its back issues remain available. If one article helped you explain a problem or finish a small program, it has earned its place. We would rather leave you with a useful shelf than a taller pile. The next good project can begin with one of the blank lines you kept."
+          ],
+          "related": [
+            "GO MAGAZINE - browse December back issues"
+          ]
+        },
+        {
+          "id": "OW881229-2",
+          "department": "Hardware desk",
+          "title": "The upgrade you can describe",
+          "author": "Morgan Reed",
+          "paragraphs": [
+            "Before the next imaginary shopping expedition, complete one sentence: \"I need this change because my present setup cannot...\" A specific ending makes the comparison useful. An unfinished sentence leaves plenty of room for a persuasive demonstration to supply the need for you.",
+            "The answer might concern an application requirement, a document that no longer fits comfortably into the workflow, or a peripheral needed for a particular project. Record the present result and the improvement you expect. Then identify what else must remain compatible. A successful change should not quietly remove a capability that the owner uses every week.",
+            "Our month at the hardware desk has produced no universal shopping list. It has produced a few repeatable questions about the complete task, the equipment around it, and the evidence that a change helped. Keep those questions beside the system notes. When the time comes to compare real alternatives, a clear description of the job will do more work than a collection of adjectives clipped from advertisements."
+          ],
+          "related": [
+            "GO EQUIPMENT - review owned items in the simulation"
+          ]
+        },
+        {
+          "id": "OW881229-3",
+          "department": "Workshop",
+          "title": "Version 1.1 deserves a note",
+          "author": "BatchBeth",
+          "paragraphs": [
+            "An updated file needs more than a new number. Tell the reader what changed, which earlier behavior it affects, and how to check the result. A short release note can prevent a forum from rediscovering the same difference one user at a time.",
+            "Consider a menu program that previously accepted fractional choices. A useful note says the new version rejects those inputs and asks for a whole number. It also gives a check: enter a fraction, then a valid choice, and verify that the program continues normally. \"Improved reliability\" does not explain either the defect or the test.",
+            "Keep the old listing long enough to compare it with the revision. Use a different working filename while experimenting, and make clear which version a review discusses. When a change is only a clearer instruction, say that too. Documentation is part of the program's behavior from the reader's point of view. The purpose of a version history is to help someone decide what to try next, not to make a small correction sound like a new machine."
+          ],
+          "related": [
+            "GO DOS - Utilities and Projects",
+            "Library I number - read version notes and reviews"
+          ]
+        },
+        {
+          "id": "OW881229-4",
+          "department": "Reader letters",
+          "title": "The answer arrived after I solved it",
+          "author": "The Mailbag",
+          "paragraphs": [
+            "Dear Editor: I posted a question, solved it myself, and then received several careful replies. Should I simply leave the discussion alone because the problem is gone? -- Fictional correspondent LateFix",
+            "Please add the solution. Explain what you changed and what evidence showed it worked. Thank the people who replied, and distinguish your own result from suggestions you did not test. A later reader may arrive through a search with no knowledge of the timing. The final account is what turns the thread into a useful record.",
+            "Another letter asks whether an old question should be reopened for a different machine. Include the earlier discussion as context, but make the new circumstances clear. Similar symptoms do not guarantee the same cause. The best year-end housekeeping is not deleting every unfinished exchange. It is adding enough context that the next person can understand what was learned and what remains uncertain. That is a contribution even when nobody awards it a dramatic subject line."
+          ],
+          "related": [
+            "FIND words - locate an earlier discussion"
+          ]
+        },
+        {
+          "id": "OW881229-5",
+          "department": "Project desk",
+          "title": "The five-file challenge",
+          "author": "June Mercer",
+          "paragraphs": [
+            "Make a small offline reading packet from this month's work. Choose one magazine issue, one program listing, one reference sheet, one project note, and one item created by another member. Add a text index describing what each file is and how you intend to use it.",
+            "Verify every item after saving it. A filename in a directory is not the same as a file you have successfully opened. Check that the magazine includes all of its articles, the listing has its final line, and the reference sheet has enough context to make sense away from the service. If an item requires a particular interpreter, put that in the index.",
+            "Five files is a deliberate limit. It asks you to choose rather than accumulate. You can make another packet next week if the first proves useful. The test comes on a disconnected afternoon: can you find an item, understand why you kept it, and do something with it? If so, your little archive is already doing its job."
+          ],
+          "related": [
+            "D inside an issue - save the complete magazine",
+            "GO DOWNLOADS - inspect server-side downloaded files"
+          ]
+        }
+      ]
+    }
+  ]
+}

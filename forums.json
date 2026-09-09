@@ -1,0 +1,193 @@
+{
+  "ibmhw_hw": [
+    {
+      "id": 12345,
+      "date": "07/31/86",
+      "author": "NightOwlTX",
+      "subject": "IRQ Conflicts on 486 Systems",
+      "body": "Anyone else seeing weird behavior on COM2 when using a sound card and serial mouse together?"
+    },
+    {
+      "id": 12346,
+      "date": "07/31/86",
+      "author": "ByteBender",
+      "subject": "VLB Graphics Card Issues",
+      "body": "My VLB card flickers at 800x600. Is this a power supply issue or bad RAM?"
+    },
+    {
+      "id": 12347,
+      "date": "07/31/86",
+      "author": "SilverFox",
+      "subject": "486 Overheating?",
+      "body": "CPU feels hot to the touch after an hour of use. Any recommended cooling tricks for old cases?"
+    }
+  ],
+  "ibmhw_tech": [
+    {
+      "id": 22345,
+      "date": "07/31/86",
+      "author": "ModemMan",
+      "subject": "2400 Baud Modem Won't Handshake",
+      "body": "Modem dials, but remote never answers properly. Tried different init strings. Any ideas?"
+    },
+    {
+      "id": 22346,
+      "date": "07/31/86",
+      "author": "LadyLightning",
+      "subject": "POST Code 0x34 on Boot",
+      "body": "Getting POST code 0x34 on cold boot. System eventually starts, but something feels off."
+    }
+  ],
+  "gamers_general": [
+    {
+      "id": 32345,
+      "date": "07/31/86",
+      "author": "RoadRunner",
+      "subject": "Favorite DOS RPG?",
+      "body": "What\u2019s everyone\u2019s go-to DOS RPG? I keep replaying Ultima VI and can\u2019t stop."
+    },
+    {
+      "id": 32346,
+      "date": "07/31/86",
+      "author": "NightOwlTX",
+      "subject": "Joystick Calibration Tips",
+      "body": "My flight sim joystick drifts left. Any calibration tricks that actually work?"
+    }
+  ],
+  "macdev_general": [
+    {
+      "id": 4101,
+      "date": "10/14/88",
+      "author": "MACWIZ",
+      "subject": "MultiFinder memory question",
+      "body": "Has anyone found a reliable way to size temporary handles when running under MultiFinder? My application behaves on a Plus but not a II."
+    },
+    {
+      "id": 4102,
+      "date": "10/16/88",
+      "author": "TOOLBOX",
+      "subject": "Inside Macintosh update",
+      "body": "The new technical notes clarify several Window Manager calls. Check the developer library before relying on older examples."
+    }
+  ],
+  "photography_general": [
+    {
+      "id": 5101,
+      "date": "06/09/87",
+      "author": "DARKROOM",
+      "subject": "Pushing Tri-X to 1600",
+      "body": "Looking for development times for Tri-X exposed at 1600. I am using HC-110 and printing on variable-contrast paper."
+    },
+    {
+      "id": 5102,
+      "date": "06/11/87",
+      "author": "SHUTTER",
+      "subject": "Slide storage",
+      "body": "Any recommendations for archival sleeves that will fit standard three-ring binders without scratching Kodachrome mounts?"
+    }
+  ],
+  "hamnet_general": [
+    {
+      "id": 6101,
+      "date": "03/22/86",
+      "author": "W8CIS",
+      "subject": "Packet on two meters",
+      "body": "I am assembling a 1200-baud packet station. Which TNCs are working well with an IBM PC serial port?"
+    },
+    {
+      "id": 6102,
+      "date": "03/23/86",
+      "author": "N0CALL",
+      "subject": "Field Day logging",
+      "body": "We need a simple DOS logging program for Field Day. File uploads or recommendations would be appreciated."
+    }
+  ],
+  "science_general": [
+    {
+      "id": 7101,
+      "date": "08/28/86",
+      "author": "SKYWATCH",
+      "subject": "Halley observations",
+      "body": "Now that Halley is receding, I would like to compare visual magnitude estimates made during the spring apparition."
+    },
+    {
+      "id": 7102,
+      "date": "09/01/86",
+      "author": "LABCOAT",
+      "subject": "Room-temperature superconductors?",
+      "body": "Reports of unusually high transition temperatures are circulating. Please cite published results rather than press accounts."
+    }
+  ],
+  "gamers_pc": [
+    {
+      "id": 8101,
+      "date": "11/04/88",
+      "author": "DOSACE",
+      "subject": "EGA adventure recommendations",
+      "body": "What new adventure games make good use of EGA but will still run acceptably on an 8 MHz AT?"
+    }
+  ],
+  "gamers_console": [
+    {
+      "id": 8201,
+      "date": "12/02/88",
+      "author": "GAMEPAD",
+      "subject": "NES cartridge saves",
+      "body": "Does anyone know which current cartridges use battery-backed saves instead of passwords?"
+    }
+  ],
+  "gamers_reviews": [
+    {
+      "id": 8301,
+      "date": "07/17/87",
+      "author": "REVIEWER",
+      "subject": "Review: Pirates!",
+      "body": "Pirates! combines sailing, trading, fencing, and strategy unusually well. Disk access is frequent, but the open-ended play is worth it."
+    }
+  ],
+  "ibmhw_reviews": [
+    {
+      "id": 9101,
+      "date": "05/12/88",
+      "author": "BENCHMAN",
+      "subject": "386 accelerator comparison",
+      "body": "I tested two 386 accelerator boards in an IBM AT. Compatibility was good, but memory wait states made a larger difference than clock speed."
+    }
+  ],
+  "ibmhw_tips": [
+    {
+      "id": 9201,
+      "date": "05/14/88",
+      "author": "SYSOP",
+      "subject": "Before changing CONFIG.SYS",
+      "body": "Keep a bootable floppy with a known-good CONFIG.SYS and AUTOEXEC.BAT before installing memory managers or new device drivers."
+    }
+  ],
+  "ibmhw_vendors": [
+    {
+      "id": 9301,
+      "date": "05/16/88",
+      "author": "VENDORREP",
+      "subject": "Support area hours",
+      "body": "Vendor representatives review this section weekdays. Include the board revision, BIOS date, DOS version, and exact error message."
+    }
+  ],
+  "ibmhw_announcements": [
+    {
+      "id": 9401,
+      "date": "05/18/88",
+      "author": "SYSOP",
+      "subject": "Welcome to the IBM Hardware Forum",
+      "body": "Please place questions in the closest section, use descriptive subjects, and search recent messages before posting."
+    }
+  ],
+  "ibmhw_rules": [
+    {
+      "id": 9501,
+      "date": "05/18/88",
+      "author": "SYSOP",
+      "subject": "Forum instructions",
+      "body": "Messages are public. Be courteous, quote only what is needed, and do not upload copyrighted commercial software. Use the Libraries area for public-domain and shareware files."
+    }
+  ]
+}

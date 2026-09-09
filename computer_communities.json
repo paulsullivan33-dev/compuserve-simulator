@@ -1,0 +1,742 @@
+{
+  "id": "computer-communities-1988-v1",
+  "provenance": "Original fictional conversations, reviews, and files created for this simulation; not recovered CompuServe archives.",
+  "forums": {
+    "commodore": {
+      "title": "Commodore and Amiga Forum",
+      "sections": {
+        "1": [
+          "commodore_c64",
+          "C64 / C128 Workshop"
+        ],
+        "2": [
+          "commodore_amiga",
+          "Amiga Workbench"
+        ],
+        "3": [
+          "commodore_projects",
+          "Member Projects"
+        ]
+      },
+      "library": "commodore_library"
+    },
+    "appleii": {
+      "title": "Apple II Forum",
+      "sections": {
+        "1": [
+          "appleii_basic",
+          "Applesoft Workshop"
+        ],
+        "2": [
+          "appleii_disks",
+          "Disk and Printer Desk"
+        ],
+        "3": [
+          "appleii_projects",
+          "Club Projects"
+        ]
+      },
+      "library": "appleii_library"
+    },
+    "atarist": {
+      "title": "Atari ST Forum",
+      "sections": {
+        "1": [
+          "atarist_desktop",
+          "Desktop and Disks"
+        ],
+        "2": [
+          "atarist_music",
+          "Music Workshop"
+        ],
+        "3": [
+          "atarist_projects",
+          "ST Projects"
+        ]
+      },
+      "library": "atarist_library"
+    },
+    "dos": {
+      "title": "DOS Software Forum",
+      "sections": {
+        "1": [
+          "dos_setup",
+          "DOS Setup"
+        ],
+        "2": [
+          "dos_basic",
+          "BASIC Workshop"
+        ],
+        "3": [
+          "dos_projects",
+          "Utilities and Projects"
+        ]
+      },
+      "library": "dos_library"
+    }
+  },
+  "messages": [
+    {
+      "content_id": "community:1:0",
+      "section": "commodore_c64",
+      "date": "12/12/88",
+      "author": "Harbor64",
+      "subject": "DOCK64: can you land with fuel left?",
+      "body": "I have uploaded DOCK64.BAS, a short numeric docking game for the C64. You begin 30 units above the pad with 30 fuel units. Each turn you choose thrust from zero through five. The display reports altitude, downward speed, and fuel. A landing faster than two units per turn is a crash. There are no machine-code routines or disk writes; the entire game is a BASIC listing.",
+      "parent": null
+    },
+    {
+      "content_id": "community:1:1",
+      "section": "commodore_c64",
+      "date": "12/12/88",
+      "author": "Petunia",
+      "subject": "RE: DOCK64: can you land with fuel left?",
+      "body": "First attempt: I spent all my fuel holding position and then fell! The useful clue is that gravity adds two to downward speed each turn. Thrust three reduces that speed by one. I started with thrust two for four turns, then tried three and coasted the final short distance. Keep a paper log of the numbers; it is much easier to understand the second flight.",
+      "parent": "community:1:0"
+    },
+    {
+      "content_id": "community:1:2",
+      "section": "commodore_c64",
+      "date": "12/12/88",
+      "author": "Harbor64",
+      "subject": "RE: DOCK64: can you land with fuel left?",
+      "body": "Version 1.1 rejects fractional thrust and values outside zero through five, and limits thrust to the fuel still aboard. The listing is ordinary text, not a tokenized C64 program. Type the numbered lines into BASIC, or use your emulator's text-paste facility, then RUN. C64NOTES.TXT explains that distinction. Post your landing speed and fuel remaining so we can compare flights.",
+      "parent": "community:1:0"
+    },
+    {
+      "content_id": "community:4:0",
+      "section": "commodore_amiga",
+      "date": "12/12/88",
+      "author": "WorkbenchWren",
+      "subject": "A repeatable test beats a drawer full of guesses",
+      "body": "I keep forgetting which disk I used when a drawing program behaved correctly. My new AMIGALOG.TXT worksheet records the machine, memory, Workbench disk label, application version, extra utilities, and exact steps. I start from the same disk and change one item per run. It is slower than declaring the expansion board guilty, but my notes finally mean something.",
+      "parent": null
+    },
+    {
+      "content_id": "community:4:1",
+      "section": "commodore_amiga",
+      "date": "12/12/88",
+      "author": "CopperCat",
+      "subject": "RE: A repeatable test beats a drawer full of guesses",
+      "body": "Please include the expected result as well as the observed one. My report said \"the picture is wrong,\" which told the author almost nothing. The useful report was \"load the small sample, select the second palette, save under a new name, reopen; the first two colors exchange places.\" I kept the original drawing untouched and sent the author a copy of the small sample.",
+      "parent": "community:4:0"
+    },
+    {
+      "content_id": "community:4:2",
+      "section": "commodore_amiga",
+      "date": "12/12/88",
+      "author": "WorkbenchWren",
+      "subject": "RE: A repeatable test beats a drawer full of guesses",
+      "body": "Added fields for expected result, actual result, and whether the problem repeats after a fresh start. There is also space for the name of a backup copy. The worksheet contains no commands and changes no settings. Print it or fill it in with a text editor. Next club night I want us to bring one complete report apiece instead of a bag of unlabeled disks.",
+      "parent": "community:4:0"
+    },
+    {
+      "content_id": "community:7:0",
+      "section": "commodore_projects",
+      "date": "12/12/88",
+      "author": "CopperCat",
+      "subject": "December postcard exchange: plain characters only",
+      "body": "PIXELCAT.TXT is my entry for the club postcard exchange: a cat watching a tiny terminal, with a note about keeping each line short. I used ordinary printable characters so the design can travel between our machines. It is deliberately not PETSCII art. Please open it with a fixed-width font and leave the spaces alone.",
+      "parent": null
+    },
+    {
+      "content_id": "community:7:1",
+      "section": "commodore_projects",
+      "date": "12/12/88",
+      "author": "Petunia",
+      "subject": "RE: December postcard exchange: plain characters only",
+      "body": "The first copy looked like a collapsed tent because my editor replaced several spaces with a tab. A plain-text copy fixed it. Our exchange rules should be a maximum of 38 columns, no cursor-control sequences, and no dependence on color. That gives the 40-column crowd room to read without horizontal scrolling.",
+      "parent": "community:7:0"
+    },
+    {
+      "content_id": "community:7:2",
+      "section": "commodore_projects",
+      "date": "12/12/88",
+      "author": "Harbor64",
+      "subject": "RE: December postcard exchange: plain characters only",
+      "body": "Let us make the next theme \"my computer after midnight.\" Include your handle in the file, but no mailing address. If you adapt the cat, say what you changed. I will collect entries as separate text files so nobody has to extract an unfamiliar archive simply to read a greeting.",
+      "parent": "community:7:0"
+    },
+    {
+      "content_id": "community:10:0",
+      "section": "appleii_basic",
+      "date": "12/12/88",
+      "author": "OrchardAnn",
+      "subject": "ORCHARD: a basket-counting type-in for club night",
+      "body": "ORCHARD.BAS gives five rounds of multiplication practice. Each round shows a number of baskets and the apples in each basket. Enter the total; the program keeps your score and shows the right answer after a miss. I used a fixed sequence of problems so a parent can work through the same sheet beside a child. It is an original Applesoft type-in, not a commercial disk.",
+      "parent": null
+    },
+    {
+      "content_id": "community:10:1",
+      "section": "appleii_basic",
+      "date": "12/12/88",
+      "author": "AppleTutor",
+      "subject": "RE: ORCHARD: a basket-counting type-in for club night",
+      "body": "This is a good place to demonstrate variables. B holds baskets, A holds apples per basket, and C holds correct answers. Before RUN, use LIST and find the line that compares the answer with A*B. For a younger player, lower the numbers in the two assignment lines. Keep the original listing so the exercise can always be restored.",
+      "parent": "community:10:0"
+    },
+    {
+      "content_id": "community:10:2",
+      "section": "appleii_basic",
+      "date": "12/12/88",
+      "author": "OrchardAnn",
+      "subject": "RE: ORCHARD: a basket-counting type-in for club night",
+      "body": "The file includes numbered REM lines identifying the program. Begin with an empty BASIC program and enter the listing exactly; APPLETIP.TXT includes a short checklist. Version 1.1 shows the expected answer after an incorrect response. My club test sheet uses answers 6, 12, 20, 30, and 42. Please mention the version when posting a result.",
+      "parent": "community:10:0"
+    },
+    {
+      "content_id": "community:13:0",
+      "section": "appleii_disks",
+      "date": "12/12/88",
+      "author": "DiskDaisy",
+      "subject": "What belongs on a disk catalog card?",
+      "body": "My club disks have labels such as \"STUFF\" and \"MORE STUFF.\" DISKLOG.TXT is an attempt to retire those names. It has fields for a volume label, date, disk format as reported by the software, program names, and the location of a backup. It also has a separate printer-test log; yesterday's good printout is now clipped to the correct entry.",
+      "parent": null
+    },
+    {
+      "content_id": "community:13:1",
+      "section": "appleii_disks",
+      "date": "12/12/88",
+      "author": "AppleTutor",
+      "subject": "RE: What belongs on a disk catalog card?",
+      "body": "Record whether a disk is your master, a working copy, or a disk received from someone else. Do not assume two disks with similar labels contain the same version. I also write down which program created a document, because a filename by itself does not explain how to open it. The catalog should describe what you actually checked.",
+      "parent": "community:13:0"
+    },
+    {
+      "content_id": "community:13:2",
+      "section": "appleii_disks",
+      "date": "12/12/88",
+      "author": "DiskDaisy",
+      "subject": "RE: What belongs on a disk catalog card?",
+      "body": "I added a \"last checked\" line and a place for the application version. Nothing in this form formats or copies a disk. It is a printable worksheet. My next experiment is to catalog ten disks at a time rather than trying to reorganize the entire shelf in one evening.",
+      "parent": "community:13:0"
+    },
+    {
+      "content_id": "community:16:0",
+      "section": "appleii_projects",
+      "date": "12/12/88",
+      "author": "OrchardAnn",
+      "subject": "A welcome screen for the next user-group meeting",
+      "body": "APPLEART.TXT is a small welcome card for the December meeting. It fits within 38 columns and uses printable ASCII only. We can show it in a terminal capture or print it at the top of the club handout. The title is fictional, so replace it with your own club's name if you use it.",
+      "parent": null
+    },
+    {
+      "content_id": "community:16:1",
+      "section": "appleii_projects",
+      "date": "12/12/88",
+      "author": "DiskDaisy",
+      "subject": "RE: A welcome screen for the next user-group meeting",
+      "body": "I would put the meeting agenda below the picture: introductions, one type-in demonstration, a disk-labeling workshop, and questions. Four short items are easier to read than a screen full of rules. We should also leave a space on the printed copy for the next meeting date.",
+      "parent": "community:16:0"
+    },
+    {
+      "content_id": "community:16:2",
+      "section": "appleii_projects",
+      "date": "12/12/88",
+      "author": "AppleTutor",
+      "subject": "RE: A welcome screen for the next user-group meeting",
+      "body": "For the type-in demonstration, use ORCHARD.BAS and invite someone to predict the next pair of numbers before pressing Return. Then show the relevant lines with LIST. The picture makes a friendly opening, but the tiny program gives everyone something they can change and understand.",
+      "parent": "community:16:0"
+    },
+    {
+      "content_id": "community:19:0",
+      "section": "atarist_desktop",
+      "date": "12/12/88",
+      "author": "GemGwen",
+      "subject": "A project folder that the next editor can understand",
+      "body": "Our club newsletter arrived on three disks with no explanation of which file was final. STDESK.TXT proposes a simple project checklist: original text, working copy, finished copy, a list of assets, and the application version used. The names are suggestions, not a utility that moves files. I want another member to be able to continue the issue without a telephone interrogation.",
+      "parent": null
+    },
+    {
+      "content_id": "community:19:1",
+      "section": "atarist_desktop",
+      "date": "12/12/88",
+      "author": "MidiMoth",
+      "subject": "RE: A project folder that the next editor can understand",
+      "body": "Add the page size and font names to the handover note. A file can open successfully and still produce a different page count. Keep an example printout with the project and note which printer produced it. If a font or image is not included, say so explicitly instead of letting the next editor search every disk.",
+      "parent": "community:19:0"
+    },
+    {
+      "content_id": "community:19:2",
+      "section": "atarist_desktop",
+      "date": "12/12/88",
+      "author": "GemGwen",
+      "subject": "RE: A project folder that the next editor can understand",
+      "body": "The revised checklist has a handover section and a box for missing assets. It also asks for a plain-text copy of the article text. That is useful when two club members have different publishing programs. STCLUB.TXT is our small sample issue, and it can be read without installing any publishing software.",
+      "parent": "community:19:0"
+    },
+    {
+      "content_id": "community:22:0",
+      "section": "atarist_music",
+      "date": "12/12/88",
+      "author": "MidiMoth",
+      "subject": "TEMPO.BAS: quarter-note timing on paper",
+      "body": "TEMPO.BAS converts beats per minute to the duration of a quarter note in milliseconds and to the length of a four-beat bar in seconds. It is a calculator for ST BASIC, not a MIDI driver or a metronome. At 120 BPM I expect 500 milliseconds per quarter note and two seconds per bar. Enter zero to finish.",
+      "parent": null
+    },
+    {
+      "content_id": "community:22:1",
+      "section": "atarist_music",
+      "date": "12/12/88",
+      "author": "ClockworkST",
+      "subject": "RE: TEMPO.BAS: quarter-note timing on paper",
+      "body": "I tried 60 and 120 first because the answers are easy to check. The display rounds the note duration to one decimal place and the bar duration to two. Remember that the bar calculation assumes four quarter-note beats; it does not infer a time signature from a song name. I would put that assumption directly on the opening screen.",
+      "parent": "community:22:0"
+    },
+    {
+      "content_id": "community:22:2",
+      "section": "atarist_music",
+      "date": "12/12/88",
+      "author": "MidiMoth",
+      "subject": "RE: TEMPO.BAS: quarter-note timing on paper",
+      "body": "Done in 1.1. The program accepts whole BPM values from 20 through 300 and prints the assumption before asking for input. MIDIPLAN.TXT is a separate rehearsal worksheet for instrument names, channels, patch notes, and cable labels. Neither file sends any MIDI messages or changes an instrument.",
+      "parent": "community:22:0"
+    },
+    {
+      "content_id": "community:25:0",
+      "section": "atarist_projects",
+      "date": "12/12/88",
+      "author": "GemGwen",
+      "subject": "The ST club newsletter needs small, reproducible projects",
+      "body": "The sample STCLUB.TXT issue contains a short editor's note, a tempo-calculator exercise, and a project handover checklist. I would rather run one listing that members can understand than promise a large application we never finish. Suggested next issue: bring a one-page account of something you learned while preparing a document or a rehearsal.",
+      "parent": null
+    },
+    {
+      "content_id": "community:25:1",
+      "section": "atarist_projects",
+      "date": "12/12/88",
+      "author": "ClockworkST",
+      "subject": "RE: The ST club newsletter needs small, reproducible projects",
+      "body": "A useful submission should include the starting conditions, steps, expected result, and what happened. For a calculator, give two or three inputs with known answers. For a picture or document, include a plain-text explanation of the intended layout. That lets other members distinguish a program error from a missing font or a different setting.",
+      "parent": "community:25:0"
+    },
+    {
+      "content_id": "community:25:2",
+      "section": "atarist_projects",
+      "date": "12/12/88",
+      "author": "MidiMoth",
+      "subject": "RE: The ST club newsletter needs small, reproducible projects",
+      "body": "I volunteer the timing examples: 60 BPM gives 1000 milliseconds and four seconds per four-beat bar; 120 gives 500 and two. The next question is how to explain rounding without making a musician read a mathematics chapter. Keep it short enough to download before the kettle boils.",
+      "parent": "community:25:0"
+    },
+    {
+      "content_id": "community:28:0",
+      "section": "dos_setup",
+      "date": "12/12/88",
+      "author": "PathPilot",
+      "subject": "A startup notebook before changing CONFIG.SYS",
+      "body": "DOSNOTES.TXT is a notebook-style guide to recording a working setup. It explains what PATH and PROMPT do and includes a small example, but it does not install anything. I begin by writing down the DOS version, available memory as reported by my tools, and the programs I need for the task. Then I keep a copy of the original startup files before making one documented change.",
+      "parent": null
+    },
+    {
+      "content_id": "community:28:1",
+      "section": "dos_setup",
+      "date": "12/12/88",
+      "author": "BatchBeth",
+      "subject": "RE: A startup notebook before changing CONFIG.SYS",
+      "body": "Please separate commands typed at the prompt from lines intended for a startup file. That distinction caused most of the confusion at our last club meeting. Your PATH example should also say that its directories must already exist. A path entry does not install the program or create a directory.",
+      "parent": "community:28:0"
+    },
+    {
+      "content_id": "community:28:2",
+      "section": "dos_setup",
+      "date": "12/12/88",
+      "author": "PathPilot",
+      "subject": "RE: A startup notebook before changing CONFIG.SYS",
+      "body": "The guide now labels the examples and explains that PATH replaces the search list when assigned a value. It does not tell members to overwrite their own startup files. My main suggestion is still to record the before-and-after result. A shorter startup file is not an improvement if it omits a driver your application needs.",
+      "parent": "community:28:0"
+    },
+    {
+      "content_id": "community:31:0",
+      "section": "dos_basic",
+      "date": "12/12/88",
+      "author": "SectorSam",
+      "subject": "LOSTDISK: a complete tiny adventure in BASIC",
+      "body": "LOSTDISK.BAS is a small text adventure for GW-BASIC. Search the club room, find a key, open the cabinet, and return the missing demo disk. The commands are numbers so there are no spelling puzzles. It uses no external data files, and it neither reads nor writes your disks. The puzzle state lives in variables until the program ends.",
+      "parent": null
+    },
+    {
+      "content_id": "community:31:1",
+      "section": "dos_basic",
+      "date": "12/12/88",
+      "author": "BatchBeth",
+      "subject": "RE: LOSTDISK: a complete tiny adventure in BASIC",
+      "body": "I tried the cabinet before finding the key and received the locked message, then used the desk and returned to the cabinet. That path works. I also tried returning a disk before collecting it. The program correctly kept me in the room. Five menu options are enough for this exercise; a larger parser would hide the state changes we want beginners to see.",
+      "parent": "community:31:0"
+    },
+    {
+      "content_id": "community:31:2",
+      "section": "dos_basic",
+      "date": "12/12/88",
+      "author": "SectorSam",
+      "subject": "RE: LOSTDISK: a complete tiny adventure in BASIC",
+      "body": "Version 1.1 accepts only whole-number choices from one through five. Please read the REM lines and try adding a second object as a club exercise. The companion CALLCOST.BAS estimates a fictional session cost from minutes and an hourly rate; at 30 minutes and 12 dollars per hour the answer is six dollars. Neither program interacts with the simulator's account balance.",
+      "parent": "community:31:0"
+    },
+    {
+      "content_id": "community:34:0",
+      "section": "dos_projects",
+      "date": "12/12/88",
+      "author": "BatchBeth",
+      "subject": "CLUBLIST: a text roster with useful blanks",
+      "body": "CLUBLIST.TXT contains fictional example entries and a blank record form for a computer club. Each record has a handle, computer, interests, current project, and preferred forum. There are no telephone numbers or home addresses. The file is plain text so it remains readable without a particular database package.",
+      "parent": null
+    },
+    {
+      "content_id": "community:34:1",
+      "section": "dos_projects",
+      "date": "12/12/88",
+      "author": "PathPilot",
+      "subject": "RE: CLUBLIST: a text roster with useful blanks",
+      "body": "I like the project field. \"Interested in modems\" is vague, while \"writing down a repeatable connection test\" gives someone a reason to reply. Include a last-updated date so an old request does not look like a current emergency. For a real roster, let members choose what they want included.",
+      "parent": "community:34:0"
+    },
+    {
+      "content_id": "community:34:2",
+      "section": "dos_projects",
+      "date": "12/12/88",
+      "author": "SectorSam",
+      "subject": "RE: CLUBLIST: a text roster with useful blanks",
+      "body": "My example entry points to LOSTDISK.BAS and asks for a different solution path. That connects the roster to something in the library. Next meeting we can pair a first-time programmer with someone who has already typed the listing, and exchange notes through the forum instead of adding everyone to a mailing list.",
+      "parent": "community:34:0"
+    }
+  ],
+  "files": [
+    {
+      "content_id": "community-file:DOCK64.BAS",
+      "library": "commodore_library",
+      "name": "DOCK64.BAS",
+      "description": "A fuel-limited landing game with numeric controls.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Commodore 64 BASIC V2",
+      "instructions": "ASCII source listing, not a tokenized disk image. Enter numbered lines in the named BASIC interpreter, then RUN. Programs are original simulation content.",
+      "history": [
+        "1.0: First complete flight model.",
+        "1.1: Validate whole-number thrust and limit it to remaining fuel."
+      ],
+      "reviews": [
+        {
+          "author": "Petunia",
+          "text": "The displayed fuel makes every choice matter. Text type-in, not a ready-to-load C64 disk file."
+        }
+      ],
+      "content": "10 REM DOCK64 1.1 - ORIGINAL CLUB TYPE-IN\n20 H=30:V=3:F=30\n30 PRINT \"DOCK64 - LAND AT SPEED 2 OR LESS\"\n40 PRINT \"DOWNWARD SPEED IS POSITIVE\"\n50 PRINT \"HEIGHT\";H;\" SPEED\";V\n60 PRINT \"FUEL\";F\n70 INPUT \"THRUST 0 TO 5\";T\n80 IF T<0 OR T>5 OR T<>INT(T) THEN 70\n90 IF T>F THEN T=F\n100 F=F-T:V=V+2-T:H=H-V\n110 IF H>0 THEN 50\n120 IF V>2 THEN 150\n130 PRINT \"SAFE LANDING! FUEL LEFT\";F\n140 END\n150 PRINT \"CRASH - LANDING SPEED\";V\n160 END\n"
+    },
+    {
+      "content_id": "community-file:C64NOTES.TXT",
+      "library": "commodore_library",
+      "name": "C64NOTES.TXT",
+      "description": "A short guide to entering and checking BASIC listings.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "C64 BASIC V2; readable on any text terminal",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Type-in checklist.",
+        "1.1: Added a reproducible docking flight."
+      ],
+      "reviews": [
+        {
+          "author": "Harbor64",
+          "text": "The distinction between ASCII listings and PRG files saves beginners a confusing LOAD attempt."
+        }
+      ],
+      "content": "C64 TYPE-IN DESK - ORIGINAL CLUB NOTES\n\nA text listing and a saved BASIC program are different things. The .BAS\nfiles in this collection contain printable numbered lines. They are not\ntokenized PRG files and are not disk images. Start with an empty BASIC\nprogram, enter the lines, and use LIST to inspect the result before RUN.\nAn emulator may offer a text-paste facility; consult its instructions.\n\nEach line number identifies a line. Entering a replacement with the same\nnumber replaces that line. Keep a copy of the original listing before\nexperimenting. DOCK64 uses PRINT for display, INPUT for a number, and\nIF ... THEN to select a branch. A colon separates statements on one line.\n\nDOCK64 CHECK FLIGHT\nEnter thrust 2 four times: heights 27, 24, 21, 18; speed stays 3.\nThen enter 3: height 16, speed 2. Enter 2 eight times to land gently.\nThe ending should report 3 fuel and a safe landing at speed 2.\nTry a different sequence and record height, speed, and fuel each turn.\n\nThe listing uses no graphics, sound, device access, POKE, or machine code.\nReference: Commodore 64 Programmer's Reference Guide, BASIC chapters.\nhttps://www.commodore.ca/manuals/c64_programmers_reference/c64-programmers_reference.htm\nThese are newly written notes, not a transcription of the manual.\n"
+    },
+    {
+      "content_id": "community-file:AMIGALOG.TXT",
+      "library": "commodore_library",
+      "name": "AMIGALOG.TXT",
+      "description": "A repeatable application-test and project worksheet.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Plain text; intended for Amiga owners",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Machine and application worksheet.",
+        "1.1: Added expected result and repeatability fields."
+      ],
+      "reviews": [
+        {
+          "author": "CopperCat",
+          "text": "There is enough room to describe the steps instead of just naming the program."
+        }
+      ],
+      "content": "AMIGA WORKSHOP TEST LOG\nOriginal blank worksheet - duplicate for each test.\n\nProject:                         Date:\nMachine / memory:\nWorkbench disk label / version:\nApplication / version:\nExtra utilities running:\nInput file (working copy):\nBackup copy location:\n\nEXPECTED RESULT:\n\nSTEPS TO REPEAT:\n1.\n2.\n3.\n\nACTUAL RESULT:\n\nDoes it repeat after a fresh start?\nOne change made for the next test:\nResult after that change:\n\nHANDOVER\nFiles needed by another member:\nFiles deliberately not included:\nBest contact handle / forum:\n\nExample: compare opening the same small drawing from the same work disk\nbefore and after changing one setting. Describe the visible difference;\ndo not just write 'broken.' This form executes no commands.\n"
+    },
+    {
+      "content_id": "community-file:PIXELCAT.TXT",
+      "library": "commodore_library",
+      "name": "PIXELCAT.TXT",
+      "description": "A 38-column ASCII postcard for the club exchange.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Any fixed-width text display",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Cat postcard.",
+        "1.1: Limited lines to 38 columns."
+      ],
+      "reviews": [
+        {
+          "author": "Petunia",
+          "text": "Fits my narrow capture window when displayed with a fixed-width font."
+        }
+      ],
+      "content": "/\\_/\\       .----------.\n      ( o.o )      | READY.   |\n       > ^ <       | PRINT HI |\n      /|   |\\      '----------'\n     (_|___|_)       /______\\\n\n     THE CAT HAS THE KEYBOARD.\n     PLEASE TRY AGAIN TOMORROW.\n\nAn original postcard by CopperCat.\nPrintable ASCII; no PETSCII required.\nUse spaces, not tabs. Keep a copy\nbefore making your own version.\n"
+    },
+    {
+      "content_id": "community-file:ORCHARD.BAS",
+      "library": "appleii_library",
+      "name": "ORCHARD.BAS",
+      "description": "Five rounds of basket-and-apple arithmetic practice.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Apple II Applesoft BASIC",
+      "instructions": "ASCII source listing, not a tokenized disk image. Enter numbered lines in the named BASIC interpreter, then RUN. Programs are original simulation content.",
+      "history": [
+        "1.0: Five fixed multiplication questions.",
+        "1.1: Show the correct total after a miss."
+      ],
+      "reviews": [
+        {
+          "author": "AppleTutor",
+          "text": "Known answers make this a useful first type-in and a simple variables lesson."
+        }
+      ],
+      "content": "10 REM ORCHARD 1.1 - ORIGINAL TYPE-IN\n20 C=0\n30 PRINT \"ORCHARD - FIVE COUNTING ROUNDS\"\n40 FOR R=1 TO 5\n50 B=R+1:A=R+2\n60 PRINT \"BASKETS: \";B\n70 PRINT \"APPLES IN EACH: \";A\n80 INPUT \"TOTAL APPLES\";N\n90 IF N=A*B THEN 120\n100 PRINT \"THE TOTAL IS \";A*B\n110 GOTO 140\n120 PRINT \"CORRECT!\"\n130 C=C+1\n140 NEXT R\n150 PRINT \"CORRECT ANSWERS: \";C;\" OF 5\"\n160 END\n"
+    },
+    {
+      "content_id": "community-file:APPLETIP.TXT",
+      "library": "appleii_library",
+      "name": "APPLETIP.TXT",
+      "description": "Applesoft type-in checklist and ORCHARD exercises.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Apple II Applesoft BASIC",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Entry checklist.",
+        "1.1: Added all-correct and all-wrong examples."
+      ],
+      "reviews": [
+        {
+          "author": "OrchardAnn",
+          "text": "A short lesson that can be printed beside the computer."
+        }
+      ],
+      "content": "APPLESOFT TYPE-IN CHECKLIST\nOriginal Apple II Forum workshop sheet.\n\n1. Keep your existing work before starting an empty BASIC program.\n2. Enter each numbered line of ORCHARD.BAS exactly as shown.\n3. LIST the program. Check line numbers, quotation marks, and punctuation.\n4. RUN. The five expected totals are 6, 12, 20, 30, and 42.\n5. An all-correct run reports 5 OF 5. Five zero answers report 0 OF 5.\n\nThe downloadable .BAS file is an ASCII listing. It is not a tokenized\nApplesoft program or a bootable Apple disk. Use a text-paste feature only\nif your emulator supports it; otherwise type the numbered lines.\n\nREADING THE PROGRAM\nR is the round. B is baskets. A is apples per basket. N is the answer.\nC counts correct answers. FOR and NEXT repeat the rounds. IF tests the\nanswer, and GOTO skips the success message after a wrong answer.\n\nEXERCISES\nChange line 50 so every basket contains two apples.\nWrite down all five expected answers before running the changed version.\nChange the opening message. Keep the double quotes around the text.\nRestore the original listing and verify the original five answers again.\n\nThe program performs no disk operations and uses no graphics commands.\nReference: Apple's Applesoft BASIC programming manuals; these notes and\nthe exercise are original simulation material, not archived forum posts.\n"
+    },
+    {
+      "content_id": "community-file:DISKLOG.TXT",
+      "library": "appleii_library",
+      "name": "DISKLOG.TXT",
+      "description": "Blank disk-catalog and printer-test record sheets.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Plain text; any printer or editor",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Disk card.",
+        "1.1: Added last-checked and printer-test fields."
+      ],
+      "reviews": [
+        {
+          "author": "DiskDaisy",
+          "text": "The master-versus-working-copy field is the most useful part for our club."
+        }
+      ],
+      "content": "APPLE II CLUB - DISK CATALOG CARD\n\nDisk label:                      Last checked:\nRole: master / working copy / received copy\nFormat reported by software:\nApplication and version:\nFiles / purpose:\n\nBackup label and location:\nNotes needed to reopen these documents:\n\nPRINTER TEST CARD\nDate:                            Printer:\nApplication / version:\nDocument / working copy:\nPaper size and layout:\nSettings recorded:\nExpected output:\nObserved output:\nExample printout filed at:\nNext single change to try:\n\nGive disks descriptive labels. Verify contents rather than assuming that\ntwo similar labels mean identical files. These are blank record sheets,\nnot formatting instructions or a disk-copy utility.\n"
+    },
+    {
+      "content_id": "community-file:APPLEART.TXT",
+      "library": "appleii_library",
+      "name": "APPLEART.TXT",
+      "description": "A narrow-screen welcome card and meeting agenda.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Any fixed-width text display",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Welcome card.",
+        "1.1: Added a printable agenda."
+      ],
+      "reviews": [
+        {
+          "author": "AppleTutor",
+          "text": "A friendly opening screen with enough blank space to add a date."
+        }
+      ],
+      "content": "_\n             / )\n          .-' '-.\n         /       \\\n        |  APPLE  |\n         \\       /\n          '.___.'\n\n     WELCOME TO THE ORCHARD CLUB\n       A FICTIONAL USER GROUP\n\nTONIGHT\n  Introductions and new projects\n  ORCHARD.BAS type-in workshop\n  Disk-labeling and catalog cards\n  Questions and next meeting\n\nNext meeting: __________________\n\nOriginal art and agenda template.\nFixed-width font; preserve spaces.\n"
+    },
+    {
+      "content_id": "community-file:TEMPO.BAS",
+      "library": "atarist_library",
+      "name": "TEMPO.BAS",
+      "description": "Quarter-note and four-beat-bar duration calculator.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Atari ST BASIC",
+      "instructions": "ASCII source listing, not a tokenized disk image. Enter numbered lines in the named BASIC interpreter, then RUN. Programs are original simulation content.",
+      "history": [
+        "1.0: Duration calculations.",
+        "1.1: State four-beat assumption and validate whole BPM."
+      ],
+      "reviews": [
+        {
+          "author": "ClockworkST",
+          "text": "60 and 120 BPM give the expected results. This calculates durations; it does not play a click."
+        }
+      ],
+      "content": "10 REM TEMPO 1.1 - ORIGINAL ST TYPE-IN\n20 PRINT \"FOUR QUARTER-NOTE BEATS PER BAR\"\n30 INPUT \"BPM 20 TO 300, 0 TO END\";B\n40 IF B=0 THEN 130\n50 IF B<20 THEN 30\n60 IF B>300 THEN 30\n70 IF B<>INT(B) THEN 30\n80 Q=60000/B\n90 S=240/B\n100 PRINT \"QUARTER NOTE MS: \";INT(Q*10+.5)/10\n110 PRINT \"FOUR-BEAT BAR SEC: \";INT(S*100+.5)/100\n120 GOTO 30\n130 END\n"
+    },
+    {
+      "content_id": "community-file:STDESK.TXT",
+      "library": "atarist_library",
+      "name": "STDESK.TXT",
+      "description": "A desktop-publishing project handover checklist.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Plain text; intended for Atari ST clubs",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Project checklist.",
+        "1.1: Added missing-assets and printer fields."
+      ],
+      "reviews": [
+        {
+          "author": "GemGwen",
+          "text": "Plain-text article copies helped two editors use different publishing programs."
+        }
+      ],
+      "content": "ST DESKTOP PROJECT HANDOVER\nOriginal checklist for a club newsletter or short document.\n\nPROJECT TITLE:\nEDITOR / HANDLE:\nAPPLICATION / VERSION:\nORIGINAL TEXT FILE:\nWORKING DOCUMENT:\nFINISHED DOCUMENT:\nPAGE SIZE / MARGINS:\nFONT NAMES:\nPICTURE FILES:\nPRINTER / EXAMPLE PRINTOUT:\n\nInclude a plain-text copy of the article text when practical. Record any\nfonts or pictures that are not supplied with the project. Keep the working\ncopy separate from the finished copy and explain which is which.\n\nBEFORE HANDOVER\n[ ] Open the finished document and inspect each page.\n[ ] Compare the page count with the example printout.\n[ ] Check that filenames in the handover note match the actual files.\n[ ] Describe any missing assets or unresolved layout problems.\n[ ] Ask another member to read the note without verbal explanations.\n\nThis checklist does not move files, install fonts, or change the desktop.\n"
+    },
+    {
+      "content_id": "community-file:MIDIPLAN.TXT",
+      "library": "atarist_library",
+      "name": "MIDIPLAN.TXT",
+      "description": "An instrument, cable, and rehearsal planning worksheet.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Plain text; no MIDI software required",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Instrument worksheet.",
+        "1.1: Added TEMPO examples and stated limitations."
+      ],
+      "reviews": [
+        {
+          "author": "MidiMoth",
+          "text": "The sound-name field avoids arguments over whose patch number is correct."
+        }
+      ],
+      "content": "MUSIC WORKSHOP - REHEARSAL PLAN\nOriginal blank worksheet. This file sends no MIDI commands.\n\nPiece:                           Date:\nTempo (BPM):                     Time signature:\nInstrument name:\nReceive channel (check instrument manual):\nPatch / sound name:\nPatch numbering convention used by this instrument:\nCable label and destination:\nWho controls starting and stopping:\n\nBEFORE REHEARSAL\nRecord the starting settings. Check one instrument at a time. Write down\nthe sound name as well as a patch number; two instruments may label their\nsounds differently. Keep notes for the next session.\n\nTEMPO.BAS CHECKS\n60 BPM -> 1000 milliseconds per quarter note.\n120 BPM -> 500 milliseconds per quarter note.\nThe program's bar duration assumes four quarter-note beats.\nIt is a duration calculator, not a timing source or metronome.\n\nAFTER REHEARSAL\nWhat worked:\nWhat changed:\nSettings to restore next time:\n"
+    },
+    {
+      "content_id": "community-file:STCLUB.TXT",
+      "library": "atarist_library",
+      "name": "STCLUB.TXT",
+      "description": "A complete short fictional club newsletter.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Any text terminal",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: First short issue.",
+        "1.1: Added reproducible calculator examples."
+      ],
+      "reviews": [
+        {
+          "author": "ClockworkST",
+          "text": "Short enough to read in one sitting and tied to files actually in this library."
+        }
+      ],
+      "content": "THE SMALL SCREEN - DECEMBER 1988\nAn original fictional Atari ST club newsletter.\n\nFROM THE EDITOR\nThis month's rule is simple: bring a project another member can finish.\nA folder full of unexplained files is a puzzle, not a handover. Include a\nshort note, the application version, and an example of the intended result.\n\nWORKSHOP: TIME ON PAPER\nOur TEMPO.BAS type-in answers two questions: how long is one quarter note,\nand how long is a bar containing four of them? At 120 BPM the answers are\n500 milliseconds and two seconds. Try 60 BPM, then explain why both\ndurations doubled. The program does not operate your instruments.\n\nDESKTOP DESK\nThe next editor may not own your fonts. STDESK.TXT asks you to identify\nmissing assets and include plain article text. A printout can explain a\nlayout more quickly than three telephone calls about the second column.\n\nNEXT MEETING\nBring one short project, a known result, and a question. We will pair\nmembers and see whether each can reproduce the other's result from notes.\nNo prize for the largest pile of disks; applause for the clearest notes.\n"
+    },
+    {
+      "content_id": "community-file:CALLCOST.BAS",
+      "library": "dos_library",
+      "name": "CALLCOST.BAS",
+      "description": "Estimate fictional connect charges from minutes and rate.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "GW-BASIC",
+      "instructions": "ASCII source listing, not a tokenized disk image. Enter numbered lines in the named BASIC interpreter, then RUN. Programs are original simulation content.",
+      "history": [
+        "1.0: Minutes times hourly rate.",
+        "1.1: Added bounds and cents rounding."
+      ],
+      "reviews": [
+        {
+          "author": "PathPilot",
+          "text": "30 minutes at 12 per hour reports 6. The estimate never changes account billing."
+        }
+      ],
+      "content": "10 REM CALLCOST 1.1 - FICTIONAL ESTIMATE\n20 PRINT \"SESSION COST - NO ACCOUNT CHANGES\"\n30 INPUT \"MINUTES, 0 TO END\";M\n40 IF M=0 THEN 130\n50 IF M<0 OR M>1440 THEN 30\n60 INPUT \"HOURLY RATE 0 TO 100\";R\n70 IF R<0 OR R>100 THEN 60\n80 C=M*R/60\n90 C=INT(C*100+.5)/100\n100 PRINT \"ESTIMATED DOLLARS: \";C\n110 PRINT \"NO SURCHARGES OR TAX INCLUDED\"\n120 GOTO 30\n130 END\n"
+    },
+    {
+      "content_id": "community-file:LOSTDISK.BAS",
+      "library": "dos_library",
+      "name": "LOSTDISK.BAS",
+      "description": "A complete one-room adventure with a key and a missing disk.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "GW-BASIC",
+      "instructions": "ASCII source listing, not a tokenized disk image. Enter numbered lines in the named BASIC interpreter, then RUN. Programs are original simulation content.",
+      "history": [
+        "1.0: Complete one-room puzzle.",
+        "1.1: Reject invalid and fractional menu choices."
+      ],
+      "reviews": [
+        {
+          "author": "BatchBeth",
+          "text": "Try the locked cabinet first. Then inspect the desk, revisit the cabinet, and return the disk."
+        }
+      ],
+      "content": "10 REM LOSTDISK 1.1 - ORIGINAL ADVENTURE\n20 K=0:D=0\n30 PRINT \"THE CLUB DEMO DISK IS MISSING.\"\n40 PRINT \"1 DESK  2 CABINET  3 NOTICE\"\n50 PRINT \"4 RETURN DISK  5 QUIT\"\n60 INPUT \"CHOICE\";C\n70 IF C<1 OR C>5 OR C<>INT(C) THEN 60\n80 ON C GOTO 100,140,200,230,290\n100 PRINT \"A BRASS KEY IS UNDER THE NOTES.\"\n110 K=1\n120 GOTO 40\n140 IF K=0 THEN 180\n150 PRINT \"THE KEY FITS. YOU TAKE THE DISK.\"\n160 D=1\n170 GOTO 40\n180 PRINT \"THE CABINET IS LOCKED.\"\n190 GOTO 40\n200 PRINT \"NOTICE: THE DEMO STARTS AT EIGHT.\"\n210 PRINT \"PLEASE RETURN THE CLUB DISK.\"\n220 GOTO 40\n230 IF D=0 THEN 270\n240 PRINT \"YOU RETURN THE DISK. SHOW SAVED!\"\n250 END\n270 PRINT \"YOU DO NOT HAVE THE DISK YET.\"\n280 GOTO 40\n290 PRINT \"YOU LEAVE THE CLUB ROOM.\"\n300 END\n"
+    },
+    {
+      "content_id": "community-file:DOSNOTES.TXT",
+      "library": "dos_library",
+      "name": "DOSNOTES.TXT",
+      "description": "Startup-file notebook, PATH explanation, and type-in instructions.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "DOS / GW-BASIC",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Setup notebook and PATH example.",
+        "1.1: Added explicit ASCII LOAD and program checks."
+      ],
+      "reviews": [
+        {
+          "author": "BatchBeth",
+          "text": "The examples are separated from the blank notebook, so they are harder to mistake for an installer."
+        }
+      ],
+      "content": "DOS WORKSHOP NOTEBOOK\nOriginal notes, not an automatic setup script.\n\nRECORD FIRST\nDOS version:\nApplication and version:\nCurrent startup-file backup location:\nAvailable memory as reported by your tools:\nDriver or resident programs required for this task:\nOne proposed change and expected result:\n\nEXAMPLES TYPED AT A DOS PROMPT\nPROMPT $P$G\n  Displays the current drive and directory followed by >.\nPATH C:\\DOS;C:\\UTIL\n  Example search list only. These directories must already exist and\n  contain your programs. Assigning PATH replaces its existing search\n  list; it does not create directories or install software.\n\nKeep a working copy of your own startup files before editing them. Make\none change, record the result, and retain the configuration your required\napplications need. These notes do not supply a replacement CONFIG.SYS.\n\nGW-BASIC FILES\nCALLCOST.BAS and LOSTDISK.BAS are ASCII source. From GW-BASIC in the\ndirectory containing a listing, use LOAD \"LOSTDISK.BAS\" and then RUN.\nLOAD replaces the program currently in memory, so save your work first.\nThe examples do not access files or change the simulator account.\n\nCALLCOST CHECK: 30 minutes at 12 per hour is 6 dollars. Zero minutes ends.\nLOSTDISK CHECK: choices 1, 2, 4 solve the puzzle; choice 5 quits.\n"
+    },
+    {
+      "content_id": "community-file:CLUBLIST.TXT",
+      "library": "dos_library",
+      "name": "CLUBLIST.TXT",
+      "description": "Fictional member roster and a reusable project-contact form.",
+      "date": "12/12/88",
+      "version": "1.1",
+      "system": "Any plain-text editor",
+      "instructions": "Open in a plain-text editor or print with a fixed-width font. Original simulation content; no installation needed.",
+      "history": [
+        "1.0: Fictional roster.",
+        "1.1: Added project and last-updated fields."
+      ],
+      "reviews": [
+        {
+          "author": "SectorSam",
+          "text": "The project field gives another member a clear reason to reply."
+        }
+      ],
+      "content": "DECEMBER COMPUTER CLUB PROJECT ROSTER\nAll example members below are fictional.\n\nHANDLE: SectorSam\nCOMPUTER: IBM-compatible PC\nINTERESTS: Small BASIC games\nPROJECT: LOSTDISK.BAS alternate puzzle paths\nFORUM: DOS Software / BASIC Workshop\nUPDATED: 12/12/88\n\nHANDLE: BatchBeth\nCOMPUTER: IBM-compatible PC\nINTERESTS: Clear instructions and reusable forms\nPROJECT: A roster that survives changes of database software\nFORUM: DOS Software / Utilities and Projects\nUPDATED: 12/12/88\n\nBLANK RECORD\nHANDLE:\nCOMPUTER:\nINTERESTS:\nPROJECT:\nFORUM:\nUPDATED:\n\nFor a real club, include only details members choose to share. A useful\nproject entry describes a concrete question, not just a broad interest.\nKeep an untouched copy of this form before filling in your own records.\n"
+    }
+  ]
+}

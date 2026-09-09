@@ -1,0 +1,15 @@
+CompuServe|CIS-1
+CompuServe Information Service
+------------------------------
+1  Electronic Mail
+2  Forums
+3  CB Simulator
+4  News Services
+5  Business & Financial
+6  Travel Services
+7  Reference Data Bases
+8  Comp-U-Store & Classifieds
+9  Games and Entertainment
+10  User Information
+
+M  Return to previous menu

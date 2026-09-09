@@ -1,0 +1,127 @@
+{
+  "ibmhw_lib1": [
+    {
+      "number": 101,
+      "name": "MEMTST.ARC",
+      "bytes": 18432,
+      "date": "09/14/88",
+      "downloads": 328,
+      "description": "Extended and conventional memory test utility.",
+      "status": "approved"
+    },
+    {
+      "number": 102,
+      "name": "DSKCHK.ARC",
+      "bytes": 27648,
+      "date": "10/02/88",
+      "downloads": 212,
+      "description": "Disk surface and controller diagnostic.",
+      "status": "approved"
+    },
+    {
+      "number": 103,
+      "name": "IRQSCAN.ARC",
+      "bytes": 12288,
+      "date": "11/19/88",
+      "downloads": 95,
+      "description": "Reports interrupt and adapter assignments.",
+      "status": "approved"
+    },
+    {
+      "number": 104,
+      "name": "POSTREF.TXT",
+      "bytes": 9216,
+      "date": "12/01/88",
+      "downloads": 189,
+      "description": "POST code reference for common PC BIOS versions.",
+      "status": "approved"
+    }
+  ],
+  "ibmhw_lib2": [
+    {
+      "number": 201,
+      "name": "AWARDBIO.TXT",
+      "bytes": 14848,
+      "date": "08/21/88",
+      "downloads": 142,
+      "description": "Award BIOS revision and installation notes.",
+      "status": "approved"
+    },
+    {
+      "number": 202,
+      "name": "AMIBIOS.TXT",
+      "bytes": 13312,
+      "date": "09/10/88",
+      "downloads": 176,
+      "description": "AMI BIOS setup and compatibility notes.",
+      "status": "approved"
+    },
+    {
+      "number": 203,
+      "name": "PHOENIX.TXT",
+      "bytes": 11776,
+      "date": "10/17/88",
+      "downloads": 89,
+      "description": "Phoenix BIOS reference notes.",
+      "status": "approved"
+    }
+  ],
+  "ibmhw_lib3": [
+    {
+      "number": 301,
+      "name": "ATBUS.TXT",
+      "bytes": 20480,
+      "date": "07/08/88",
+      "downloads": 205,
+      "description": "AT bus timing and signal reference.",
+      "status": "approved"
+    },
+    {
+      "number": 302,
+      "name": "286JUMP.TXT",
+      "bytes": 16384,
+      "date": "08/03/88",
+      "downloads": 118,
+      "description": "Jumper tables for popular 286 motherboards.",
+      "status": "approved"
+    },
+    {
+      "number": 303,
+      "name": "386MEM.TXT",
+      "bytes": 24576,
+      "date": "11/23/88",
+      "downloads": 73,
+      "description": "386 memory configuration guide.",
+      "status": "approved"
+    }
+  ],
+  "ibmhw_lib4": [
+    {
+      "number": 401,
+      "name": "DHRY21.ARC",
+      "bytes": 22528,
+      "date": "06/30/88",
+      "downloads": 411,
+      "description": "Dhrystone 2.1 benchmark source and executable.",
+      "status": "approved"
+    },
+    {
+      "number": 402,
+      "name": "DSKPERF.ARC",
+      "bytes": 19456,
+      "date": "09/22/88",
+      "downloads": 284,
+      "description": "Fixed-disk throughput benchmark.",
+      "status": "approved"
+    },
+    {
+      "number": 403,
+      "name": "VIDTEST.ARC",
+      "bytes": 30720,
+      "date": "10/29/88",
+      "downloads": 196,
+      "description": "CGA, EGA, and VGA display speed test.",
+      "status": "approved"
+    }
+  ]
+}

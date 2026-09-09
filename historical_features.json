@@ -1,0 +1,30 @@
+{
+  "title": "CompuServe Historical Features",
+  "features": [
+    {"id":"F001","title":"ATLANTIS: THE SECRET FLIGHT","deck":"STS-27, tile damage, and a classified shuttle mission","chapters":[
+      {"title":"A CLASSIFIED LAUNCH","text":"Atlantis rose from Kennedy Space Center on December 2 carrying a five-person crew and a classified Department of Defense payload. Secrecy limited the public account, but the launch began one of the shuttle program's most consequential early flights.","timeline":["H1202A"],"references":["S3001"]},
+      {"title":"DAMAGE IN ORBIT","text":"The crew saw extensive damage along the shuttle's right side and used the robot arm to inspect it. Poor encrypted imagery led controllers to underestimate what the astronauts were seeing.","timeline":["H1203A"],"references":["S3001"]},
+      {"title":"A NARROW ESCAPE","text":"Atlantis landed safely on December 6. Inspection revealed hundreds of damaged thermal-protection tiles; an antenna mounting plate had protected a particularly vulnerable area during reentry.","timeline":["H1206A"],"references":["S3001"]}
+    ]},
+    {"id":"F002","title":"ARMENIA: EARTHQUAKE AND RELIEF","deck":"Catastrophe, international aid, and winter recovery","chapters":[
+      {"title":"THE GROUND BREAKS","text":"A powerful earthquake struck northern Armenia on December 7, destroying buildings across Spitak, Leninakan, and surrounding communities. Winter weather and collapsed infrastructure complicated rescue work.","timeline":["H1207A"],"references":["A1011"]},
+      {"title":"AN OPENING ACROSS BORDERS","text":"The Soviet Union accepted substantial international assistance, making the relief effort a visible example of changing East-West relations during glasnost.","timeline":["H1211A"],"references":["A1011","A1015"]},
+      {"title":"THE LONG RECOVERY","text":"Emergency rescue gradually became shelter, medical care, and reconstruction. The scale of loss meant recovery would continue long after December's headlines moved elsewhere.","timeline":["H1226A"],"references":["A1011"]}
+    ]},
+    {"id":"F003","title":"DIPLOMACY IN A CHANGING WORLD","deck":"The United Nations, southern Africa, and late-Cold-War negotiation","chapters":[
+      {"title":"GORBACHEV AT THE UNITED NATIONS","text":"Mikhail Gorbachev used his December 7 address to describe reductions in Soviet armed forces and a less confrontational approach to international security.","timeline":["H1207B"],"references":["A1015"]},
+      {"title":"NEGOTIATORS AT WORK","text":"Angola, Cuba, and South Africa worked with international mediators toward an agreement linking Cuban troop withdrawal with implementation of the plan for Namibian independence.","timeline":["H1213A"],"references":["A1015"]},
+      {"title":"THE TRIPARTITE ACCORD","text":"The agreements signed on December 22 illustrated how regional conflict and superpower rivalry could yield to negotiated settlements as the Cold War entered its final years.","timeline":["H1213A"],"references":["A1015"]}
+    ]},
+    {"id":"F004","title":"THE CONNECTED COMPUTER, 1988","deck":"Modems, terminals, processors, and the pre-Web Internet","chapters":[
+      {"title":"CALLING AN ONLINE SERVICE","text":"A modem turned a telephone line into a path toward electronic mail, forums, news, and downloadable files. Connection speed and hourly charges shaped how members used every minute online.","timeline":["H1204A"],"references":["L4001","L4003"]},
+      {"title":"POWER ON THE DESK","text":"The 80386 defined the high end, while many homes and offices still relied on earlier processors. DOS software and limited memory rewarded careful configuration.","timeline":["H1217A","H1225A"],"references":["L4005","L4006","S3002"]},
+      {"title":"TEXT BEFORE THE WEB","text":"Terminal screens, captured sessions, and service-specific mailboxes characterized online life. Internet standards were advancing, but the World Wide Web had not yet been proposed.","timeline":["H1218A","H1220A","H1229A","H1231A"],"references":["L4001","L4002","S3002"]}
+    ]},
+    {"id":"F005","title":"THE YEAR CLOSES","deck":"Disaster, political change, and the uncertain end of 1988","chapters":[
+      {"title":"LOCKERBIE","text":"The destruction of Pan Am Flight 103 over Lockerbie on December 21 killed everyone aboard and people on the ground, beginning an international investigation that would span decades.","timeline":["H1221A"],"references":["A1015"]},
+      {"title":"TRANSITIONS AND TENSIONS","text":"Elections, resignations, labor actions, and diplomatic settlements showed political systems under pressure across several regions during the month's final weeks.","timeline":["H1214A","H1219A","H1230A"],"references":["A1015"]},
+      {"title":"LOOKING TOWARD 1989","text":"December ended with older divisions still visible but rapid change underway. Network standards, political reform, and new diplomatic openings all pointed toward a consequential new year.","timeline":["H1228A","H1229A","H1231A"],"references":["S3002","A1015"]}
+    ]}
+  ]
+}

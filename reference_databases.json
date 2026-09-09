@@ -1,0 +1,1222 @@
+{
+  "academic": {
+    "title": "ACADEMIC AMERICAN ENCYCLOPEDIA",
+    "records": [
+      [
+        "A1001",
+        "COMPUTER",
+        "Electronic machine that accepts data, performs stored instructions, and produces results. Personal computers commonly combine a microprocessor, semiconductor memory, disk storage, display, and keyboard.",
+        "data processing electronic digital microcomputer"
+      ],
+      [
+        "A1002",
+        "MODEM",
+        "Modulator-demodulator used to carry digital information over telephone circuits. Bell-compatible and Hayes-command-compatible equipment is common in personal computing.",
+        "communications telephone data baud"
+      ],
+      [
+        "A1003",
+        "MICROPROCESSOR",
+        "Central processing unit formed on one or a few integrated circuits. Important families include the Intel 8086 and 80386, Motorola 68000, and MOS Technology 6502.",
+        "computer chip integrated circuit cpu"
+      ],
+      [
+        "A1004",
+        "ARMENIA",
+        "Region of the southern Caucasus with a long cultural history. The Armenian Soviet Socialist Republic formed part of the USSR in 1988.",
+        "soviet caucasus yerevan history geography"
+      ],
+      [
+        "A1005",
+        "UNITED NATIONS",
+        "International organization founded in 1945 to maintain peace, encourage cooperation, and address economic, social, and humanitarian questions.",
+        "un diplomacy security council"
+      ],
+      [
+        "A1006",
+        "HALLEY'S COMET",
+        "Periodic comet returning to the inner solar system roughly every 76 years. Spacecraft and ground observatories studied its 1986 passage.",
+        "astronomy comet orbit"
+      ],
+      [
+        "A1007",
+        "SUPERCONDUCTIVITY",
+        "Loss of electrical resistance below a material's critical temperature. Ceramic compounds discovered in the 1980s greatly raised known transition temperatures.",
+        "physics resistance ceramic electricity"
+      ],
+      [
+        "A1008",
+        "PACKET RADIO",
+        "Method of transmitting digital messages over amateur radio using framed packets, error checking, and terminal-node controllers.",
+        "amateur radio tnc communications"
+      ],
+      [
+        "A1009",
+        "COMPACT DISC",
+        "Optical disc read by a laser. Audio compact discs store digitally encoded sound; related formats can distribute computer databases.",
+        "optical storage audio cd-rom"
+      ],
+      [
+        "A1010",
+        "GREENHOUSE EFFECT",
+        "Warming produced when atmospheric gases absorb and re-emit infrared radiation. Scientists study how industrial emissions may alter climate.",
+        "climate carbon dioxide atmosphere"
+      ],
+      [
+        "A1011",
+        "EUROPEAN COMMUNITY",
+        "Association of Western European states pursuing economic cooperation and a common market, with further integration planned for 1992.",
+        "europe trade common market"
+      ],
+      [
+        "A1012",
+        "SPACE SHUTTLE",
+        "Reusable United States spacecraft system consisting of an orbiter, external tank, and solid-fuel boosters. Flights resumed in 1988 after a lengthy suspension.",
+        "nasa orbiter launch science"
+      ],
+      [
+        "A1013",
+        "AFRICA",
+        "Second-largest continent, extending across the equator and containing great geographic, linguistic, and cultural diversity.",
+        "geography continent nations"
+      ],
+      [
+        "A1014",
+        "ANTARCTICA",
+        "Ice-covered continent surrounding the South Pole, administered for peaceful scientific use under the Antarctic Treaty.",
+        "geography polar science treaty"
+      ],
+      [
+        "A1015",
+        "ATOMIC THEORY",
+        "Description of matter as elements composed of atoms with nuclei of protons and neutrons surrounded by electrons.",
+        "chemistry physics matter"
+      ],
+      [
+        "A1016",
+        "AVIATION",
+        "Design, operation, and history of heavier-than-air flight, including civil transport, military aircraft, and general aviation.",
+        "aircraft flight transportation"
+      ],
+      [
+        "A1017",
+        "CANADA",
+        "Federal nation occupying northern North America, composed in 1988 of ten provinces and two territories.",
+        "geography ottawa provinces"
+      ],
+      [
+        "A1018",
+        "CHINA",
+        "East Asian nation with an ancient civilization and the world's largest population in the late twentieth century.",
+        "asia beijing history geography"
+      ],
+      [
+        "A1019",
+        "CIVIL RIGHTS",
+        "Legal and political protections intended to ensure equal treatment and participation in public life.",
+        "law society equality"
+      ],
+      [
+        "A1020",
+        "COMMUNICATIONS SATELLITE",
+        "Orbiting relay that receives, amplifies, and retransmits telephone, television, and data signals.",
+        "space telephone television"
+      ],
+      [
+        "A1021",
+        "CONSTITUTION OF THE UNITED STATES",
+        "Fundamental law adopted in 1787 establishing the federal government and allocation of its powers.",
+        "history law government"
+      ],
+      [
+        "A1022",
+        "DNA",
+        "Deoxyribonucleic acid, the hereditary material whose nucleotide sequence carries genetic information in living organisms.",
+        "biology genetics molecule"
+      ],
+      [
+        "A1023",
+        "EARTHQUAKE",
+        "Ground motion produced by sudden release of strain in Earth's crust, commonly along geological faults.",
+        "geology seismology disaster"
+      ],
+      [
+        "A1024",
+        "ELECTRICITY",
+        "Phenomena associated with electric charge, current, voltage, resistance, and electromagnetic fields.",
+        "physics power current"
+      ],
+      [
+        "A1025",
+        "FRANCE",
+        "Western European republic whose capital is Paris, noted for major contributions to politics, art, science, and literature.",
+        "europe paris geography history"
+      ],
+      [
+        "A1026",
+        "GERMANY",
+        "Central European region divided in 1988 between the Federal Republic of Germany and German Democratic Republic.",
+        "europe berlin history"
+      ],
+      [
+        "A1027",
+        "GREAT DEPRESSION",
+        "Severe worldwide economic contraction beginning in 1929 and continuing through much of the 1930s.",
+        "history economics 1930s"
+      ],
+      [
+        "A1028",
+        "INDIA",
+        "South Asian federal republic whose varied regions include the Himalayas, Indo-Gangetic plain, and Deccan plateau.",
+        "asia new delhi geography"
+      ],
+      [
+        "A1029",
+        "INDUSTRIAL REVOLUTION",
+        "Transformation beginning in eighteenth-century Britain through mechanized production, factories, and new power sources.",
+        "history manufacturing technology"
+      ],
+      [
+        "A1030",
+        "INTEGRATED CIRCUIT",
+        "Electronic circuit containing transistors and other components formed together on semiconductor material.",
+        "electronics chip semiconductor"
+      ],
+      [
+        "A1031",
+        "JAPAN",
+        "East Asian island nation with a constitutional monarchy and a highly developed industrial economy.",
+        "asia tokyo geography economy"
+      ],
+      [
+        "A1032",
+        "LASER",
+        "Device producing a narrow, coherent beam through stimulated emission of electromagnetic radiation.",
+        "physics optics technology"
+      ],
+      [
+        "A1033",
+        "MEXICO",
+        "Federal republic south of the United States with a cultural heritage drawing on Indigenous and Spanish traditions.",
+        "geography mexico city history"
+      ],
+      [
+        "A1034",
+        "MOON",
+        "Earth's natural satellite, orbiting at an average distance of about 384,400 kilometers and influencing ocean tides.",
+        "astronomy space lunar"
+      ],
+      [
+        "A1035",
+        "NORTH ATLANTIC TREATY ORGANIZATION",
+        "Defensive alliance formed in 1949 by the United States, Canada, and Western European nations.",
+        "nato defense europe"
+      ],
+      [
+        "A1036",
+        "OCEAN",
+        "Continuous body of salt water covering most of Earth and divided conventionally into major ocean basins.",
+        "geography marine science"
+      ],
+      [
+        "A1037",
+        "PHOTOGRAPHY",
+        "Production of durable images by recording light on sensitized film or electronic imaging devices.",
+        "camera film art science"
+      ],
+      [
+        "A1038",
+        "PLATE TECTONICS",
+        "Theory that Earth's outer shell consists of moving plates responsible for many earthquakes, volcanoes, and mountain ranges.",
+        "geology earth continents"
+      ],
+      [
+        "A1039",
+        "RADAR",
+        "System using reflected radio waves to determine the direction, distance, or speed of objects.",
+        "radio aviation detection"
+      ],
+      [
+        "A1040",
+        "RADIO",
+        "Transmission and reception of information using electromagnetic waves, including broadcasting and two-way communication.",
+        "communications broadcasting electronics"
+      ],
+      [
+        "A1041",
+        "RENAISSANCE",
+        "Period of European cultural and intellectual renewal conventionally associated with the fourteenth through sixteenth centuries.",
+        "history art europe"
+      ],
+      [
+        "A1042",
+        "ROBOTICS",
+        "Engineering field concerned with programmable machines capable of sensing and performing physical tasks.",
+        "automation computer engineering"
+      ],
+      [
+        "A1043",
+        "SOVIET UNION",
+        "Federal socialist state spanning eastern Europe and northern Asia, composed of fifteen union republics in 1988.",
+        "ussr moscow history geography"
+      ],
+      [
+        "A1044",
+        "TELEPHONE",
+        "System converting sound into electrical signals for transmission between distant locations through switched networks.",
+        "communications voice network"
+      ],
+      [
+        "A1045",
+        "TELEVISION",
+        "Transmission and display of moving images and sound using radio-frequency, cable, or related electronic systems.",
+        "broadcasting video communications"
+      ],
+      [
+        "A1046",
+        "TRANSISTOR",
+        "Semiconductor device used to amplify or switch electrical signals and a basic element of modern electronic circuits.",
+        "electronics semiconductor computer"
+      ],
+      [
+        "A1047",
+        "UNITED KINGDOM",
+        "State comprising England, Scotland, Wales, and Northern Ireland, governed as a constitutional monarchy.",
+        "britain london europe"
+      ],
+      [
+        "A1048",
+        "VIETNAM WAR",
+        "Conflict involving North and South Vietnam and international forces, ending with reunification in 1975.",
+        "history asia conflict"
+      ],
+      [
+        "A1049",
+        "WORLD WAR I",
+        "Global conflict of 1914-1918 centered in Europe and involving the Allied and Central Powers.",
+        "history war europe"
+      ],
+      [
+        "A1050",
+        "WORLD WAR II",
+        "Global conflict of 1939-1945 between the Axis powers and Allies, transforming international politics and society.",
+        "history war europe pacific"
+      ]
+    ]
+  },
+  "medical": {
+    "title": "MEDICAL INFORMATION",
+    "records": [
+      [
+        "M2001",
+        "COMMON COLD",
+        "Viral upper-respiratory infection commonly causing congestion, sore throat, and cough. Antibiotics do not treat viruses. Persistent or severe symptoms require professional evaluation.",
+        "respiratory virus cough congestion"
+      ],
+      [
+        "M2002",
+        "INFLUENZA",
+        "Acute viral respiratory illness often accompanied by fever, aches, and fatigue. Vaccination recommendations vary by age and risk group.",
+        "flu fever vaccine respiratory"
+      ],
+      [
+        "M2003",
+        "HYPERTENSION",
+        "Persistently elevated blood pressure can increase the risk of heart, kidney, and vascular disease. Diagnosis requires properly performed repeated measurements.",
+        "blood pressure cardiovascular"
+      ],
+      [
+        "M2004",
+        "DIABETES MELLITUS",
+        "Group of disorders characterized by impaired regulation of blood glucose. Management may include diet, monitoring, medication, and insulin under medical supervision.",
+        "glucose insulin metabolism"
+      ],
+      [
+        "M2005",
+        "FIRST AID - BURNS",
+        "Cool a minor thermal burn with clean cool water and protect it with a sterile covering. Extensive, deep, electrical, or facial burns require prompt emergency care.",
+        "injury emergency skin"
+      ],
+      [
+        "M2006",
+        "FIRST AID - BLEEDING",
+        "Apply direct pressure with clean material. Severe or uncontrolled bleeding is an emergency requiring immediate professional assistance.",
+        "injury emergency wound"
+      ],
+      [
+        "M2007",
+        "DEHYDRATION",
+        "Loss of water and salts may follow heat, illness, or inadequate intake. Confusion, faintness, or inability to retain fluids warrants prompt medical care.",
+        "water heat fluids"
+      ],
+      [
+        "M2008",
+        "ALLERGIC REACTION",
+        "Allergies range from localized irritation to a rapid life-threatening reaction. Breathing difficulty or collapse requires emergency assistance.",
+        "allergy anaphylaxis immune"
+      ],
+      [
+        "M2009",
+        "CHOLESTEROL",
+        "Waxy substance transported in blood lipoproteins and used by the body. Elevated levels of some fractions are associated with cardiovascular risk.",
+        "heart lipid blood"
+      ],
+      [
+        "M2010",
+        "ANTIBIOTICS",
+        "Medicines used against susceptible bacteria. They do not cure viral infections, and selection and duration should be directed by a clinician.",
+        "medicine bacteria infection"
+      ],
+      [
+        "M2011",
+        "MAGNETIC RESONANCE IMAGING",
+        "Diagnostic technique using magnetic fields and radio-frequency signals to construct images without ionizing x-rays.",
+        "mri diagnosis imaging"
+      ],
+      [
+        "M2012",
+        "POISON INFORMATION",
+        "Suspected poisoning requires immediate advice from a poison-control center or emergency service. Do not induce vomiting unless specifically instructed.",
+        "toxin emergency first aid"
+      ],
+      [
+        "M2013",
+        "ABDOMINAL PAIN",
+        "Abdominal discomfort has many possible causes. Severe, persistent, localized, or accompanied symptoms require professional assessment.",
+        "stomach pain emergency"
+      ],
+      [
+        "M2014",
+        "ANEMIA",
+        "Condition in which blood has reduced oxygen-carrying capacity, commonly associated with low hemoglobin or red-cell abnormalities.",
+        "blood iron fatigue"
+      ],
+      [
+        "M2015",
+        "APPENDICITIS",
+        "Inflammation of the appendix may cause increasing abdominal pain, nausea, and fever and requires urgent medical evaluation.",
+        "abdomen emergency surgery"
+      ],
+      [
+        "M2016",
+        "ARTHRITIS",
+        "General term for joint inflammation or degeneration causing pain, stiffness, swelling, or reduced movement.",
+        "joint pain rheumatology"
+      ],
+      [
+        "M2017",
+        "ASTHMA",
+        "Condition involving episodic narrowing and inflammation of airways, often producing wheezing, cough, and shortness of breath.",
+        "lungs breathing allergy"
+      ],
+      [
+        "M2018",
+        "BACK PAIN",
+        "Back pain may arise from muscle strain, joints, discs, nerves, or other disease; weakness or bladder changes require urgent care.",
+        "spine muscle nerve"
+      ],
+      [
+        "M2019",
+        "BRONCHITIS",
+        "Inflammation of bronchial airways commonly causing cough and mucus production; causes may be infectious or irritant-related.",
+        "lungs cough respiratory"
+      ],
+      [
+        "M2020",
+        "CATARACT",
+        "Clouding of the eye's lens that can progressively reduce vision and may be treated surgically.",
+        "eye vision lens"
+      ],
+      [
+        "M2021",
+        "CHICKENPOX",
+        "Contagious viral illness characterized by fever and an itchy blistering rash, particularly common in children in 1988.",
+        "virus rash childhood"
+      ],
+      [
+        "M2022",
+        "CONCUSSION",
+        "Brain injury after a blow or rapid movement; confusion, repeated vomiting, worsening headache, or unconsciousness requires emergency attention.",
+        "head injury emergency"
+      ],
+      [
+        "M2023",
+        "CORONARY ARTERY DISEASE",
+        "Narrowing of arteries supplying the heart may produce angina or heart attack and is associated with several modifiable risks.",
+        "heart circulation chest pain"
+      ],
+      [
+        "M2024",
+        "DERMATITIS",
+        "Inflammation of skin producing redness, itching, scaling, or blisters, with allergic, irritant, and other possible causes.",
+        "skin rash allergy"
+      ],
+      [
+        "M2025",
+        "EAR INFECTION",
+        "Infection or inflammation of the outer or middle ear may cause pain, fever, drainage, or temporary hearing difficulty.",
+        "ear pain hearing"
+      ],
+      [
+        "M2026",
+        "EPILEPSY",
+        "Disorder characterized by recurrent seizures resulting from abnormal electrical activity in the brain.",
+        "brain seizure neurology"
+      ],
+      [
+        "M2027",
+        "FEVER",
+        "Elevated body temperature is commonly a response to infection; very high, persistent, or concerning fever requires medical advice.",
+        "temperature infection illness"
+      ],
+      [
+        "M2028",
+        "FRACTURE",
+        "Broken bone may cause pain, swelling, deformity, or loss of function and should be immobilized pending professional care.",
+        "bone injury emergency"
+      ],
+      [
+        "M2029",
+        "GLAUCOMA",
+        "Group of eye diseases capable of damaging the optic nerve, sometimes associated with elevated pressure inside the eye.",
+        "eye pressure vision"
+      ],
+      [
+        "M2030",
+        "HEADACHE",
+        "Headache has many causes; sudden severe pain or pain with neurological symptoms, fever, or injury needs prompt evaluation.",
+        "pain migraine brain"
+      ],
+      [
+        "M2031",
+        "HEART ATTACK",
+        "Loss of blood supply damaging heart muscle may cause chest pressure, sweating, nausea, or breathlessness and is an emergency.",
+        "cardiac chest emergency"
+      ],
+      [
+        "M2032",
+        "HEPATITIS",
+        "Inflammation of the liver caused by viruses, toxins, medicines, or other disorders and sometimes producing jaundice.",
+        "liver virus jaundice"
+      ],
+      [
+        "M2033",
+        "IMMUNIZATION",
+        "Administration of a vaccine to stimulate protection against a particular infectious disease.",
+        "vaccine prevention infection"
+      ],
+      [
+        "M2034",
+        "KIDNEY STONES",
+        "Hard mineral deposits in the urinary tract may cause intense flank pain, nausea, or blood in urine.",
+        "urinary pain renal"
+      ],
+      [
+        "M2035",
+        "MEASLES",
+        "Highly contagious viral disease causing fever, cough, and widespread rash; complications can be serious.",
+        "virus rash childhood vaccine"
+      ],
+      [
+        "M2036",
+        "MIGRAINE",
+        "Recurring neurological disorder often producing throbbing headache, nausea, and sensitivity to light or sound.",
+        "headache neurology pain"
+      ],
+      [
+        "M2037",
+        "PNEUMONIA",
+        "Infection or inflammation of lung tissue that may cause fever, cough, chest discomfort, and difficult breathing.",
+        "lungs infection respiratory"
+      ],
+      [
+        "M2038",
+        "SPRAIN",
+        "Injury to ligaments surrounding a joint, often causing pain, swelling, and reduced movement.",
+        "joint ligament injury"
+      ],
+      [
+        "M2039",
+        "STROKE",
+        "Interruption of brain blood supply or bleeding may cause sudden weakness, speech difficulty, or vision change and is an emergency.",
+        "brain circulation emergency"
+      ],
+      [
+        "M2040",
+        "SUNBURN",
+        "Skin injury from ultraviolet radiation; extensive blistering, fever, or dehydration warrants medical attention.",
+        "skin sun ultraviolet"
+      ],
+      [
+        "M2041",
+        "TETANUS",
+        "Serious nervous-system illness caused by toxin-producing bacteria entering wounds and preventable through immunization.",
+        "wound bacteria vaccine"
+      ],
+      [
+        "M2042",
+        "THYROID GLAND",
+        "Neck gland producing hormones that influence metabolism, growth, temperature regulation, and other functions.",
+        "hormone endocrine metabolism"
+      ],
+      [
+        "M2043",
+        "TONSILLITIS",
+        "Inflammation of the tonsils commonly producing sore throat and painful swallowing, with viral or bacterial causes.",
+        "throat infection"
+      ],
+      [
+        "M2044",
+        "TUBERCULOSIS",
+        "Infectious disease caused by Mycobacterium tuberculosis, usually affecting lungs and requiring prolonged combination treatment.",
+        "lungs bacteria infection"
+      ],
+      [
+        "M2045",
+        "ULCER",
+        "Break in skin or mucosal tissue; peptic ulcers affect the stomach or duodenum and may cause pain or bleeding.",
+        "stomach digestive bleeding"
+      ],
+      [
+        "M2046",
+        "URINARY TRACT INFECTION",
+        "Microbial infection of urinary structures may cause burning, frequency, urgency, fever, or flank pain.",
+        "urine kidney bacteria"
+      ],
+      [
+        "M2047",
+        "VARICELLA",
+        "Medical name for chickenpox, a contagious viral infection marked by successive crops of itchy blisters.",
+        "virus chickenpox rash"
+      ],
+      [
+        "M2048",
+        "VISION SCREENING",
+        "Tests of visual acuity and eye function can identify refractive errors and signs needing comprehensive examination.",
+        "eye glasses prevention"
+      ],
+      [
+        "M2049",
+        "WOUND CARE",
+        "Minor wounds should be cleaned and protected; deep, contaminated, bitten, or poorly healing wounds need medical evaluation.",
+        "injury skin infection"
+      ],
+      [
+        "M2050",
+        "X-RAY IMAGING",
+        "Diagnostic use of penetrating ionizing radiation to form images, especially of bones, lungs, and certain internal structures.",
+        "radiology diagnosis imaging"
+      ]
+    ]
+  },
+  "science": {
+    "title": "SCIENCE AND TECHNOLOGY INDEX",
+    "records": [
+      [
+        "S3001",
+        "HIGH-TEMPERATURE SUPERCONDUCTORS",
+        "Index record: ceramic transition-temperature research; materials preparation, critical current, and magnetic behavior.",
+        "physics ceramics superconductivity journal 1988"
+      ],
+      [
+        "S3002",
+        "80386 PROTECTED-MODE SOFTWARE",
+        "Index record: operating-system design for 32-bit microprocessors; memory protection and virtual addressing.",
+        "computer architecture intel operating systems"
+      ],
+      [
+        "S3003",
+        "ANTARCTIC OZONE MEASUREMENTS",
+        "Index record: seasonal ozone depletion, atmospheric chlorine chemistry, and satellite observations.",
+        "atmosphere environment ozone antarctica"
+      ],
+      [
+        "S3004",
+        "PHOBOS SPACECRAFT INSTRUMENTATION",
+        "Index record: imaging, plasma, and surface experiments aboard Soviet Mars probes.",
+        "space mars soviet astronomy"
+      ],
+      [
+        "S3005",
+        "LIM EXPANDED MEMORY",
+        "Index record: page-frame methods for providing bank-switched memory to DOS applications.",
+        "computer dos ems memory"
+      ],
+      [
+        "S3006",
+        "SCSI PERIPHERAL INTERFACE",
+        "Index record: command architecture and device connection for disks, scanners, and other peripherals.",
+        "computer interface storage standard"
+      ],
+      [
+        "S3007",
+        "PACKET-RADIO ERROR CONTROL",
+        "Index record: amateur packet framing, checksums, retransmission, and channel utilization.",
+        "radio communications ax25 data"
+      ],
+      [
+        "S3008",
+        "HUMAN GENOME MAPPING",
+        "Index record: linkage maps, sequencing proposals, data coordination, and ethical considerations.",
+        "genetics biology medicine"
+      ],
+      [
+        "S3009",
+        "CLIMATE MODEL SENSITIVITY",
+        "Index record: computer simulations of carbon-dioxide forcing, oceans, clouds, and temperature response.",
+        "climate computing atmosphere"
+      ],
+      [
+        "S3010",
+        "OPTICAL DISC DATABASE STORAGE",
+        "Index record: CD-ROM mastering, error correction, retrieval performance, and publishing applications.",
+        "computer optical cd-rom database"
+      ],
+      [
+        "S3011",
+        "RISC PROCESSOR DESIGN",
+        "Index record: instruction-set simplification, pipelines, compiler optimization, and workstation performance.",
+        "computer cpu architecture"
+      ],
+      [
+        "S3012",
+        "DEEP-SEA HYDROTHERMAL COMMUNITIES",
+        "Index record: chemosynthesis, vent geology, and biological adaptation without sunlight.",
+        "ocean biology geology"
+      ],
+      [
+        "S3013",
+        "ACOUSTIC MODEM PERFORMANCE",
+        "Index record: telephone-line noise, modulation techniques, error correction, and achievable data rates.",
+        "communications modem engineering"
+      ],
+      [
+        "S3014",
+        "ARTIFICIAL INTELLIGENCE EXPERT SYSTEMS",
+        "Index record: knowledge representation, rule-based inference, and specialized decision-support applications.",
+        "computer ai software"
+      ],
+      [
+        "S3015",
+        "BATTERY TECHNOLOGY FOR PORTABLE COMPUTERS",
+        "Index record: nickel-cadmium cells, charging behavior, capacity, and portable-system power management.",
+        "electronics battery laptop"
+      ],
+      [
+        "S3016",
+        "BIOTECHNOLOGY FERMENTATION CONTROL",
+        "Index record: sensors, process control, and biological production in industrial fermenters.",
+        "biology industry engineering"
+      ],
+      [
+        "S3017",
+        "CERAMIC ENGINE COMPONENTS",
+        "Index record: high-temperature strength, fracture behavior, and experimental engine applications.",
+        "materials automotive engineering"
+      ],
+      [
+        "S3018",
+        "COMPUTER VIRUS DETECTION",
+        "Index record: executable-file infection, integrity checking, access control, and recovery practices.",
+        "computer security software"
+      ],
+      [
+        "S3019",
+        "DATABASE QUERY OPTIMIZATION",
+        "Index record: indexes, join ordering, access paths, and relational database performance.",
+        "computer database software"
+      ],
+      [
+        "S3020",
+        "DIGITAL SIGNAL PROCESSING",
+        "Index record: sampled signals, filtering, transforms, and specialized processor architecture.",
+        "electronics mathematics audio"
+      ],
+      [
+        "S3021",
+        "EARTHQUAKE HAZARD MAPPING",
+        "Index record: fault history, ground motion, soil response, and regional risk estimation.",
+        "geology seismology safety"
+      ],
+      [
+        "S3022",
+        "FIBER-OPTIC COMMUNICATIONS",
+        "Index record: light sources, glass fibers, detectors, losses, and high-capacity transmission systems.",
+        "optics communications engineering"
+      ],
+      [
+        "S3023",
+        "FRACTAL IMAGE ANALYSIS",
+        "Index record: scale-dependent geometry and applications to natural forms and image characterization.",
+        "mathematics computer graphics"
+      ],
+      [
+        "S3024",
+        "GLOBAL POSITIONING SYSTEM TESTS",
+        "Index record: satellite navigation signals, receiver accuracy, timing, and military field evaluation.",
+        "space navigation electronics"
+      ],
+      [
+        "S3025",
+        "GRAPHICAL USER INTERFACE DESIGN",
+        "Index record: windows, icons, pointing devices, menus, and usability in personal-computer software.",
+        "computer software interface"
+      ],
+      [
+        "S3026",
+        "HARD-DISK ERROR CORRECTION",
+        "Index record: sector encoding, checksums, bad-block management, and controller recovery.",
+        "computer storage disk"
+      ],
+      [
+        "S3027",
+        "HIGH-DEFINITION TELEVISION RESEARCH",
+        "Index record: scanning standards, bandwidth, digital processing, and experimental receivers.",
+        "television video electronics"
+      ],
+      [
+        "S3028",
+        "INDUSTRIAL ROBOT VISION",
+        "Index record: cameras, illumination, feature recognition, and automated part handling.",
+        "robotics manufacturing computer"
+      ],
+      [
+        "S3029",
+        "INTEGRATED SERVICES DIGITAL NETWORK",
+        "Index record: digital subscriber loops, signaling, voice and data channels, and network trials.",
+        "isdn telephone communications"
+      ],
+      [
+        "S3030",
+        "LASER PRINTER IMAGING",
+        "Index record: raster processing, electrophotographic printing, fonts, and page-description languages.",
+        "computer printer optics"
+      ],
+      [
+        "S3031",
+        "LOCAL-AREA NETWORK PROTOCOLS",
+        "Index record: Ethernet, token passing, cabling, collision control, and file-server performance.",
+        "computer networking data"
+      ],
+      [
+        "S3032",
+        "MAGNETIC STORAGE MATERIALS",
+        "Index record: coating composition, coercivity, recording density, and media durability.",
+        "computer disk materials"
+      ],
+      [
+        "S3033",
+        "NEURAL NETWORK MODELS",
+        "Index record: interconnected processing units, learning algorithms, and pattern-recognition experiments.",
+        "computer ai mathematics"
+      ],
+      [
+        "S3034",
+        "NUCLEAR MAGNETIC RESONANCE SPECTROSCOPY",
+        "Index record: molecular structure studied through magnetic behavior of atomic nuclei.",
+        "chemistry physics analysis"
+      ],
+      [
+        "S3035",
+        "OCEAN CIRCULATION MODELS",
+        "Index record: currents, heat transport, wind forcing, and numerical simulation of ocean basins.",
+        "ocean climate computer"
+      ],
+      [
+        "S3036",
+        "PARALLEL COMPUTER ARCHITECTURE",
+        "Index record: multiple processors, shared and distributed memory, synchronization, and performance.",
+        "computer cpu engineering"
+      ],
+      [
+        "S3037",
+        "PHOTOVOLTAIC CELL EFFICIENCY",
+        "Index record: semiconductor solar cells, conversion losses, materials, and manufacturing methods.",
+        "energy solar electronics"
+      ],
+      [
+        "S3038",
+        "PORTABLE COMPUTER DISPLAY SYSTEMS",
+        "Index record: liquid-crystal displays, backlighting, response time, power use, and readability.",
+        "laptop lcd electronics"
+      ],
+      [
+        "S3039",
+        "RELATIONAL DATABASE STANDARDS",
+        "Index record: structured query languages, data definition, portability, and vendor implementation.",
+        "sql computer database"
+      ],
+      [
+        "S3040",
+        "REMOTE SENSING OF CROPS",
+        "Index record: satellite imagery, spectral response, crop condition, and yield estimation.",
+        "agriculture space imaging"
+      ],
+      [
+        "S3041",
+        "ROBOTIC SPACECRAFT NAVIGATION",
+        "Index record: star sensors, gyroscopes, radio tracking, trajectory correction, and autonomous control.",
+        "space robotics navigation"
+      ],
+      [
+        "S3042",
+        "SEMICONDUCTOR FABRICATION",
+        "Index record: photolithography, diffusion, implantation, deposition, and integrated-circuit yield.",
+        "electronics chip manufacturing"
+      ],
+      [
+        "S3043",
+        "SOFTWARE RELIABILITY TESTING",
+        "Index record: test design, code coverage, fault classification, and defect measurement.",
+        "computer software engineering"
+      ],
+      [
+        "S3044",
+        "SONAR SIGNAL PROCESSING",
+        "Index record: underwater acoustic transmission, reflection, beam forming, and target detection.",
+        "ocean acoustics electronics"
+      ],
+      [
+        "S3045",
+        "SPEECH RECOGNITION SYSTEMS",
+        "Index record: acoustic features, vocabularies, speaker dependence, and real-time processing limits.",
+        "computer audio ai"
+      ],
+      [
+        "S3046",
+        "SUPERCOMPUTER FLUID DYNAMICS",
+        "Index record: numerical simulation of turbulent flow using vector and parallel computation.",
+        "computer physics engineering"
+      ],
+      [
+        "S3047",
+        "TELESCOPIC ACTIVE OPTICS",
+        "Index record: mirror support, wavefront measurement, and correction in large astronomical telescopes.",
+        "astronomy optics engineering"
+      ],
+      [
+        "S3048",
+        "UNIX WORKSTATION NETWORKING",
+        "Index record: TCP/IP, network file systems, electronic mail, and distributed technical computing.",
+        "computer unix network"
+      ],
+      [
+        "S3049",
+        "VLSI DESIGN AUTOMATION",
+        "Index record: computer-aided layout, circuit simulation, design rules, and very-large-scale integration.",
+        "electronics computer chip"
+      ],
+      [
+        "S3050",
+        "WEATHER RADAR PROCESSING",
+        "Index record: precipitation echoes, Doppler velocity, clutter removal, and severe-storm observation.",
+        "weather radar computer"
+      ]
+    ]
+  },
+  "library": {
+    "title": "ELECTRONIC LIBRARY",
+    "records": [
+      [
+        "L4001",
+        "UNDERSTANDING MODEM RESULT CODES",
+        "A practical guide to OK, CONNECT, BUSY, NO CARRIER, and NO DIALTONE responses, with suggestions for checking dialing commands and telephone connections.",
+        "modem communications hayes guide"
+      ],
+      [
+        "L4002",
+        "CONFIG.SYS CHECKLIST",
+        "Keep a bootable diskette, record the original file, change one driver at a time, and verify available conventional memory after every restart.",
+        "dos memory driver autoexec"
+      ],
+      [
+        "L4003",
+        "SERIAL PORT ASSIGNMENTS",
+        "IBM-compatible systems commonly use IRQ 4 for COM1 and IRQ 3 for COM2. Additional ports or devices may conflict unless adapters are reconfigured.",
+        "irq com1 com2 mouse modem"
+      ],
+      [
+        "L4004",
+        "CHOOSING DISKETTES",
+        "Match diskette density to the drive, protect media from magnets and heat, label it clearly, and retain more than one backup copy.",
+        "floppy storage backup media"
+      ],
+      [
+        "L4005",
+        "INTRODUCTION TO PACKET RADIO",
+        "A terminal-node controller assembles characters into checked packets for transmission over amateur-radio channels.",
+        "ham tnc communications"
+      ],
+      [
+        "L4006",
+        "MULTIFINDER MEMORY NOTES",
+        "Assign realistic application partitions, limit unnecessary startup documents, and retain enough free memory for the System and temporary allocations.",
+        "macintosh mac memory"
+      ],
+      [
+        "L4007",
+        "VGA AND EGA COMPATIBILITY",
+        "Confirm monitor timing, adapter switches, application modes, and available drivers before replacing a working display configuration.",
+        "video monitor computer"
+      ],
+      [
+        "L4008",
+        "ONLINE SESSION ECONOMY",
+        "Prepare searches offline, capture long results, use GO commands, and schedule large transfers during lower-rate hours.",
+        "compuserve charges capture download"
+      ],
+      [
+        "L4009",
+        "SHAREWARE BASICS",
+        "Shareware may be copied for evaluation under the author's stated terms. Continued use generally calls for registration and payment.",
+        "software registration public domain"
+      ],
+      [
+        "L4010",
+        "BACKUP BEFORE REPAIR",
+        "Copy irreplaceable files before running diagnostics or changing disk-controller parameters. Verify that backup media can be read.",
+        "disk safety recovery"
+      ],
+      [
+        "L4011",
+        "READING A WEATHER WIRE",
+        "Reports commonly state temperature, conditions, wind direction and speed, and a short forecast. Local conditions can change rapidly.",
+        "weather travel forecast"
+      ],
+      [
+        "L4012",
+        "USING FORUM DATA LIBRARIES",
+        "Browse descriptions before downloading, note the file number and size, select a supported transfer protocol, and read accompanying documentation.",
+        "forum library download files"
+      ],
+      [
+        "L4013",
+        "AUTOEXEC.BAT PRACTICES",
+        "Keep startup commands readable, document resident programs, and test changes one line at a time.",
+        "dos startup memory"
+      ],
+      [
+        "L4014",
+        "BASIC TELEPHONE-LINE TESTS",
+        "Remove extension devices, listen for noise, try another cord, and compare local and long-distance calls before blaming a modem.",
+        "modem telephone communications"
+      ],
+      [
+        "L4015",
+        "CAPTURE FILE MANAGEMENT",
+        "Name captures by service and date, review them offline, and remove control characters before printing.",
+        "compuserve terminal files"
+      ],
+      [
+        "L4016",
+        "CGA EGA VGA SUMMARY",
+        "CGA, EGA, and VGA provide different resolutions, colors, monitor requirements, and compatibility modes.",
+        "display video monitor"
+      ],
+      [
+        "L4017",
+        "CHOOSING A 2400-BAUD MODEM",
+        "Compare command compatibility, error control, indicator lights, documentation, warranty, and serial-cable requirements.",
+        "modem shopping communications"
+      ],
+      [
+        "L4018",
+        "COMPUTER CLUB MEETING GUIDE",
+        "Publish an agenda, arrange demonstrations, exchange public-domain files, and leave time for member questions.",
+        "club community software"
+      ],
+      [
+        "L4019",
+        "DOS DIRECTORY HOUSEKEEPING",
+        "Group applications logically, remove obsolete temporary files, and keep recovery copies before reorganizing disks.",
+        "dos disk files"
+      ],
+      [
+        "L4020",
+        "DOT-MATRIX PRINTER CARE",
+        "Keep the paper path clean, replace worn ribbons, verify tractor alignment, and run the printer self-test.",
+        "printer maintenance hardware"
+      ],
+      [
+        "L4021",
+        "EASYplex ADDRESS BOOK NOTES",
+        "Store frequently used numeric User IDs under recognizable names and verify the resolved recipient before sending.",
+        "mail compuserve user id"
+      ],
+      [
+        "L4022",
+        "EGA MONITOR CHECKLIST",
+        "Confirm switch settings, cable type, monitor compatibility, and software mode before operating a replacement adapter.",
+        "ega video display"
+      ],
+      [
+        "L4023",
+        "FILE TRANSFER TROUBLESHOOTING",
+        "Match protocols at both ends, disable unwanted flow control, and verify that no terminal program translates binary data.",
+        "download xmodem protocol"
+      ],
+      [
+        "L4024",
+        "FLOPPY DISK RECOVERY PRECAUTIONS",
+        "Stop writing to a damaged diskette, make a sector copy when possible, and work only on the duplicate.",
+        "disk recovery backup"
+      ],
+      [
+        "L4025",
+        "FORUM MESSAGE ETIQUETTE",
+        "Use descriptive subjects, quote only necessary lines, identify equipment clearly, and report the final solution.",
+        "forum messages community"
+      ],
+      [
+        "L4026",
+        "HARD-DISK BACKUP ROTATION",
+        "Maintain several dated backup sets and keep at least one copy away from the computer.",
+        "disk backup safety"
+      ],
+      [
+        "L4027",
+        "HAYES COMMAND QUICK LIST",
+        "AT tests attention, ATZ resets, ATDT dials by tone, ATH hangs up, and ATS0 controls automatic answer.",
+        "modem hayes commands"
+      ],
+      [
+        "L4028",
+        "IBM PC INTERRUPT GUIDE",
+        "Common assignments include IRQ 3 for COM2, IRQ 4 for COM1, IRQ 6 for floppy control, and IRQ 7 for printing.",
+        "irq computer serial"
+      ],
+      [
+        "L4029",
+        "INTRODUCTION TO CD-ROM",
+        "CD-ROM distributes large read-only collections; access requires a compatible drive, interface, and retrieval software.",
+        "optical database storage"
+      ],
+      [
+        "L4030",
+        "LAPTOP BATTERY CARE",
+        "Follow charging instructions, avoid unnecessary backlighting, and carry saved work before battery voltage becomes low.",
+        "portable battery computer"
+      ],
+      [
+        "L4031",
+        "LOTUS WORKSHEET SAFETY",
+        "Save alternate versions, verify formulas after copying ranges, and print critical totals for comparison.",
+        "spreadsheet lotus software"
+      ],
+      [
+        "L4032",
+        "MACINTOSH DISK MAINTENANCE",
+        "Keep a startup disk, allow desktop rebuilding to finish, and retain separate copies of valuable documents.",
+        "macintosh disk backup"
+      ],
+      [
+        "L4033",
+        "MODEM FLOW CONTROL",
+        "Software and hardware flow control prevent buffer overflow, but both endpoints must use compatible settings.",
+        "modem serial communications"
+      ],
+      [
+        "L4034",
+        "NEWS WIRE SEARCH TIPS",
+        "Search distinctive names or technical terms, note dates and sources, and distinguish current from period editions.",
+        "news reference search"
+      ],
+      [
+        "L4035",
+        "OFF-PEAK SESSION PLANNING",
+        "Compose mail offline, prepare GO destinations, and reserve large downloads for lower-rate hours.",
+        "compuserve charges economy"
+      ],
+      [
+        "L4036",
+        "PACKET STATION CHECKLIST",
+        "Verify radio audio levels, TNC mode, call sign, serial speed, and a known-good terminal cable.",
+        "ham radio tnc"
+      ],
+      [
+        "L4037",
+        "PASSWORD PRACTICES",
+        "Choose a non-obvious password, do not share it, and avoid leaving it in terminal command files.",
+        "security account computer"
+      ],
+      [
+        "L4038",
+        "PHOTOGRAPHIC FILM STORAGE",
+        "Protect unexposed and processed film from heat, moisture, chemical fumes, scratches, and prolonged bright light.",
+        "photography film archive"
+      ],
+      [
+        "L4039",
+        "PRINTER DRIVER SELECTION",
+        "Choose the exact model when available or a documented compatible emulation, then test plain text before graphics.",
+        "printer software hardware"
+      ],
+      [
+        "L4040",
+        "PUBLIC-DOMAIN AND SHAREWARE FILES",
+        "Read distribution terms, scan accompanying documentation, and register shareware that remains in use.",
+        "software library download"
+      ],
+      [
+        "L4041",
+        "RS-232 SIGNAL SUMMARY",
+        "Transmit, receive, ground, request-to-send, clear-to-send, carrier-detect, and terminal-ready signals coordinate serial devices.",
+        "serial modem cable"
+      ],
+      [
+        "L4042",
+        "SAFE BIOS CONFIGURATION",
+        "Record current settings and jumper positions before changes, and keep a bootable diagnostic diskette available.",
+        "bios computer repair"
+      ],
+      [
+        "L4043",
+        "SCSI DEVICE PLANNING",
+        "Assign unique device numbers, terminate both ends of the bus, and use suitable cable lengths and connectors.",
+        "scsi disk computer"
+      ],
+      [
+        "L4044",
+        "SURGE AND POWER PROTECTION",
+        "Use correctly rated protective equipment, preserve ventilation, and shut down before electrical work.",
+        "computer safety electricity"
+      ],
+      [
+        "L4045",
+        "TERMINAL EMULATION BASICS",
+        "Match columns, character format, control sequences, duplex, and flow control to the host service.",
+        "terminal modem settings"
+      ],
+      [
+        "L4046",
+        "TEXT FILE CONVERSION",
+        "Preserve an original copy and account for line endings, tab widths, character sets, and printer control codes.",
+        "files ascii software"
+      ],
+      [
+        "L4047",
+        "UPLOADING TO A DATA LIBRARY",
+        "Select the proper library, provide an accurate description, state distribution terms, and await SysOp review.",
+        "forum upload files"
+      ],
+      [
+        "L4048",
+        "VIRUS PRECAUTIONS",
+        "Obtain software from known sources, retain write-protected originals, and investigate unexpected file changes.",
+        "computer security software"
+      ],
+      [
+        "L4049",
+        "WEATHER AND PHONE LINES",
+        "Moisture, damaged cables, and storms may add noise; compare conditions and report persistent trouble to the telephone company.",
+        "modem weather telephone"
+      ],
+      [
+        "L4050",
+        "WORD PROCESSOR FILE BACKUPS",
+        "Save dated copies before conversion or major editing and verify that backup documents reopen correctly.",
+        "wordperfect software files"
+      ]
+    ]
+  }
+}

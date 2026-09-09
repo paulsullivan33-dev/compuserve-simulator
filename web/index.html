@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classic CompuServe Terminal</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <main class="terminal-shell" aria-label="Classic CompuServe terminal">
+    <header class="terminal-bar">
+      <div>
+        <span class="brand">CompuServe</span>
+        <span class="subtitle">Information Service</span>
+      </div>
+      <div class="controls">
+        <label for="theme">Phosphor</label>
+        <select id="theme" aria-label="Terminal color">
+          <option value="amber">Amber</option>
+          <option value="green">Green</option>
+          <option value="white">White</option>
+        </select>
+        <label class="history-option" title="Store non-password commands in this browser">
+          <input id="remember-history" type="checkbox">
+          Remember commands
+        </label>
+        <button id="reconnect" type="button">Reconnect</button>
+        <button class="quick-command" data-command="T" type="button">Top</button>
+        <button class="quick-command" data-command="M" type="button">Menu</button>
+        <button class="quick-command" data-command="OFF" type="button">Off</button>
+        <button id="save-text" type="button" title="Save selected terminal text, or this session's transcript">Save text</button>
+      </div>
+    </header>
+
+    <section class="screen-frame">
+      <div class="screen-glow" aria-hidden="true"></div>
+      <pre id="screen" class="screen" role="log" aria-live="polite" aria-label="Terminal output"></pre>
+      <form id="command-form" class="command-row" autocomplete="off">
+        <span aria-hidden="true">›</span>
+        <input id="command" type="text" maxlength="4096" autofocus
+               aria-label="Terminal input" autocapitalize="off" spellcheck="false">
+      </form>
+    </section>
+
+    <section id="downloads-panel" class="downloads-panel" aria-label="Files ready to save" hidden>
+      <span>Files ready — click a filename if your download did not start. Links remain available for one hour after disconnect.</span>
+      <ul id="download-list"></ul>
+    </section>
+    <footer>
+      <span id="connection-state">DISCONNECTED</span>
+      <span>↑↓ HISTORY · CTRL-A/E · ESC CLEAR · 1988 SIMULATION</span>
+    </footer>
+  </main>
+  <script src="/assets/terminal.js"></script>
+</body>
+</html>
