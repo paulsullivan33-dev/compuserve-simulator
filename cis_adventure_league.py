@@ -1,4 +1,5 @@
 """Persistent, period-style Online Adventure League."""
+from cis_session import read_input as input
 
 import random
 

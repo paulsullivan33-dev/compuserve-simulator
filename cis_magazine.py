@@ -1,4 +1,5 @@
 """Original weekly magazine, released according to the simulation calendar."""
+from cis_session import read_input as input
 
 from datetime import date
 import json

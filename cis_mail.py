@@ -1,4 +1,5 @@
 """EasyPlex mail service, isolated from terminal navigation."""
+from cis_session import read_input as input
 
 import re
 

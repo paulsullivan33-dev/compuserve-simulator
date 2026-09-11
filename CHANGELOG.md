@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Expanded Online Weekly from 25 to 50 articles across its five December issues.
+  Every original article is more than twice its previous length; all articles
+  exceed 400 words, with over 24,000 words of article text in the collection.
+- Added practical 1988 coverage of DOS memory, modems, backups, HyperCard,
+  graphics standards, mail merge, shareware, BASIC, spreadsheets, MIDI,
+  desktop publishing, Apple II learning, BBS culture, databases, and networking.
+- Preserved issue dates and original article IDs for existing reading history.
+  Verified tenth-article selection, publication gating, service links, and full
+  ASCII exports at terminal-friendly widths.
+
+- GO and G commands now work at nested service prompts, including readers,
+  forms, line editing, CB, and the post-login briefing. Navigation exits the
+  current prompt without submitting its input; saved composition drafts remain.
+- Unknown GO destinations re-prompt. Password input remains literal and adventure
+  directions such as GO NORTH retain their local meaning.
+
+- Replaced repeated daily forum filler with six original discussions. Four
+  follow-ups per discussion deliver suggestions, test results, and resolutions
+  after 2, 4, 8, and 24 simulated hours. Each discussion opens once per installation.
+- Added an interactive first-call tour under User Information option 10, with
+  real mailbox, forum, library, and activity stops and saved visit markers.
+  Service representatives remain available through the tour's A command.
+
 ## 1.16.0
 
 - Added the PHONES host directory with 199 searchable cities, historical access

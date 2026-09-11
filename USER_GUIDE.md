@@ -7,6 +7,32 @@ are used descriptively. All charges, orders, reservations, quotations, transfers
 premium transactions are fictional. The News service intentionally displays current
 headlines through a period-style interface.
 
+## Your first call
+
+After sign-in, enter `GO service` or `G service` at any service prompt, including
+message readers, forms, the line editor, and CB. For example, `GO MAIL`, `GO NEWS`,
+and `GO TOP` leave the current interaction and open the requested destination.
+`GO BACK`, `GO RECENT`, page addresses, and unambiguous abbreviations also work.
+An unknown destination leaves you at the same prompt. A jump does not submit the
+unfinished form; existing EasyPlex and forum draft autosaves retain text already
+entered. Password fields read literal passwords. In adventure games, movement
+commands such as `GO NORTH` still move within the game.
+
+Choose **User Information**, then **10: Guided Tour and Service Representatives**.
+Select stops 1 through 4 to open EasyPlex, the IBM Hardware Forum, its libraries,
+and the Activity Center. Each stop explains the commands before opening the service.
+Use M through the service menus to return to the tour. Signed-in members retain
+VISITED markers between calls; these indicate opened stops, not completed tasks.
+Choose A to ask a TRAVEL, FINANCE, or STORE representative a question, or M to exit.
+
+Six original forum discussions unfold with replies after 2, 4, 8, and 24 simulated
+hours. Read competing suggestions, the original poster's test result, and a closing
+summary. One new discussion opens per simulation date until all six have appeared;
+they are not recycled. Existing threads and scheduled replies remain available.
+Watch a thread with W from its message actions and use GO NEW on a later call to
+look for unread follow-ups. Delivery depends on the simulation clock and event
+processing, so a reply need not appear immediately after reading the first post.
+
 ## Starting the simulation
 
 On Windows, run `start_compuserve.cmd`. You can also run `compuserve.py` with Python.
@@ -214,7 +240,8 @@ on December 15 the latest issue is *Small Programs, Real Evenings*. Earlier issu
 remain available as back issues. This is authored simulation content, not an
 archived CompuServe publication or a live news subscription.
 
-Each issue has five articles. Departments include editorials, hardware comparisons,
+Each issue has ten articles (50 total), each at least 400 words. All 25 original
+articles have more than doubled in length. Departments include editorials, hardware comparisons,
 workshops, game reviews, reader letters, and club projects. The issue list shows
 how many articles you have read. Choose an issue number or ID, `L` for the latest
 issue, or `S words` to search published articles. Global `FIND words` also indexes

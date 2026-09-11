@@ -1,4 +1,5 @@
 """Persistent cross-service story cases for the December 1988 simulation."""
+from cis_session import read_input as input
 
 CASE_ID = "CHIP-88"
 TITLE = "The Vanishing Chip Shipment"

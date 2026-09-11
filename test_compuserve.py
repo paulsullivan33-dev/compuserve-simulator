@@ -42,16 +42,91 @@ from cis_terminal import wrap_terminal_text
 from cis_session import SessionState
 
 
+class FirstCallContentTests(unittest.TestCase):
+    def test_arc_delivers_linked_resolution_once_without_member_mail(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(compuserve, 'forum_threads', {}), patch.dict('os.environ', {'CIS_SIMULATION_DATE': '1988-12-15', 'CIS_SIMULATION_TIME': '12:00'}):
+            self.assertTrue(cis_dynamic.ensure_forum_activity(compuserve))
+            self.assertFalse(cis_dynamic.ensure_forum_activity(compuserve))
+            state = cis_dynamic.load_state(compuserve)
+            events = state['events']
+            self.assertEqual(len(events), 4)
+            self.assertEqual([e['due_tick'] - events[0]['due_tick'] for e in events], [0, 120, 360, 1320])
+            self.assertFalse(cis_dynamic.process_events(compuserve))
+            for event in events:
+                event['due_tick'] = 0
+            cis_dynamic.save_state(compuserve, state)
+            self.assertTrue(cis_dynamic.process_events(compuserve))
+            self.assertFalse(cis_dynamic.process_events(compuserve))
+            messages = next(iter(compuserve.forum_threads.values()))
+            self.assertEqual(len(messages), 5)
+            self.assertTrue(all(m['parent_id'] == messages[0]['id'] for m in messages[1:]))
+            self.assertIn('Test result:', messages[3]['body'])
+            self.assertIn('Resolved', messages[4]['body'])
+            self.assertEqual(compuserve.load_json('easyplex.json', default=[]), [])
+
+    def test_arcs_do_not_repeat_after_catalog_is_exhausted(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(compuserve, 'forum_threads', {}):
+            for day in range(1, len(cis_dynamic.FORUM_ARCS) + 2):
+                with patch.dict('os.environ', {'CIS_SIMULATION_DATE': f'1988-12-{day:02}', 'CIS_SIMULATION_TIME': '12:00'}):
+                    self.assertEqual(cis_dynamic.ensure_forum_activity(compuserve), day <= len(cis_dynamic.FORUM_ARCS))
+            subjects = [m['subject'] for group in compuserve.forum_threads.values() for m in group]
+            self.assertEqual(len(subjects), len(cis_dynamic.FORUM_ARCS))
+            self.assertEqual(len(set(subjects)), len(subjects))
+
+    def test_tour_routes_to_services_and_remembers_only_visited_stops(self):
+        with patch.object(compuserve, 'current_user_id', 'TOUR'), patch.object(compuserve, 'current_profile', {}), patch.object(compuserve, 'save_profiles') as save, patch.object(compuserve, 'clear'), patch.object(compuserve, 'header_bar'), patch.object(compuserve, 'ansi_scroll'), patch.object(compuserve, 'text_page'), patch.object(compuserve, 'mail_read') as mail, patch.object(compuserve, 'forum_service') as forum, patch.object(compuserve, 'forum_libraries') as library, patch.object(compuserve, 'activity_center') as activity, patch('builtins.input', side_effect=['bad', '2', '3', '4', 'M', '2', 'M']):
+            cis_experience.guided_tour(compuserve)
+            cis_experience.guided_tour(compuserve)
+            self.assertEqual(compuserve.current_profile['tour_visited'], ['2', '3', '4'])
+            self.assertEqual(save.call_count, 3)
+            mail.assert_not_called()
+            self.assertEqual(forum.call_count, 2)
+            library.assert_called_once_with('ibmhw')
+            activity.assert_called_once_with()
+
+
 class MagazineTests(unittest.TestCase):
+    def test_tenth_article_is_selectable_and_new_topics_are_date_gated(self):
+        from datetime import date
+        issue = cis_magazine.ISSUES[0]
+        with patch.object(compuserve, 'current_profile', {}), patch.object(compuserve, 'clear'), patch.object(compuserve, 'header_bar'), patch.object(compuserve, 'ansi_scroll'), patch.object(cis_magazine, 'read_article') as reader, patch('builtins.input', side_effect=['10', 'M']):
+            cis_magazine.issue_menu(compuserve, issue)
+            reader.assert_called_once_with(compuserve, issue, 9)
+        self.assertTrue(cis_magazine.search('HyperCard', date(1988, 12, 1)))
+        self.assertFalse(cis_magazine.search('multiuser', date(1988, 12, 22)))
+        self.assertTrue(cis_magazine.search('multiuser', date(1988, 12, 29)))
+
+    def test_expanded_issues_export_every_paragraph_and_use_valid_service_links(self):
+        import re
+        from datetime import date
+        with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(cis_dynamic, 'simulation_day', return_value=date(1988, 12, 31)):
+            for issue in cis_magazine.ISSUES:
+                with self.subTest(issue=issue['id']):
+                    path = cis_magazine.export_issue(compuserve, issue)
+                    raw = path.read_bytes()
+                    text = raw.decode('ascii')
+                    flattened = ' '.join(text.split())
+                    self.assertTrue(all(len(line) <= 72 for line in text.splitlines()))
+                    self.assertNotIn(b'\n', raw.replace(b'\r\n', b''))
+                    for article in issue['articles']:
+                        for paragraph in article['paragraphs']:
+                            self.assertIn(' '.join(paragraph.split()), flattened)
+                        for link in article.get('related', []):
+                            for destination in re.findall(r'GO ([A-Z0-9]+)', link):
+                                self.assertIsNotNone(compuserve.resolve_go_destination(destination), link)
+                        for width in (40, 80):
+                            lines = [line for paragraph in cis_magazine.article_lines(issue, article) for line in wrap_terminal_text(paragraph, width)]
+                            self.assertTrue(all(len(line) <= width for line in lines))
+
     def test_issues_are_complete_unique_and_follow_the_calendar(self):
         from datetime import date
         self.assertEqual(len(cis_magazine.ISSUES), 5)
         identifiers = []
         for issue in cis_magazine.ISSUES:
-            self.assertEqual(len(issue['articles']), 5)
+            self.assertEqual(len(issue['articles']), 10)
             for article in issue['articles']:
                 identifiers.append(article['id'])
-                self.assertGreater(len(' '.join(article['paragraphs']).split()), 100)
+                self.assertGreaterEqual(len(' '.join(article['paragraphs']).split()), 400)
                 ' '.join(article['paragraphs']).encode('ascii')
         self.assertEqual(len(identifiers), len(set(identifiers)))
         self.assertEqual(cis_magazine.available(date(1988, 11, 30)), [])
@@ -257,6 +332,36 @@ class PhoneDirectoryTests(unittest.TestCase):
 
 
 class NavigationTests(unittest.TestCase):
+    def test_go_unwinds_nested_forum_and_mail_prompts(self):
+        state = SessionState()
+        with patch.object(compuserve, 'session_state', state), patch.object(compuserve, 'clear'), patch.object(compuserve, 'ansi_scroll'), patch.object(compuserve, 'show_screen'), patch.object(compuserve, 'show_logout_summary'), patch.object(compuserve, 'load_mail', return_value=[]), patch('builtins.input', side_effect=['GO IBMHW', '1', 'g mail', '2', 'GO TOP', 'OFF']):
+            compuserve.navigate()
+        self.assertEqual(state.navigation_stack, ['main'])
+
+    def test_go_leaves_mail_draft_without_sending(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(compuserve, 'session_state', SessionState()), patch.object(compuserve, 'current_user_id', '70000,0001'), patch.object(compuserve, 'profiles', {'70000,0002': {}}), patch.object(compuserve, 'current_profile', {}), patch.object(compuserve, 'clear'), patch.object(compuserve, 'ansi_scroll'), patch.object(compuserve, 'show_screen'), patch.object(compuserve, 'show_logout_summary'), patch('builtins.input', side_effect=['GO MAIL', '2', '70000,0002', 'Draft test', 'Keep this line', 'GO TOP', 'OFF']):
+            compuserve.navigate()
+            draft = cis_drafts.get_draft(compuserve, 'mail')
+            self.assertEqual(draft['lines'], ['Keep this line'])
+            self.assertEqual(compuserve.load_json('easyplex.json', default=[]), [])
+
+    def test_unknown_go_reprompts_and_game_directions_stay_local(self):
+        from cis_session import read_input, navigation_prompts, GoNavigation
+        with navigation_prompts(compuserve), patch.object(compuserve, 'ansi_scroll') as emit, patch('builtins.input', side_effect=['GO NONEXISTENT', 'ordinary text', 'GO NORTH', 'GO NEWS']):
+            self.assertEqual(read_input('Field: '), 'ordinary text')
+            self.assertTrue(emit.called)
+            self.assertEqual(read_input('? ', local_go=('NORTH',)), 'GO NORTH')
+            with self.assertRaises(GoNavigation):
+                read_input('? ', local_go=('NORTH',))
+        with patch('builtins.input', return_value='GO MAIL'):
+            self.assertEqual(read_input('Outside service session: '), 'GO MAIL')
+
+    def test_go_from_magazine_reader_to_another_direct_service(self):
+        state = SessionState()
+        with patch.object(compuserve, 'session_state', state), patch.object(compuserve, 'current_profile', {}), patch.object(compuserve, 'save_profiles'), patch.object(compuserve, 'clear'), patch.object(compuserve, 'ansi_scroll'), patch.object(compuserve, 'show_screen'), patch.object(compuserve, 'show_logout_summary'), patch.object(cis_discovery, 'activity_items', return_value=[]), patch.dict('os.environ', {'CIS_SIMULATION_DATE': '1988-12-15'}), patch('builtins.input', side_effect=['GO MAGAZINE', 'L', '1', 'GO NEW', 'GO TOP', 'OFF']):
+            compuserve.navigate()
+        self.assertEqual(state.navigation_stack, ['main'])
+
     def test_top_announcements_appear_once_per_session(self):
         state = SessionState()
         with patch.object(compuserve, 'session_state', state), patch.object(compuserve, 'current_user_id', '70000,0001'), patch.object(compuserve, 'clear'), patch.object(compuserve, 'ansi_scroll') as emit, patch.object(compuserve, 'mail_waiting_count', return_value=3) as mail_count, patch.object(cis_dynamic, 'announcements', return_value=['3 EasyPlex messages', 'Other member information']) as announcements:

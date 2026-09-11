@@ -971,22 +971,65 @@ def manage_content(app, command):
     return "Commands: ANN text, NOTE Handle text, or M."
 
 
+FORUM_ARCS = [
+    ("ibmhw_tech", "DataDave", "Serial mouse freezes during a modem call",
+     "The mouse works until my second serial board starts receiving. I wrote down the board settings before changing anything. What should I compare?",
+     [("DiskDoctor", "Compare the interrupt assignments in both board manuals. Two ports can have different addresses and still share an interrupt."),
+      ("ModemMan", "A driver conflict could also explain it. Try the mouse alone, then the modem alone, using the same boot disk."),
+      ("DataDave", "Test result: both worked alone. The board notes showed a shared interrupt; after selecting a supported separate assignment, they worked together."),
+      ("DiskDoctor", "Resolved for Dave's two boards. Keep the working settings with the manuals; another adapter may offer different assignments.")]),
+    ("gamers_general", "ByteBender", "Docking practice: my last move is always too late",
+     "In DOCK64 I keep saving fuel until the last turn and arriving too fast. Can someone offer a hint without giving me a complete sequence?",
+     [("AmigaAce", "Watch downward speed as well as altitude. Start slowing while there is still room to observe another turn."),
+      ("AtariKid", "Try two runs from the same start and change only the first thrust choice. Write down altitude, speed, and fuel."),
+      ("ByteBender", "Test result: earlier braking left less fuel but a slower final approach. I landed on the next run without copying a move list."),
+      ("AtariKid", "Solved with a method, not a secret code. Post your own landing report, but label exact move sequences as spoilers.")]),
+    ("hamnet_general", "HamHank", "Packet station receives but my terminal shows rubbish",
+     "The TNC receive lamp flashes, but the terminal text is unreadable. Is tonight's band condition to blame?",
+     [("PacketPete", "First try a local TNC command. If that is unreadable too, investigate the terminal link before the radio path."),
+      ("DialTone", "Check the cable as another possibility. Record the terminal settings before substituting anything."),
+      ("HamHank", "Test result: local commands were garbled too. My saved terminal setup used a different serial rate from the TNC. Matching them restored readable text."),
+      ("PacketPete", "Resolved on the local link. HamHank saved a named terminal setup; propagation was unrelated to this particular fault.")]),
+    ("ibmhw_tech", "WordPro", "Club letter starts halfway down the second sheet",
+     "My two-page club letter has a huge gap on page two. The printer self-test looks normal. Where would you start?",
+     [("PrintShop", "Print a short new document with the same driver. That separates saved document settings from the printer setup."),
+      ("LaserLarry", "Compare page length and top margin too. Keep the original letter so you can undo each experiment."),
+      ("WordPro", "Test result: the new document printed correctly. The old letter contained extra blank lines before a manual page break. Removing those fixed page two."),
+      ("PrintShop", "Resolved in the document. We left the driver alone and saved a clean club-letter template for next month.")]),
+    ("gamers_general", "MegaMolly", "Adventure maps: how do you mark a one-way exit?",
+     "My paper map assumes every passage has a return route. Now I have two rooms with the same description and no idea which is which.",
+     [("ByteBender", "Number rooms as you discover them. Draw arrows for exits you actually tested, rather than assuming a reverse passage."),
+      ("NightOwl", "Record an object or another distinguishing detail beside each room. Similar descriptions need not mean the same location."),
+      ("MegaMolly", "Test result: the rooms had different objects. Numbering them and marking the one-way passage untangled the map without a walkthrough."),
+      ("ByteBender", "Resolved. Molly's blank map key is worth copying: room number, distinguishing detail, and tested exit arrows. Keep story revelations out of the subject line.")]),
+    ("ibmhw_tech", "FloppyFran", "Which copy of the club address list is current?",
+     "Two diskettes have different address lists with the same filename. I do not want to overwrite either. How can the club settle this?",
+     [("LotusLeaf", "Preserve both copies and compare their contents against the secretary's correction sheet. A newer timestamp alone is not proof."),
+      ("DataDave", "Check a few known changes first, then work through all differences. The machine clock may not have been set correctly."),
+      ("FloppyFran", "Test result: each copy had one correction the other lacked. We reconciled both against the paper sheet and saved a third file."),
+      ("LotusLeaf", "Resolved by reconciliation. The club now records a revision number and editor in the file, while retaining the previous approved copy.")]),
+]
+
+
 def ensure_forum_activity(app):
     marker = simulation_day().isoformat()
     metadata = app.load_json("dynamic_state.json", default={})
     if metadata.get("forum_day") == marker:
         return False
-    templates = [
-        ("ibmhw_tech", "IRQ conflict with serial board", "My second serial adapter conflicts with the mouse. Which IRQ arrangement has worked for you?"),
-        ("gamers_general", "Weekend high scores", "Post your best scores and the machine version you played."),
-        ("hamnet_general", "Evening propagation report", "Ten meters was quiet here, but twenty opened shortly after sunset."),
-    ]
-    section, subject, body = rng("forum-activity").choice(templates)
+    used = set(metadata.get("forum_arcs_seen", []))
+    remaining = [index for index in range(len(FORUM_ARCS)) if index not in used]
+    if not remaining:
+        metadata["forum_day"] = marker
+        app.save_json_atomic("dynamic_state.json", metadata)
+        return False
+    selected = rng("forum-activity").choice(remaining)
+    section, author, subject, body, replies = FORUM_ARCS[selected]
     ids = [m.get("id", 0) for messages in app.forum_threads.values() for m in messages]
-    author = rng("forum-author").choice(HANDLES)
     app.forum_threads.setdefault(section, []).append({"id": max(ids, default=1000) + 1, "date": simulation_day().strftime("%m/%d/%y"), "author": author, "author_user_id": "SIMULATED", "subject": subject, "body": body})
     app.save_json_atomic("forums.json", app.forum_threads)
     metadata["forum_day"] = marker
+    metadata["forum_arcs_seen"] = sorted(used | {selected})
     app.save_json_atomic("dynamic_state.json", metadata)
-    schedule_event(app, "forum_reply", {"section": section, "message_id": max(ids, default=1000) + 1, "author": rng("reply-author").choice([h for h in HANDLES if h != author]), "body": "I have seen the same thing here. I will check my notes and post the settings that worked."}, simulation_datetime() + timedelta(hours=2))
+    for hours, (sender, reply) in zip((2, 4, 8, 24), replies):
+        schedule_event(app, "forum_reply", {"section": section, "message_id": max(ids, default=1000) + 1, "author": sender, "body": reply}, simulation_datetime() + timedelta(hours=hours))
     return True

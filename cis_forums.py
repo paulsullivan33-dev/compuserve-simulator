@@ -1,4 +1,5 @@
 """Forum message persistence and authorization rules."""
+from cis_session import read_input as input
 
 
 def post(app, section_key, subject, body, parent_id=None):

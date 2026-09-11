@@ -1,3 +1,4 @@
+from cis_session import read_input as input
 import time
 import random
 import sys
@@ -12,7 +13,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from cis_security import hash_password, verify_password
 from cis_migrations import CURRENT_SCHEMA_VERSION, migrate_data
-from cis_session import SessionState
+from cis_session import SessionState, GoNavigation, navigation_prompts
 from cis_settings import PRESETS, apply_preset, merged_settings
 from cis_storage import (
     MUTABLE_DATA_FILES,
@@ -182,6 +183,8 @@ def cis_prompt(context="command"):
 
 
 def header_bar(screen_key):
+    global go_prompt_screen
+    go_prompt_screen = screen_key
     page = page_names.get(screen_key, "")
     ansi_scroll(header_line("CompuServe", page, SCREEN_WIDTH), 0.01)
 
@@ -451,7 +454,8 @@ def modem_dial_in():
 def password_input(prompt="Password: "):
     """Read a secret from the console or the web terminal's masked input."""
     if os.environ.get("CIS_WEB_TERMINAL") == "1" or os.environ.get("CIS_REMOTE_TERMINAL") == "1":
-        return input(prompt)
+        import builtins
+        return builtins.input(prompt)
     return getpass.getpass(prompt)
 
 
@@ -1571,11 +1575,7 @@ def customer_support(choice):
     elif choice == "9":
         text_page("support", "MEMBER ACHIEVEMENTS", [*cis_experience.achievement_lines(sys.modules[__name__]), "", *cis_experience.session_cost_lines(sys.modules[__name__])])
     elif choice == "10":
-        text_page("support", "GUIDED FIRST-CALL TOUR", ["1  EasyPlex receives confirmations and representative replies.", "2  Forums and CB connect you with recurring simulated members.", "3  News and Reference supply period information and research packets.", "4  Business offers fictional quotations and a market simulation.", "5  Travel builds itineraries; Shopping tracks catalog orders.", "6  Games, Calendar, Notebook, Downloads, and Profile preserve progress.", "", "Use GO TOP, GO PROFILE, GO NEW, FIND words, or HELP from any menu."])
-        department = input("Ask representative [TRAVEL/FINANCE/STORE] or RETURN: ").strip().upper()
-        if department:
-            question = input("Question: ").strip()
-            ansi_scroll(cis_experience.request_representative(sys.modules[__name__], department, question), 0.01)
+        cis_experience.guided_tour(sys.modules[__name__])
     elif choice == "11":
         text_page("support", "MEMBER USAGE STATEMENT", cis_billing.statement_lines(sys.modules[__name__]))
         if input("D to download statement, or RETURN ! ").strip().upper() == "D":
@@ -2250,7 +2250,7 @@ def adventure_game():
 
     describe()
     while True:
-        command = input("? ").strip().upper()
+        command = input("? ", local_go=("NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN")).strip().upper()
         if command in ("M", "QUIT"):
             return
         moves += 1
@@ -3035,225 +3035,245 @@ def choose_recent_destination():
     return None
 
 
-def navigate():
+def navigate(show_briefing=False):
+    with navigation_prompts(sys.modules[__name__]):
+        initial_go = None
+        if show_briefing:
+            try:
+                today_in_1988_dashboard()
+            except GoNavigation as jump:
+                initial_go = jump.command
+        _navigate(initial_go)
+
+
+def _navigate(initial_go=None):
     session_state.reset_navigation()
     session_state.last_choices.clear()
     stack = session_state.navigation_stack
     last_choice_by_screen = session_state.last_choices
 
+    pending_go = initial_go
     while True:
-        current = stack[-1]
-        if current in ("ibmhw_lib1", "ibmhw_lib2", "ibmhw_lib3", "ibmhw_lib4") or current in cis_communities.LIBRARIES.values():
-            library_download_screen(current)
-            stack.pop()
-            continue
-        show_screen(current)
-        #choice = input("Select option or type GO command: ").strip()
-        choice = input(cis_prompt("main") + " ").strip()
-        command = choice.upper()
-
-        if command == "READ HISTORY":
-            timeline_service()
-            continue
-        if command in ("READ NEW", "READ ACTIVITY"):
-            activity_center()
-            continue
-        if command == "READ WEATHER":
-            live_weather_service()
-            continue
-
-        if command in ("OFF", "BYE"):
-            show_logout_summary()
-            break
-
-        if command in ("CAPTURE ON", "CAP ON"):
-            set_capture(True)
-            continue
-        if command in ("CAPTURE OFF", "CAP OFF"):
-            set_capture(False)
-            continue
-        if command == "BACKUP":
-            archive = create_data_backup()
-            ansi_scroll(f"Backup complete: {archive.name}", 0.01)
-            continue
-        if command == "RESTORE":
-            if input("Restore newest backup [Y/N]? ").strip().upper() == "Y":
-                archive = restore_latest_backup()
-                ansi_scroll(
-                    f"Restored {archive.name}. Restart to reload data."
-                    if archive else "No backup is available.",
-                    0.01,
-                )
-            continue
-        if command == "VERSION":
-            version_screen()
-            continue
-        if command == "STATUS":
-            status_screen()
-            continue
-        if command in ("DIAG", "DIAGNOSTICS"):
-            diagnostics_screen()
-            continue
-
-        if command in ("T", "TOP", "GO TOP", "G TOP"):
-            session_state.reset_navigation()
-            stack = session_state.navigation_stack
-            continue
-
-        if command in ("GO BACK", "G BACK"):
-            if session_state.go_back() is None:
-                ansi_scroll("Already at the top menu.", 0.01)
-            continue
-
-        if command in ("GO RECENT", "G RECENT"):
-            target = choose_recent_destination()
-            if target:
-                open_go_destination(target, stack)
-            continue
-
-        if command in ("H", "HELP", "?", "GO COMMAND", "G COMMAND"):
-            command_help(context=current)
-            continue
-
-        if command.startswith("HELP "):
-            command_help(choice[5:], current)
-            continue
-
-        if command == "COMMANDS":
-            command_help(context=current, commands_only=True)
-            continue
-
-        if command.startswith("FIND "):
-            results = cis_discovery.search(sys.modules[__name__], choice[5:])
-            text_page("command", "SERVICE SEARCH", [f"{index:>2} {result}" for index, result in enumerate(results, 1)])
-            selection = input("Result number to open, or RETURN ! ").strip()
-            if selection.isdigit() and 1 <= int(selection) <= len(results):
-                cis_discovery.open_result(sys.modules[__name__], results[int(selection) - 1])
-            continue
-
-        if command.startswith("NOTE "):
-            parts = choice[5:].split("|", 1)
-            title, body = (parts[0], parts[1]) if len(parts) == 2 else ("MEMBER NOTE", parts[0])
-            ansi_scroll(cis_experience.add_note(sys.modules[__name__], title, body, current.upper()), 0.01)
-            continue
-
-        if command == "R":
-            continue
-
-        if command in ("F", "B"):
-            ansi_scroll("No forward page." if command == "F" else "No previous page.", 0.01)
-            continue
-
-        if command in ("N", "P"):
-            option_keys = list(screens[current]["options"])
-            previous = last_choice_by_screen.get(current)
-            index = option_keys.index(previous) if previous in option_keys else -1
-            index += 1 if command == "N" else -1
-            if 0 <= index < len(option_keys):
-                choice = option_keys[index]
-                command = choice
+        try:
+            current = stack[-1]
+            global go_prompt_screen
+            go_prompt_screen = current
+            if pending_go is not None:
+                choice, pending_go = pending_go, None
             else:
-                ansi_scroll("No next selection." if command == "N" else "No previous selection.", 0.01)
+                if current in ("ibmhw_lib1", "ibmhw_lib2", "ibmhw_lib3", "ibmhw_lib4") or current in cis_communities.LIBRARIES.values():
+                    library_download_screen(current)
+                    stack.pop()
+                    continue
+                show_screen(current)
+                #choice = input("Select option or type GO command: ").strip()
+                choice = input(cis_prompt("main") + " ").strip()
+            command = choice.upper()
+
+            if command == "READ HISTORY":
+                timeline_service()
+                continue
+            if command in ("READ NEW", "READ ACTIVITY"):
+                activity_center()
+                continue
+            if command == "READ WEATHER":
+                live_weather_service()
                 continue
 
-        if command.startswith("S ") and command[2:].strip() in screens[current]["options"]:
-            choice = command[2:].strip()
-            command = choice
-
-        if command == "M" or choice == "0" or command in ("EXIT", "QUIT", "/EXIT"):
-            if len(stack) > 1:
-                stack.pop()
-            else:
+            if command in ("OFF", "BYE"):
                 show_logout_summary()
                 break
-            continue
 
-        if command.startswith("GO ") or command.startswith("G "):
-            destination = command.split(maxsplit=1)[1]
-            target = resolve_go_destination(destination, current)
-            if not open_go_destination(target, stack):
-                ansi_scroll("\nUnknown GO command.\n", 0.01)
-                time.sleep(0.3)
-            continue
+            if command in ("CAPTURE ON", "CAP ON"):
+                set_capture(True)
+                continue
+            if command in ("CAPTURE OFF", "CAP OFF"):
+                set_capture(False)
+                continue
+            if command == "BACKUP":
+                archive = create_data_backup()
+                ansi_scroll(f"Backup complete: {archive.name}", 0.01)
+                continue
+            if command == "RESTORE":
+                if input("Restore newest backup [Y/N]? ").strip().upper() == "Y":
+                    archive = restore_latest_backup()
+                    ansi_scroll(
+                        f"Restored {archive.name}. Restart to reload data."
+                        if archive else "No backup is available.",
+                        0.01,
+                    )
+                continue
+            if command == "VERSION":
+                version_screen()
+                continue
+            if command == "STATUS":
+                status_screen()
+                continue
+            if command in ("DIAG", "DIAGNOSTICS"):
+                diagnostics_screen()
+                continue
+
+            if command in ("T", "TOP", "GO TOP", "G TOP"):
+                session_state.reset_navigation()
+                stack = session_state.navigation_stack
+                continue
+
+            if command in ("GO BACK", "G BACK"):
+                if session_state.go_back() is None:
+                    ansi_scroll("Already at the top menu.", 0.01)
+                continue
+
+            if command in ("GO RECENT", "G RECENT"):
+                target = choose_recent_destination()
+                if target:
+                    open_go_destination(target, stack)
+                continue
+
+            if command in ("H", "HELP", "?", "GO COMMAND", "G COMMAND"):
+                command_help(context=current)
+                continue
+
+            if command.startswith("HELP "):
+                command_help(choice[5:], current)
+                continue
+
+            if command == "COMMANDS":
+                command_help(context=current, commands_only=True)
+                continue
+
+            if command.startswith("FIND "):
+                results = cis_discovery.search(sys.modules[__name__], choice[5:])
+                text_page("command", "SERVICE SEARCH", [f"{index:>2} {result}" for index, result in enumerate(results, 1)])
+                selection = input("Result number to open, or RETURN ! ").strip()
+                if selection.isdigit() and 1 <= int(selection) <= len(results):
+                    cis_discovery.open_result(sys.modules[__name__], results[int(selection) - 1])
+                continue
+
+            if command.startswith("NOTE "):
+                parts = choice[5:].split("|", 1)
+                title, body = (parts[0], parts[1]) if len(parts) == 2 else ("MEMBER NOTE", parts[0])
+                ansi_scroll(cis_experience.add_note(sys.modules[__name__], title, body, current.upper()), 0.01)
+                continue
+
+            if command == "R":
+                continue
+
+            if command in ("F", "B"):
+                ansi_scroll("No forward page." if command == "F" else "No previous page.", 0.01)
+                continue
+
+            if command in ("N", "P"):
+                option_keys = list(screens[current]["options"])
+                previous = last_choice_by_screen.get(current)
+                index = option_keys.index(previous) if previous in option_keys else -1
+                index += 1 if command == "N" else -1
+                if 0 <= index < len(option_keys):
+                    choice = option_keys[index]
+                    command = choice
+                else:
+                    ansi_scroll("No next selection." if command == "N" else "No previous selection.", 0.01)
+                    continue
+
+            if command.startswith("S ") and command[2:].strip() in screens[current]["options"]:
+                choice = command[2:].strip()
+                command = choice
+
+            if command == "M" or choice == "0" or command in ("EXIT", "QUIT", "/EXIT"):
+                if len(stack) > 1:
+                    stack.pop()
+                else:
+                    show_logout_summary()
+                    break
+                continue
+
+            if command.startswith("GO ") or command.startswith("G "):
+                destination = command.split(maxsplit=1)[1]
+                target = resolve_go_destination(destination, current)
+                if not open_go_destination(target, stack):
+                    ansi_scroll("\nUnknown GO command.\n", 0.01)
+                    time.sleep(0.3)
+                continue
 
 
-        if choice in screens[current]["options"]:
-            last_choice_by_screen[current] = choice
+            if choice in screens[current]["options"]:
+                last_choice_by_screen[current] = choice
 
-        if current == "forums" and choice in FORUM_CHOICES:
-            forum_id = FORUM_CHOICES[choice]
-            session_state.remember_destination(forum_id)
-            forum_service(forum_id)
-            continue
+            if current == "forums" and choice in FORUM_CHOICES:
+                forum_id = FORUM_CHOICES[choice]
+                session_state.remember_destination(forum_id)
+                forum_service(forum_id)
+                continue
 
-        if current == "mail" and choice in ("1", "2", "3", "4"):
-            mail_service(choice)
-            continue
+            if current == "mail" and choice in ("1", "2", "3", "4"):
+                mail_service(choice)
+                continue
 
-        if current == "cb" and choice in ["1", "2", "3"]:
-            cb_chat(choice)
-            continue
+            if current == "cb" and choice in ["1", "2", "3"]:
+                cb_chat(choice)
+                continue
 
-        if current == "cb" and choice == "5":
-            cb_help()
-            continue
+            if current == "cb" and choice == "5":
+                cb_help()
+                continue
 
-        if current == "cb" and choice == "6":
-            cb_channel_directory()
-            continue
+            if current == "cb" and choice == "6":
+                cb_channel_directory()
+                continue
 
-        if current == "cb" and choice == "4":
-            cb_private_messages()
-            continue
+            if current == "cb" and choice == "4":
+                cb_private_messages()
+                continue
 
-        if current == "news" and choice in ("1", "2", "3", "4"):
-            category = {
-                "1": "World", "2": "Business", "3": "Technology", "4": "Science"
-            }[choice]
-            news_section(category)
-            continue
+            if current == "news" and choice in ("1", "2", "3", "4"):
+                category = {
+                    "1": "World", "2": "Business", "3": "Technology", "4": "Science"
+                }[choice]
+                news_section(category)
+                continue
 
-        if current == "news" and choice == "5":
-            period_news_edition()
-            continue
+            if current == "news" and choice == "5":
+                period_news_edition()
+                continue
 
-        if current == "news" and choice == "6":
-            refresh_current_news()
-            continue
-        if current == 'news' and choice == '7':
-            cis_magazine.service(sys.modules[__name__])
-            continue
+            if current == "news" and choice == "6":
+                refresh_current_news()
+                continue
+            if current == 'news' and choice == '7':
+                cis_magazine.service(sys.modules[__name__])
+                continue
 
-        if current == "support" and choice in screens["support"]["options"]:
-            customer_support(choice)
-            continue
+            if current == "support" and choice in screens["support"]["options"]:
+                customer_support(choice)
+                continue
 
-        service_handlers = {
-            "finance": finance_service, "travel": travel_service,
-            "reference": reference_service, "shopping": shopping_service,
-            "games": games_service,
-        }
-        if current in service_handlers and choice in screens[current]["options"]:
-            service_handlers[current](choice)
-            continue
+            service_handlers = {
+                "finance": finance_service, "travel": travel_service,
+                "reference": reference_service, "shopping": shopping_service,
+                "games": games_service,
+            }
+            if current in service_handlers and choice in screens[current]["options"]:
+                service_handlers[current](choice)
+                continue
 
-        selected_label = screens[current]["options"].get(choice, "")
-        if selected_label.startswith("$"):
-            premium_service(selected_label)
-            continue
+            selected_label = screens[current]["options"].get(choice, "")
+            if selected_label.startswith("$"):
+                premium_service(selected_label)
+                continue
 
-        options = screens[current]["options"]
-        if choice in options:
-            target = OPTION_TARGETS.get(current, {}).get(choice)
-            if target in screens:
-                stack.append(target)
-                session_state.remember_destination(target)
+            options = screens[current]["options"]
+            if choice in options:
+                target = OPTION_TARGETS.get(current, {}).get(choice)
+                if target in screens:
+                    stack.append(target)
+                    session_state.remember_destination(target)
+                else:
+                    ansi_scroll("\nScreen exists but is not implemented yet.\n", 0.01)
+                    time.sleep(0.3)
             else:
-                ansi_scroll("\nScreen exists but is not implemented yet.\n", 0.01)
+                ansi_scroll("Huh", 0.01)
                 time.sleep(0.3)
-        else:
-            ansi_scroll("Huh", 0.01)
-            time.sleep(0.3)
+        except GoNavigation as jump:
+            pending_go = jump.command
 
 # --- Run Program -------------------------------------------------------------
 
@@ -3269,8 +3289,7 @@ def main():
         create_data_backup()
         if startup_options["refresh_news"]:
             refresh_current_news()
-        today_in_1988_dashboard()
-        navigate()
+        navigate(show_briefing=True)
     finally:
         unregister_session(BASE_DIR, live_session_id)
     return 0

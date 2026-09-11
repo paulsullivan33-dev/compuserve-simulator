@@ -1,4 +1,5 @@
 """Account creation, password management, and authentication."""
+from cis_session import read_input as input
 
 
 def load_profile(app, user_id):

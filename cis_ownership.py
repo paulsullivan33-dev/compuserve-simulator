@@ -1,4 +1,5 @@
 """Persistent ownership and after-sale support for fictional catalog products."""
+from cis_session import read_input as input
 
 
 def receive_order(app, order):

@@ -1,4 +1,5 @@
 """Seven-day forum and Data Library shareware release arc."""
+from cis_session import read_input as input
 
 
 ARC_ID = "TERMLINK-88"

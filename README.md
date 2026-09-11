@@ -1,33 +1,10 @@
-# CompuServe Simulator
+# Classic CompuServe Simulation
 
 An independent historical simulation of the text-mode CompuServe Information
 Service circa 1988. See [USER_GUIDE.md](USER_GUIDE.md) for the player guide and
 [ARCHITECTURE.md](ARCHITECTURE.md) for implementation notes.
 
-## Linux quick start
-
-Install Python 3.10 or newer and Git, then run:
-
-```bash
-git clone https://github.com/paulsullivan33-dev/compuserve-simulator.git
-cd compuserve-simulator
-python3 compuserve.py
-```
-
-For browser access:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[web]"
-python web_app.py
-```
-
-Open the local address printed by the server. The simulator includes EasyPlex
-mail, computer forums and libraries, a searchable dial-up phone directory,
-weekly magazines, games, and browser text capture and downloads.
-
-## Windows quick start
+## Run locally
 
 Python 3.10 or newer is required.
 

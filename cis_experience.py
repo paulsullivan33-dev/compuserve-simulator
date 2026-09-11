@@ -1,8 +1,63 @@
 """Cross-service personal tools for the persistent 1988 simulation."""
+from cis_session import read_input as input
 
 from cis_web_files import offer_download
 
 from pathlib import Path
+
+def guided_tour(app):
+    """Visit real services, returning to a resumable first-call checklist."""
+    stops = {
+        "1": ("Read EasyPlex", "GO MAIL, then 1", [
+            "Welcome aboard. EasyPlex is your personal mailbox.",
+            "Choose a message number to read it; an asterisk means unread.",
+            "If the mailbox is empty, you can return later for confirmations.",
+            "Use M to leave the mailbox and return to this tour."], app.mail_read),
+        "2": ("Explore a discussion", "GO IBMHW", [
+            "Open Messages, choose a section, then read a numbered message.",
+            "Look for the serial-mouse or club-letter discussion as it appears.",
+            "Replies arrive over simulated time: suggestions, tests, then results.",
+            "Use the forum's Watch action on a thread you want to follow.",
+            "Return from the forum with M to continue the tour."], lambda: app.forum_service("ibmhw")),
+        "3": ("Try a library download", "GO IBMHW, then Libraries", [
+            "Open Diagnostics and choose a file to inspect its description.",
+            "Follow the displayed download prompt to save a file.",
+            "The Download Center under User Information lists saved files.",
+            "In the browser, use the file link if the download does not start.",
+            "Return from the library with M to continue the tour."], lambda: app.forum_libraries("ibmhw")),
+        "4": ("Check for follow-ups", "GO NEW", [
+            "The Activity Center collects unread mail and forum messages.",
+            "Choose an item to open it. Watched threads are marked WATCHED.",
+            "A new reply may not be due yet; check again on a later call.",
+            "Return with M to finish or revisit another stop."], app.activity_center),
+    }
+    while True:
+        app.clear()
+        app.header_bar("support")
+        app.ansi_scroll("GUIDED FIRST-CALL TOUR", 0.01)
+        app.ansi_scroll("Choose a stop. VISITED means opened, not a completed task.", 0.005)
+        visited = app.current_profile.get("tour_visited", [])
+        for key, (title, command, _, _) in stops.items():
+            app.ansi_scroll(f"{key} [{'VISITED' if key in visited else 'NEW'}] {title} - {command}", 0.005)
+        choice = input("1-4 visit, A ask a representative, M return ! ").strip().upper()
+        if choice in ("", "M"):
+            return
+        if choice == "A":
+            department = input("Department [TRAVEL/FINANCE/STORE], RETURN cancels ! ").strip().upper()
+            if department:
+                question = input("Question: ").strip()
+                app.ansi_scroll(request_representative(app, department, question), 0.01)
+            continue
+        if choice not in stops:
+            app.ansi_scroll("Choose 1, 2, 3, 4, A, or M.", 0.01)
+            continue
+        title, command, instructions, action = stops[choice]
+        app.text_page("support", title.upper(), [f"On a later call: {command}", "", *instructions])
+        action()
+        if app.current_user_id and choice not in app.current_profile.setdefault("tour_visited", []):
+            app.current_profile["tour_visited"].append(choice)
+            app.save_profiles()
+
 
 def calendar_lines(app):
     state = app.cis_dynamic.load_state(app)

@@ -1,3 +1,7 @@
+from contextvars import ContextVar
+from contextlib import contextmanager
+import builtins
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -43,3 +47,45 @@ class SessionState:
 
     def go_back(self):
         return self.pop()
+
+
+# Active only while a signed-in member is navigating services.
+
+_prompt_app = ContextVar("compuserve_prompt_app", default=None)
+
+
+class GoNavigation(Exception):
+    """Unwind a service prompt without treating navigation as submitted data."""
+
+    def __init__(self, command):
+        self.command = command
+        super().__init__(command)
+
+
+@contextmanager
+def navigation_prompts(app):
+    token = _prompt_app.set(app)
+    try:
+        yield
+    finally:
+        _prompt_app.reset(token)
+
+
+def read_input(prompt="", *, local_go=()):
+    while True:
+        value = builtins.input(prompt)
+        app = _prompt_app.get()
+        match = re.fullmatch(r"(?:GO|G)(?:\s+(.*))?", value.strip(), re.IGNORECASE)
+        if app is None or not match:
+            return value
+        destination = (match.group(1) or "").strip().upper()
+        if destination in local_go:
+            return value
+        context = getattr(app, "go_prompt_screen", app.session_state.current_screen)
+        target = app.resolve_go_destination(destination, context) if destination else None
+        if destination in ("TOP", "COMMAND", "BACK", "RECENT"):
+            raise GoNavigation("GO " + destination)
+        if target:
+            # Resolve relative page numbers at the originating prompt.
+            raise GoNavigation("GO " + destination if not destination.isdigit() else "GO " + app.page_names.get(target, destination))
+        app.ansi_scroll("Unknown GO destination. Enter GO followed by a service name or page address.", 0.01)

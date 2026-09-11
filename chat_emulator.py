@@ -1,3 +1,4 @@
+from cis_session import read_input as input
 import time
 import random
 from datetime import datetime

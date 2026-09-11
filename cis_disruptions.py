@@ -1,4 +1,5 @@
 """Deterministic December 1988 weather operations for fictional travel."""
+from cis_session import read_input as input
 
 import hashlib
 from datetime import datetime
