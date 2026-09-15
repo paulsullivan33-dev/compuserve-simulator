@@ -6,6 +6,8 @@ import random
 import re
 from datetime import date, datetime, time, timedelta
 
+from cis_session import session_simulation_date
+
 
 HANDLES = [
     "ByteBender", "NightOwl", "SilverFox", "ModemMan", "DataDave", "LadyLogic",
@@ -117,6 +119,12 @@ TRIVIA = [
 
 
 def simulation_day():
+    # A logged-in session may carry its own time-capsule date (chosen at the
+    # temporal destination screen). It takes precedence; otherwise the global
+    # CIS_SIMULATION_DATE override and the standard calendar apply as before.
+    chosen = session_simulation_date()
+    if chosen is not None:
+        return chosen
     configured = os.environ.get("CIS_SIMULATION_DATE")
     if configured:
         return datetime.strptime(configured, "%Y-%m-%d").date()

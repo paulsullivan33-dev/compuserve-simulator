@@ -2194,5 +2194,49 @@ class FeedTests(unittest.TestCase):
         self.assertEqual(len(data["World"][0]["title"]), feed_utils.MAX_FIELD_LENGTH)
 
 
+class TimeCapsuleTests(unittest.TestCase):
+    def test_parse_user_date_accepts_valid_entry(self):
+        from datetime import date
+        import cis_timecapsule
+        self.assertEqual(cis_timecapsule.parse_user_date("11/09/1989"), date(1989, 11, 9))
+
+    def test_parse_user_date_rejects_bad_form_and_range(self):
+        import cis_timecapsule
+        for bad in ("1989-11-09", "13/01/1990", "02/30/1990", "01/01/1970", "06/12/2026"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                cis_timecapsule.parse_user_date(bad)
+
+    def test_surprise_date_is_deterministic_per_seed(self):
+        import cis_timecapsule
+        first = cis_timecapsule.surprise_date("70000,0001")
+        second = cis_timecapsule.surprise_date("70000,0001")
+        self.assertEqual(first, second)
+        self.assertTrue(cis_timecapsule.in_range(first))
+
+    def test_simulation_day_prefers_session_date(self):
+        from datetime import date
+        from cis_session import active_session, session_simulation_date
+        state = SessionState()
+        state.simulation_date = date(1989, 11, 9)
+        with active_session(state):
+            self.assertEqual(cis_dynamic.simulation_day(), date(1989, 11, 9))
+            self.assertEqual(session_simulation_date(), date(1989, 11, 9))
+            first = cis_dynamic.rng("period-news-0", "70000,0001").random()
+            second = cis_dynamic.rng("period-news-0", "70000,0001").random()
+            self.assertEqual(first, second)
+
+    def test_simulation_day_falls_back_without_session_choice(self):
+        from cis_session import active_session, session_simulation_date
+        state = SessionState()
+        with active_session(state):
+            self.assertIsNone(session_simulation_date())
+            # No session date: existing env/default behavior is preserved.
+            self.assertEqual(cis_dynamic.simulation_day(), cis_dynamic.simulation_day())
+
+    def test_no_active_session_means_no_session_date(self):
+        from cis_session import session_simulation_date
+        self.assertIsNone(session_simulation_date())
+
+
 if __name__ == "__main__":
     unittest.main()

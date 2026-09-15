@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from cis_security import hash_password, verify_password
 from cis_migrations import CURRENT_SCHEMA_VERSION, migrate_data
-from cis_session import SessionState, GoNavigation, navigation_prompts
+from cis_session import SessionState, GoNavigation, navigation_prompts, active_session
 from cis_settings import PRESETS, apply_preset, merged_settings
 from cis_storage import (
     MUTABLE_DATA_FILES,
@@ -54,6 +54,7 @@ import cis_drafts
 import cis_announcements
 import cis_weather
 import cis_timeline
+import cis_timecapsule
 import cis_features
 import cis_magazine
 import cis_cb
@@ -540,6 +541,98 @@ def login_screen():
     cis_story.ensure_case(sys.modules[__name__])
     cis_disruptions.evaluate_reservations(sys.modules[__name__])
     return True
+
+
+# --- Temporal Destination (time-capsule mode) ---------------------------------
+
+def _remembered_simulation_date():
+    """The account's last-chosen era, or None."""
+    return cis_timecapsule.parse_stored_date(current_profile.get("last_simulation_date"))
+
+
+def _set_simulation_date(value):
+    session_state.simulation_date = value
+    if value is None:
+        current_profile.pop("last_simulation_date", None)
+    else:
+        current_profile["last_simulation_date"] = value.isoformat()
+    save_profiles()
+    ansi_scroll(f"Temporal destination: {cis_timecapsule.describe(value)}.", 0.01)
+
+
+def _featured_date_menu():
+    """Return the chosen featured date, or None to go back."""
+    while True:
+        clear()
+        header_bar("main")
+        ansi_scroll("FEATURED DATES", 0.01)
+        ansi_scroll("--------------", 0.01)
+        for index, (when, label) in enumerate(cis_timecapsule.FEATURED_DATES, 1):
+            ansi_scroll(f"{index}  {when:%m/%d/%Y}  {label}", 0.01)
+        ansi_scroll("M  Back", 0.01)
+        choice = input("Choice: ").strip().upper()
+        if choice == "M":
+            return None
+        if choice.isdigit() and 1 <= int(choice) <= len(cis_timecapsule.FEATURED_DATES):
+            return cis_timecapsule.FEATURED_DATES[int(choice) - 1][0]
+        ansi_scroll("Enter a number from the list, or M.", 0.01)
+
+
+def _prompt_for_simulation_date():
+    """Return the typed date, or None to go back."""
+    while True:
+        text = input("Date (MM/DD/YYYY), or M to go back: ").strip()
+        if text.upper() == "M":
+            return None
+        try:
+            return cis_timecapsule.parse_user_date(text)
+        except ValueError as exc:
+            ansi_scroll(str(exc), 0.01)
+
+
+def choose_temporal_destination():
+    """Offer time-capsule date selection once, right after login."""
+    remembered = _remembered_simulation_date()
+    if remembered is not None:
+        answer = input(f"Return to {remembered:%A, %B %d, %Y}? (Y/N) ").strip().upper()
+        if answer in ("Y", "YES", ""):
+            _set_simulation_date(remembered)
+            return
+        if answer not in ("N", "NO"):
+            ansi_scroll("Assuming NO.", 0.01)
+    while True:
+        clear()
+        header_bar("main")
+        ansi_scroll("TEMPORAL DESTINATION", 0.01)
+        ansi_scroll("--------------------", 0.01)
+        ansi_scroll("Experience CompuServe as of the date you choose.", 0.01)
+        ansi_scroll("", 0.01)
+        ansi_scroll("1  Present Day (the service's current date)", 0.01)
+        ansi_scroll("2  Featured dates...", 0.01)
+        ansi_scroll("3  Enter a date (MM/DD/YYYY, 1979-1998)", 0.01)
+        ansi_scroll("4  Surprise me", 0.01)
+        choice = input("Choice: ").strip()
+        if choice == "1":
+            _set_simulation_date(None)
+            return
+        if choice == "2":
+            picked = _featured_date_menu()
+            if picked is None:
+                continue
+            _set_simulation_date(picked)
+            return
+        if choice == "3":
+            picked = _prompt_for_simulation_date()
+            if picked is None:
+                continue
+            _set_simulation_date(picked)
+            return
+        if choice == "4":
+            picked = cis_timecapsule.surprise_date(current_user_id or "")
+            ansi_scroll(f"Your destination: {picked:%A, %B %d, %Y}.", 0.01)
+            _set_simulation_date(picked)
+            return
+        ansi_scroll("Enter 1, 2, 3, or 4.", 0.01)
 
 
 def account_settings():
@@ -2736,6 +2829,11 @@ def today_in_1988_lines(fetch_weather=True):
     """Build the compact post-login briefing from existing service data."""
     today = cis_dynamic.simulation_day()
     records = cis_timeline.records_for_date(today)
+    if not records:
+        # Outside the curated 1988 archive, fall back to "on this day".
+        month_day = today.isoformat()[5:]
+        records = [record for record in cis_timeline.RECORDS
+                   if record.get("date", "")[5:] == month_day]
     counts = {}
     for item in cis_discovery.activity_items(sys.modules[__name__]):
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
@@ -2776,8 +2874,9 @@ def today_in_1988_lines(fetch_weather=True):
 def today_in_1988_dashboard(fetch_weather=True):
     clear()
     header_bar("main")
-    ansi_scroll("TODAY IN 1988", 0.01)
-    ansi_scroll("-------------", 0.01)
+    title = f"TODAY IN {cis_dynamic.simulation_day().year}"
+    ansi_scroll(title, 0.01)
+    ansi_scroll("-" * len(title), 0.01)
     for line in today_in_1988_lines(fetch_weather):
         ansi_scroll(line, 0.005)
     input("Press ENTER for the main menu ! ")
@@ -3285,13 +3384,15 @@ def main():
         return 0
     if not login_screen():
         return 1
-    try:
-        create_data_backup()
-        if startup_options["refresh_news"]:
-            refresh_current_news()
-        navigate(show_briefing=True)
-    finally:
-        unregister_session(BASE_DIR, live_session_id)
+    with active_session(session_state):
+        try:
+            choose_temporal_destination()
+            create_data_backup()
+            if startup_options["refresh_news"]:
+                refresh_current_news()
+            navigate(show_briefing=True)
+        finally:
+            unregister_session(BASE_DIR, live_session_id)
     return 0
 
 
