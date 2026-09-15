@@ -1528,16 +1528,26 @@ def news_article(article, category):
 
 
 def period_news_edition():
-    articles = cis_period_news.edition(sys.modules[__name__])
-    if current_user_id and cis_dynamic.simulation_day().day >= 12:
-        story_article = cis_story.news_article(sys.modules[__name__])
-        story_article["story_case"] = cis_story.CASE_ID
-        articles = [story_article, *articles]
+    pack = cis_timecapsule.pack_for(cis_dynamic.simulation_day())
+    if pack is not None:
+        # Featured date with a curated archival pack: real dispatches from
+        # that date, in the same article shape the news screen consumes.
+        articles = cis_timecapsule.pack_headlines(pack)
+        banner = f'CIS ARCHIVAL NEWS WIRE -- {pack["date"]}'
+        sub = f'Archival edition: dispatches as of {pack["label"]}.'
+    else:
+        articles = cis_period_news.edition(sys.modules[__name__])
+        if current_user_id and cis_dynamic.simulation_day().day >= 12:
+            story_article = cis_story.news_article(sys.modules[__name__])
+            story_article["story_case"] = cis_story.CASE_ID
+            articles = [story_article, *articles]
+        banner = "CIS PERIOD NEWS WIRE - DECEMBER 1988"
+        sub = "A historical simulation edition; all dispatches remain within 1988."
     while True:
         clear()
         header_bar("news")
-        ansi_scroll("CIS PERIOD NEWS WIRE - DECEMBER 1988", 0.01)
-        ansi_scroll("A historical simulation edition; all dispatches remain within 1988.", 0.005)
+        ansi_scroll(banner, 0.01)
+        ansi_scroll(sub, 0.005)
         for index, article in enumerate(articles, 1):
             ansi_scroll(f'{index:>2} [{article["category"][:3]}] {article["title"]}', 0.005)
         choice = input("\nEnter item or M ! ").strip().upper()
@@ -2834,6 +2844,13 @@ def today_in_1988_lines(fetch_weather=True):
         month_day = today.isoformat()[5:]
         records = [record for record in cis_timeline.RECORDS
                    if record.get("date", "")[5:] == month_day]
+    pack = cis_timecapsule.pack_for(today)
+    if pack:
+        # Featured date: the pack's context items take precedence.
+        records = list(records) + [
+            {"id": f"TCD-{index}", "title": item["title"]}
+            for index, item in enumerate(pack["on_this_day"], 1)
+        ]
     counts = {}
     for item in cis_discovery.activity_items(sys.modules[__name__]):
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
@@ -2841,6 +2858,15 @@ def today_in_1988_lines(fetch_weather=True):
     lines.extend(f'  {record["id"]}  {record["title"]}' for record in records)
     if not records:
         lines.append("  No curated entry for today.")
+    if pack:
+        # Curated archival content for the featured date.
+        lines.extend(["", "ARCHIVAL HEADLINES"])
+        lines.extend(f'  {story["title"]}' for story in pack["headlines"][:6])
+        if pack.get("market_notes"):
+            lines.extend(["", "MARKET WIRE"])
+            lines.extend(f"  {note}" for note in pack["market_notes"][:3])
+        lines.extend(["", "SERVICE ANNOUNCEMENTS"])
+        lines.extend(f"  {note}" for note in pack["announcements"])
     lines.extend(["", "YOUR SERVICE"])
     service_kinds = ("MAIL", "FORUM", "ORDER", "TRAVEL", "DRAFT", "NOTICE")
     summaries = [f"{kind} {counts[kind]}" for kind in service_kinds if counts.get(kind)]
