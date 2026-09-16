@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+- Added the time capsule: a Temporal Destination step during connection setup
+  beside the baud-rate prompt, offering Present Day, ten featured dates
+  (1981-1991), any date from 1979 through 1998, or session-scoped Surprise Me.
+  Featured dates carry curated archival content packs (headlines, sysop
+  announcements, CB topics, market notes); each account remembers its last era
+  and is offered a post-login "Return to <date>?" shortcut when Present Day is
+  chosen. Ambient CB and simulated forum content adapt to the session date.
+
+- Added the Amateur Radio Forum (8 sections, 16 seeded December 1988 posts,
+  bulletins, two scheduled nets; `GO HAMNET`).
+
+- Added NIGHT SHIFT: EARTH STATION, a standalone 17-room text adventure
+  (Games option 7) with a repair-chain win condition, 81-move clock, scoring,
+  and persistent high scores.
+
+- Added December 1988 Sports & TV (News option 8, `GO SPORTS`): NFL standings
+  and scores, prime-time TV grid, and MLB hot-stove news.
+
+- Added the Guitar & Music Forum (6 sections, 16 December 1988 posts;
+  `GO GUITAR`), the Veterans Forum (4 sections, 16 posts; `GO VETERANS`), the
+  Roots & Branches genealogy forum (6 sections, 18 posts; `GO ROOTS`), and the
+  Tech Talk Forum (6 sections, 16 posts; `GO TECH`).
+
+- Added the Trading Post classifieds (`GO TRADINGPOST`): FOR SALE, WANTED, and
+  TRADE boards seeded with 15 December 1988 ads, member ad placement, and 30-day
+  expiry on the simulated clock.
+
+- Added December 1988 Entertainment (News option 9, `GO ENTERTAINMENT`):
+  date-aware Billboard Hot 100 number one, movie reviews, and January 1989 bowl
+  previews.
+
+- Added the December 1988 Weather Wire (News option 10): 12 city forecasts, 7
+  ski resorts, and three date-aware variants; `GO WEATHER` still opens the live
+  Open-Meteo service.
+
+- Added the Daily Crossword (Games option 8, `GO CROSSWORD`): seven rotating
+  7x7 1988-themed puzzles, one per weekday, with persistent per-member progress.
+
+- Added Books & Magazines (News option 11, `GO BOOKS`): December 1988 hardcover
+  bestseller lists, magazine cover blurbs, staff reviews, and back-issue library
+  files.
+
 - Expanded Online Weekly from 25 to 50 articles across its five December issues.
   Every original article is more than twice its previous length; all articles
   exceed 400 words, with over 24,000 words of article text in the collection.

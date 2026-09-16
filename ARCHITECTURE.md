@@ -9,6 +9,16 @@ The browser and Telnet gateways each launch one isolated simulator process per
 terminal session. Those processes communicate through SQLite for shared presence,
 messages, and persistent member data.
 
+## Content modules
+
+Newer content ships as pure content-plus-logic modules (for example
+`cis_hamnet.py`, `cis_guitar.py`, `cis_nightstation.py`, `cis_crossword.py`).
+A module declares its section spec, seed posts or puzzle data, and public
+functions that accept an optional simulated `day`; the coordinator in
+`compuserve.py` wires those into `FORUM_CATALOG`, menu handlers, and
+`go_commands.json`. Never hardcode absolute filesystem paths in a module or its
+tests; derive the repo root from `Path(__file__).resolve().parent`.
+
 ## Main boundaries
 
 - **Terminal application:** `compuserve.py`, `cis_terminal.py`, `cis_session.py`

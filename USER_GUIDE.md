@@ -227,6 +227,24 @@ interactions. The daily library rotation includes RS-232, CONFIG.SYS, AUTOEXEC.B
 VGA, and expanded-memory references. SysOp option 8 posts top-page announcements or
 adds notes to simulated-member profiles.
 
+### Time capsule
+
+Connection setup includes a Temporal Destination step: experience CompuServe as of
+the date you choose. Pick **Present Day** (the service's current date), choose from
+ten featured dates, enter any date from 1979 through 1998 as `MM/DD/YYYY`, or let
+**Surprise me** choose a session-scoped deterministic date that stays fixed for that
+call. Featured dates include the IBM PC announcement (1981), the Macintosh debut
+(1984), Live Aid (1985), Challenger and Chernobyl (1986), the Black Monday crash
+(1987), Exxon Valdez and the Berlin Wall's fall (1989), and Desert Storm and the
+first website (1991).
+
+Featured dates carry curated archival content packs: period headlines, sysop
+announcements, CB conversation topics, and market notes written for that moment.
+Your account remembers the last era you visited; when you choose Present Day after
+login, the service offers to return to that date. Ambient CB conversation and
+simulated forum traffic also adapt to the session's date, while the shared daily
+forum story arcs remain December 1988 regardless of era.
+
 Release 1.6 adds simultaneous browser sessions, shared live CB channels and forum
 conferences, SQLite online-session and live-message tables, a SysOp online-member
 display, and an optional ANSI Telnet-style listener on port 2323.
@@ -288,6 +306,25 @@ do not alter your simulator account or access disks.
 The content installs once at application startup. Installation adds records while
 preserving member posts, uploads, and download counts; subsequent starts do not
 duplicate the content or restore seeded posts a SysOp has deleted.
+
+## Community forums
+
+Beyond the computer forums, the directory offers five interest forums. The
+**Amateur Radio Forum** (`GO HAMNET`, choice 5) covers packet radio, HF/VHF rigs,
+antennas and towers, DX and contesting, license study, ARRL bulletins, and swap
+and shop, with December 1988 seed posts and two scheduled on-air nets. The
+**Veterans Forum** (`GO VETERANS`, choice 11) hosts service stories, reunions and a
+buddy finder, VA benefits discussion, and a Wall remembrance section. **Roots &
+Branches** (`GO ROOTS`, choice 12) is a genealogy forum covering getting started,
+NARA and archives, census records, family history centers, a surname registry,
+and military records. The **Guitar & Music Forum** (`GO GUITAR`, choice 13) covers
+electrics, acoustics, amps and effects, a tablature exchange, MIDI and home
+recording, and what's spinning; gear and music discussion stay era-appropriate to
+December 1988. **Tech Talk** (`GO TECH`, choice 14) debates IBM PC and clones,
+Macintosh, Amiga vs Atari ST, OS/2 and operating systems, modems and telecom,
+and CD-ROM and new tech. All five use the standard forum commands for reading,
+posting, replying, and watching threads. These forums are original fictional
+simulation content, not recovered historical messages.
 
 ## Accounts and login
 
@@ -419,6 +456,20 @@ News option 5 also offers a separately labeled December 1988 period edition draw
 history so five consecutive editions contain no repeated items. Option 6 updates the
 clearly separate current-news wire.
 
+**Sports & TV** (News option 8, `GO SPORTS`) presents 1988 NFL standings and
+December scores, the 1988-89 prime-time TV grid, and MLB hot-stove news. **Entertainment**
+(News option 9, `GO ENTERTAINMENT`) carries the December 1988 Billboard Hot 100 with
+a date-aware number one ("Look Away" by Chicago early in the month, "Every Rose Has
+Its Thorn" by Poison at Christmas), reviews of films in theaters that month, and
+previews (never results) of the January 2, 1989 college bowl games. The **Weather
+Wire** (News option 10) publishes December 1988 city forecasts and ski-resort
+conditions with three date-aware variants; `GO WEATHER` continues to open the live
+Open-Meteo weather service described in Travel. **Books & Magazines** (News option
+11, `GO BOOKS`) lists December 1988 hardcover bestseller lists, December magazine
+issues with cover-story blurbs, staff reviews of 1988 books, and back-issue files
+readable from the Data Library. All News content stays dated no later than December
+1988; these are authored simulation contents, not archived period publications.
+
 CB recognizes a broad set of period topics including modems, DOS memory, disks, display
 adapters, Macintosh development, packet radio, games, software, printers, weather,
 classifieds, and news. Recurring handles retain the last subject and can ask a related
@@ -496,6 +547,13 @@ Forum, and contribute to the member relationship with the representative. Equipm
 ownership also unlocks a member achievement. These workflows never move real goods or
 money and should not be treated as actual product support.
 
+The **Trading Post** (`GO TRADINGPOST`) is a member classifieds board separate from
+Comp-U-Store: FOR SALE, WANTED, and TRADE categories seeded with December 1988 ads
+for modems, 8-bit micros, dot-matrix printers, floppies, LPs, concert tickets, and
+computer books, all priced in 1988 dollars. Members can place their own ads; ads
+persist and expire 30 days after the simulated date they were placed. All listings
+are fictional simulation content, and no real goods change hands.
+
 ## Games
 
 Adventure: The Silent Mainframe is a multi-room puzzle with an essential restoration
@@ -523,6 +581,22 @@ persist. Members can join a guild, invite recurring handles to a party through E
 and post adventure journals to the Gamers Forum. Rotating world events alter encounters,
 and a SysOp can replace the current event with `ADVENTURE text`. Player Records also
 shows League character, level, and guild information.
+
+**NIGHT SHIFT: EARTH STATION** (Games option 7) is a second standalone text
+adventure, distinct from The Silent Mainframe. You are the overnight operator at a
+remote C-band earth station: a thunderstorm has knocked out the satellite uplink,
+and the 6 AM news-wire feed must be on the air before the slot passes. Explore
+17 rooms, restore power, realign the dish, load the feed cartridge, and transmit.
+Verbs include TAKE, USE, EXAMINE, START, FILL, INSTALL, LOAD, TRANSMIT, and CLIMB,
+plus SCORE and TIME; you have 81 five-minute moves from 23:15 to 06:00. High scores
+persist per member.
+
+The **Daily Crossword** (Games option 8, `GO CROSSWORD`) serves a fresh 1988-themed
+7x7 puzzle every day, one per weekday: movies, music, tech, sports, TV, news, and
+variety. Rows 1, 4, and 7 are seven-letter across answers; each column holds two
+three-letter down answers crossing exactly one across word. Use `A<num>` to answer
+an across clue, `D<num>` for a down clue, and `GRID` to redisplay the board.
+Progress persists per member until the puzzle is solved.
 
 ## Special Desk investigations
 
