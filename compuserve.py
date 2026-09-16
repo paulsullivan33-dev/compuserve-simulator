@@ -71,6 +71,9 @@ import cis_roots
 import cis_guitar
 import cis_tradingpost
 import cis_entertainment
+import cis_tech
+import cis_crossword
+import cis_books
 
 try:
     import msvcrt
@@ -181,14 +184,15 @@ FORUM_CATALOG = {
     "veterans": {"title": "Veterans Forum", "sections": cis_veterans.section_spec()},
     "roots": {"title": "Roots & Branches Genealogy Forum", "sections": cis_roots.section_spec()},
     "guitar": {"title": "Guitar & Music Forum", "sections": cis_guitar.section_spec()},
+    "tech": {"title": "Tech Talk Forum", "sections": cis_tech.section_spec()},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
 FORUM_CATALOG.update(cis_communities.FORUMS)
-FORUM_CHOICES = dict(zip((str(i) for i in range(1, 14)),
+FORUM_CHOICES = dict(zip((str(i) for i in range(1, 15)),
                         ('ibmhw', 'gamers', 'macdev', 'photo', 'hamnet', 'science',
                          'commodore', 'appleii', 'atarist', 'dos',
-                         'veterans', 'roots', 'guitar')))
+                         'veterans', 'roots', 'guitar', 'tech')))
 
 def cis_prompt(context="command"):
     prompts = {
@@ -1325,6 +1329,48 @@ def sports_menu():
             ansi_scroll("Enter a number from the list, or M.", 0.01)
 
 
+def weather_menu():
+    """Weather wire submenu (December 1988 setting, session-date aware)."""
+    sections = cis_weather.weather_service(sys.modules[__name__])
+    while True:
+        clear()
+        header_bar("news")
+        ansi_scroll("WEATHER WIRE", 0.01)
+        ansi_scroll("------------", 0.01)
+        for index, (title, _lines) in enumerate(sections, 1):
+            ansi_scroll(f"{index}  {title}", 0.01)
+        ansi_scroll("M  Back", 0.01)
+        choice = input("Choice: ").strip().upper()
+        if choice == "M":
+            return
+        if choice.isdigit() and 1 <= int(choice) <= len(sections):
+            title, lines = sections[int(choice) - 1]
+            text_page("news", title.upper(), lines)
+        else:
+            ansi_scroll("Enter a number from the list, or M.", 0.01)
+
+
+def books_menu():
+    """Books & magazines submenu (December 1988 setting, session-date aware)."""
+    sections = cis_books.books_service(sys.modules[__name__])
+    while True:
+        clear()
+        header_bar("news")
+        ansi_scroll("BOOKS & MAGAZINES", 0.01)
+        ansi_scroll("-----------------", 0.01)
+        for index, (title, _lines) in enumerate(sections, 1):
+            ansi_scroll(f"{index}  {title}", 0.01)
+        ansi_scroll("M  Back", 0.01)
+        choice = input("Choice: ").strip().upper()
+        if choice == "M":
+            return
+        if choice.isdigit() and 1 <= int(choice) <= len(sections):
+            title, lines = sections[int(choice) - 1]
+            text_page("news", title.upper(), lines)
+        else:
+            ansi_scroll("Enter a number from the list, or M.", 0.01)
+
+
 def entertainment_menu():
     """Entertainment submenu (December 1988 setting, session-date aware)."""
     sections = cis_entertainment.entertainment_service(sys.modules[__name__])
@@ -2326,6 +2372,8 @@ def games_service(choice):
             "START, FILL, INSTALL, LOAD, TRANSMIT, CLIMB, plus SCORE and TIME.",
             "MegaWars adds missions, shields, missiles, ranks, docking, and a sector map.",
             "Trivia Tournament contains five-question rounds and persistent streak records.",
+            "Daily Crossword serves a fresh 1988-themed puzzle every day: A<num>",
+            "answers an across clue, D<num> a down clue. GRID redisplays the board.",
             "Enter M to return to the previous menu.",
             "$ identifies premium connect-time services.",
         ])
@@ -2335,6 +2383,8 @@ def games_service(choice):
         cis_adventure_league.service(sys.modules[__name__])
     elif choice == "7":
         cis_nightstation.play(sys.modules[__name__])
+    elif choice == "8":
+        cis_crossword.play(sys.modules[__name__])
 
 
 TRIVIA_BANK = [
@@ -3467,6 +3517,12 @@ def _navigate(initial_go=None):
                 continue
             if current == "news" and choice == "9":
                 entertainment_menu()
+                continue
+            if current == "news" and choice == "10":
+                weather_menu()
+                continue
+            if current == "news" and choice == "11":
+                books_menu()
                 continue
 
             if current == "support" and choice in screens["support"]["options"]:

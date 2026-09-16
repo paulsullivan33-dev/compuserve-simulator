@@ -40,7 +40,8 @@
       "10": "DOS Software Forum",
       "11": "Veterans Forum",
       "12": "Roots & Branches Genealogy Forum",
-      "13": "Guitar & Music Forum"
+      "13": "Guitar & Music Forum",
+      "14": "Tech Talk Forum"
     }
   },
 
@@ -67,7 +68,9 @@
       "6": "Update Current News",
       "7": "Online Weekly Magazine",
       "8": "Sports & TV",
-      "9": "Entertainment"
+      "9": "Entertainment",
+      "10": "Weather Wire",
+      "11": "Books & Magazines"
     }
   },
 
@@ -134,7 +137,8 @@
       "4": "Game Instructions",
       "5": "Player Records",
       "6": "Online Adventure League",
-      "7": "Night Shift: Earth Station"
+      "7": "Night Shift: Earth Station",
+      "8": "Daily Crossword"
     }
   },
 

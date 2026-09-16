@@ -23,6 +23,10 @@ import cis_roots
 import cis_guitar
 import cis_tradingpost
 import cis_entertainment
+import cis_tech
+import cis_weather
+import cis_crossword
+import cis_books
 from cis_nightstation import MAX_MOVES, NightStationGame
 import cis_phones
 import cis_communities
@@ -220,13 +224,17 @@ class ComputerCommunityTests(unittest.TestCase):
             files = cis_storage.load_json(directory, 'library_files.json')
             self.assertEqual(forums['member_section'], original['member_section'])
             self.assertEqual(files['member_library'][0]['downloads'], 37)
+            seeded_files = {}
+            for entry in cis_books.seed_files():
+                seeded_files[entry['library']] = seeded_files.get(entry['library'], 0) + 1
             for forum in cis_communities.FORUMS.values():
                 for section, _ in forum['sections'].values():
                     messages = forums[section]
                     self.assertEqual(len(messages), 3)
                     self.assertTrue(all(m['parent_id'] == messages[0]['id'] for m in messages[1:]))
                     self.assertGreater(messages[0]['id'], 900000)
-                self.assertEqual(len(files[forum['library']]), 4)
+                self.assertEqual(len(files[forum['library']]),
+                                 4 + seeded_files.get(forum['library'], 0))
             # Deleted seeded posts stay deleted after installation; counts survive.
             forums['dos_basic'].pop()
             files['dos_library'][0]['downloads'] = 12
@@ -249,7 +257,8 @@ class ComputerCommunityTests(unittest.TestCase):
                 results = list(pool.map(cis_communities.install, [directory] * 3))
             self.assertEqual(results.count(True), 1)
             forums = cis_storage.load_json(directory, 'forums.json')
-            self.assertEqual(sum(map(len, forums.values())), 102)
+            self.assertEqual(sum(map(len, forums.values())),
+                             len(cis_communities.PACK['messages']))
 
     def test_downloads_contain_complete_content_and_exact_byte_counts(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(compuserve, 'current_user_id', None):
@@ -3582,3 +3591,700 @@ class ContentPack2WiringTests(unittest.TestCase):
                     patch('builtins.input', side_effect=['2', choice, 'OFF']):
                 compuserve.navigate()
                 service.assert_called_once_with(forum_id)
+
+
+# --- Content pack 3: tech forum, weather wire, daily crossword, books & magazines ---
+"""Standalone tests for the Tech Talk forum content module (cis_tech).
+
+Run: cd ~/workspace/compuserve-simulator && python3 /tmp/tech_tests.py
+"""
+
+# ============================================================
+# STRIP-END markers below when merging into test_compuserve.py.
+# The sys.path/setup imports live only in this standalone file.
+# ============================================================
+# ============================================================
+
+REQUIRED_FIELDS = {
+    "content_id", "section", "date", "author", "subject", "body", "parent",
+}
+
+EXPECTED_SECTIONS = {
+    "1": "IBM PC & Clones",
+    "2": "Macintosh",
+    "3": "Amiga vs Atari ST",
+    "4": "OS/2 & Operating Systems",
+    "5": "Modems & Telecom",
+    "6": "CD-ROM & New Tech",
+}
+
+BANNED_TERMS = [
+    "windows 95", "windows 98", "pentium", "usb", "wi-fi", "wifi",
+    "linux", "world wide web",
+]
+
+
+class TechForumTests(unittest.TestCase):
+    def test_forum_identity(self):
+        self.assertEqual(cis_tech.FORUM_ID, "tech")
+        self.assertTrue(cis_tech.FORUM_TITLE.strip())
+
+    def test_section_spec_shape(self):
+        spec = cis_tech.section_spec()
+        self.assertIsInstance(spec, dict)
+        self.assertEqual(set(spec.keys()), {"1", "2", "3", "4", "5", "6"})
+        ids = []
+        for key, value in spec.items():
+            self.assertIsInstance(value, tuple, f"section {key}")
+            self.assertEqual(len(value), 2, f"section {key}")
+            sec_id, title = value
+            self.assertTrue(sec_id.startswith("tech_"), sec_id)
+            self.assertTrue(title.strip(), sec_id)
+            ids.append(sec_id)
+        self.assertEqual(len(set(ids)), len(ids), "section ids must be unique")
+
+    def test_section_spec_titles(self):
+        spec = cis_tech.section_spec()
+        for key, expected_title in EXPECTED_SECTIONS.items():
+            self.assertEqual(spec[key][1], expected_title, f"section {key}")
+
+    def test_section_spec_returns_tuples(self):
+        # Must be {key: (id, title)} tuples even if SECTIONS ever changes shape.
+        for key, value in cis_tech.section_spec().items():
+            self.assertIsInstance(value, tuple, key)
+            self.assertEqual(tuple(value), tuple(cis_tech.SECTIONS[key]))
+
+    def test_seed_posts_count(self):
+        self.assertEqual(len(cis_tech.SEED_POSTS), 16)
+        self.assertEqual(len(cis_tech.seed_posts()), 16)
+
+    def test_seed_posts_required_fields(self):
+        for post in cis_tech.seed_posts():
+            self.assertEqual(set(post.keys()), REQUIRED_FIELDS,
+                             f"field mismatch in {post.get('content_id')}")
+            for field in ("content_id", "section", "date", "author",
+                          "subject", "body"):
+                self.assertTrue(str(post[field]).strip(),
+                                f"{field} empty in {post['content_id']}")
+            self.assertIsNone(post["parent"],
+                              f"parent must be None in {post['content_id']}")
+
+    def test_seed_posts_unique_content_ids(self):
+        ids = [p["content_id"] for p in cis_tech.seed_posts()]
+        self.assertEqual(len(set(ids)), len(ids), "content_ids must be unique")
+        for cid in ids:
+            self.assertRegex(cid, r"^tech-1988-\d{3}$", cid)
+
+    def test_seed_posts_sections_valid(self):
+        valid = {sec_id for sec_id, _ in cis_tech.SECTIONS.values()}
+        for post in cis_tech.seed_posts():
+            self.assertIn(post["section"], valid, post["content_id"])
+
+    def test_seed_posts_cover_all_sections(self):
+        used = {p["section"] for p in cis_tech.seed_posts()}
+        valid = {sec_id for sec_id, _ in cis_tech.SECTIONS.values()}
+        self.assertEqual(used, valid, "every section should have seed posts")
+
+    def test_seed_posts_dates_december_1988(self):
+        for post in cis_tech.seed_posts():
+            parts = post["date"].split("/")
+            self.assertEqual(len(parts), 3, post["content_id"])
+            month, day, year = parts
+            self.assertEqual((month, year), ("12", "88"), post["content_id"])
+            self.assertTrue(1 <= int(day) <= 31, post["content_id"])
+
+    def test_no_anachronisms(self):
+        for post in cis_tech.seed_posts():
+            text = (post["subject"] + "\n" + post["body"]).lower()
+            for bad in BANNED_TERMS:
+                self.assertNotIn(bad, text,
+                                 f"anachronism {bad!r} in {post['content_id']}")
+
+    def test_seed_posts_return_copies(self):
+        first = cis_tech.seed_posts()
+        first[0]["subject"] = "MUTATED"
+        self.assertNotEqual(cis_tech.seed_posts()[0]["subject"], "MUTATED")
+
+
+"""Unit tests for the cis_weather Weather Wire & Ski Reports service.
+
+Verifies weather_service(app): expected sections, non-empty content,
+determinism per simulated day, day-to-day variation, and that no
+anachronistic (post-1988) claims or exact historical-record assertions
+appear in the output.
+"""
+# =======================================================================
+# =======================================================================
+
+import unittest
+from unittest.mock import patch
+
+import cis_weather
+
+
+EXPECTED_TITLES = ("U.S. City Forecasts", "Ski Reports", "Weather Wire Notes")
+
+BANNED_TERMS = (
+    "1989", "1990", "2000s", "internet", "global warming", "climate change",
+    "twitter", "iphone", "facebook", "google", "open-meteo", "climate.gov",
+)
+
+
+class WeatherServiceSectionsTest(unittest.TestCase):
+    def _sections(self, sim_date):
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": sim_date}):
+            return cis_weather.weather_service(app=None)
+
+    def test_returns_expected_sections(self):
+        sections = self._sections("1988-12-15")
+        self.assertEqual(len(sections), 3)
+        titles = [title for title, _lines in sections]
+        self.assertEqual(tuple(titles), EXPECTED_TITLES)
+
+    def test_each_section_has_non_empty_lines(self):
+        for title, lines in self._sections("1988-12-15"):
+            with self.subTest(title=title):
+                self.assertIsInstance(lines, list)
+                self.assertTrue(lines, f"section {title!r} is empty")
+                non_blank = [line for line in lines if line.strip()]
+                self.assertTrue(non_blank, f"section {title!r} has no content")
+                self.assertTrue(all(isinstance(line, str) for line in lines))
+
+    def test_city_forecasts_cover_expected_cities(self):
+        blob = "\n".join(dict(self._sections("1988-12-15"))["U.S. City Forecasts"])
+        for city in ("NEW YORK", "CHICAGO", "MIAMI", "SEATTLE", "DENVER",
+                     "MINNEAPOLIS", "LOS ANGELES", "SAN FRANCISCO",
+                     "BOSTON", "WASHINGTON", "ATLANTA", "DALLAS"):
+            self.assertIn(city, blob)
+
+    def test_ski_reports_cover_expected_resorts(self):
+        blob = "\n".join(dict(self._sections("1988-12-15"))["Ski Reports"])
+        for resort in ("VAIL", "ASPEN", "KILLINGTON", "STOWE", "MAMMOTH",
+                       "SQUAW VALLEY", "PARK CITY"):
+            self.assertIn(resort, blob)
+        self.assertIn("Base depth", blob)
+
+    def test_wire_notes_are_short_bullets(self):
+        lines = dict(self._sections("1988-12-15"))["Weather Wire Notes"]
+        bullets = [line for line in lines if line.startswith("* ")]
+        self.assertGreaterEqual(len(bullets), 2)
+
+    def test_titles_and_day_stamp_in_header_lines(self):
+        sections = self._sections("1988-12-15")
+        blob = "\n".join(line for _title, lines in sections for line in lines)
+        self.assertIn("1988", blob)
+
+
+class WeatherDeterminismTest(unittest.TestCase):
+    def _call(self, sim_date):
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": sim_date}):
+            return cis_weather.weather_service(app=None)
+
+    def test_deterministic_for_fixed_day(self):
+        first = self._call("1988-12-15")
+        second = self._call("1988-12-15")
+        self.assertEqual(first, second)
+
+    def test_days_can_vary(self):
+        one = self._call("1988-12-15")
+        one_flat = tuple(line for _t, lines in one for line in lines)
+        varied = any(
+            one_flat != tuple(line for _t, lines in self._call(f"1988-12-{d:02d}")
+                              for line in lines)
+            for d in (16, 17, 18, 19, 20, 21)
+        )
+        self.assertTrue(varied, "forecasts did not vary across simulated days")
+
+    def test_explicit_day_parameter_matches_env_day(self):
+        from datetime import date
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            via_env = cis_weather.weather_menu_lines()
+        via_arg = cis_weather.weather_menu_lines(day=date(1988, 12, 15))
+        self.assertEqual(via_env, via_arg)
+
+
+class WeatherAnachronismTest(unittest.TestCase):
+    def test_no_banned_terms(self):
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            sections = cis_weather.weather_service(app=None)
+        blob = "\n".join(line for _title, lines in sections for line in lines)
+        lowered = blob.lower()
+        for term in BANNED_TERMS:
+            with self.subTest(term=term):
+                self.assertNotIn(term, lowered, f"anachronism found: {term!r}")
+
+    def test_no_exact_historical_record_claims(self):
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            sections = cis_weather.weather_service(app=None)
+        blob = "\n".join(line for _title, lines in sections for line in lines)
+        lowered = blob.lower()
+        for phrase in ("official record", "recorded in 1988", "national weather service confirms"):
+            self.assertNotIn(phrase, lowered)
+
+
+class WeatherHelperFunctionsTest(unittest.TestCase):
+    def test_helpers_return_line_lists(self):
+        from datetime import date
+        day = date(1988, 12, 15)
+        for helper in (cis_weather.city_forecast_lines,
+                       cis_weather.ski_report_lines,
+                       cis_weather.wire_note_lines):
+            lines = helper(day)
+            self.assertIsInstance(lines, list)
+            self.assertTrue(any(line.strip() for line in lines))
+
+
+import io
+import re
+import unittest
+from contextlib import redirect_stdout
+from datetime import date
+from unittest.mock import patch
+
+import cis_crossword
+from cis_crossword import (
+    PUZZLES,
+    check_answer,
+    fill_slot,
+    grid_rows,
+    is_solved,
+    new_state,
+    play,
+    puzzle_for_day,
+    render_clues,
+    render_grid,
+    slots,
+)
+
+
+class GeometryTests(unittest.TestCase):
+    def test_seven_puzzles_one_per_weekday(self):
+        self.assertEqual(len(PUZZLES), 7)
+
+    def test_grid_is_7x7(self):
+        for puzzle in PUZZLES:
+            rows = grid_rows(puzzle)
+            self.assertEqual(len(rows), 7)
+            for row in rows:
+                self.assertEqual(len(row), 7)
+                self.assertTrue(row.isalpha(), row)
+
+    def test_slot_count(self):
+        for puzzle in PUZZLES:
+            across = [s for s in slots(puzzle) if s[0] == "A"]
+            down = [s for s in slots(puzzle) if s[0] == "D"]
+            self.assertEqual(len(across), 3)
+            self.assertEqual(len(down), 14)
+
+    def test_answer_lengths_match_slots(self):
+        for puzzle in PUZZLES:
+            for direction, number, answer, _clue, cells in slots(puzzle):
+                self.assertEqual(len(answer), len(cells),
+                                 f"{direction}{number} {answer}")
+
+    def test_across_rows_match_grid(self):
+        for puzzle in PUZZLES:
+            rows = grid_rows(puzzle)
+            self.assertEqual(rows[0], puzzle["across"][1][0])
+            self.assertEqual(rows[3], puzzle["across"][8][0])
+            self.assertEqual(rows[6], puzzle["across"][16][0])
+
+    def test_down_words_interlock_with_across(self):
+        for puzzle in PUZZLES:
+            rows = grid_rows(puzzle)
+            for direction, number, answer, _clue, cells in slots(puzzle):
+                if direction != "D":
+                    continue
+                word = "".join(rows[r][c] for r, c in cells)
+                self.assertEqual(word, answer,
+                                 f"D{number} {answer} vs grid {word}")
+
+    def test_all_answers_distinct_within_puzzle(self):
+        for puzzle in PUZZLES:
+            answers = [s[2] for s in slots(puzzle)]
+            self.assertEqual(len(set(answers)), len(answers))
+
+    def test_expected_clue_numbers(self):
+        for puzzle in PUZZLES:
+            across_nums = sorted(s[1] for s in slots(puzzle) if s[0] == "A")
+            down_nums = sorted(s[1] for s in slots(puzzle) if s[0] == "D")
+            self.assertEqual(across_nums, [1, 8, 16])
+            self.assertEqual(down_nums, list(range(1, 8)) + list(range(9, 16)))
+
+
+class RotationTests(unittest.TestCase):
+    def test_deterministic_for_same_day(self):
+        day = date(1988, 12, 25)
+        self.assertIs(puzzle_for_day(day), puzzle_for_day(day))
+
+    def test_weekday_mapping(self):
+        # 1988-12-19 was a Monday -> puzzle index 0
+        monday = puzzle_for_day(date(1988, 12, 19))
+        self.assertEqual(monday["weekday"], "Monday")
+        sunday = puzzle_for_day(date(1988, 12, 25))
+        self.assertEqual(sunday["weekday"], "Sunday")
+
+    def test_rotates_across_week(self):
+        seen = {puzzle_for_day(date(1988, 12, 19 + i))["weekday"]
+                for i in range(7)}
+        self.assertEqual(len(seen), 7)
+
+    def test_repeats_next_week(self):
+        self.assertIs(puzzle_for_day(date(1988, 12, 19)),
+                      puzzle_for_day(date(1988, 12, 26)))
+
+    def test_default_uses_simulation_day(self):
+        # Must not raise even with the lazy cis_dynamic import.
+        puzzle = puzzle_for_day()
+        self.assertIn(puzzle, PUZZLES)
+
+
+class CheckAnswerTests(unittest.TestCase):
+    def setUp(self):
+        self.puzzle = puzzle_for_day(date(1988, 12, 19))  # Monday
+
+    def test_accepts_correct(self):
+        self.assertTrue(check_answer(self.puzzle, 1, "A", "RAINMAN"))
+
+    def test_case_insensitive(self):
+        self.assertTrue(check_answer(self.puzzle, 1, "A", "rainman"))
+        self.assertTrue(check_answer(self.puzzle, 1, "A", "RainMan"))
+
+    def test_direction_case_insensitive(self):
+        self.assertTrue(check_answer(self.puzzle, 3, "d", "IRS"))
+
+    def test_rejects_wrong(self):
+        self.assertFalse(check_answer(self.puzzle, 1, "A", "DIEHARD"))
+
+    def test_rejects_wrong_length(self):
+        self.assertFalse(check_answer(self.puzzle, 1, "A", "RAIN"))
+
+    def test_rejects_unknown_slot(self):
+        self.assertFalse(check_answer(self.puzzle, 99, "A", "RAINMAN"))
+        self.assertFalse(check_answer(self.puzzle, 8, "D", "DIEHARD"))
+
+    def test_strips_spaces(self):
+        self.assertTrue(check_answer(self.puzzle, 1, "A", "  rainman  "))
+
+
+class SolvedTests(unittest.TestCase):
+    def setUp(self):
+        self.puzzle = puzzle_for_day(date(1988, 12, 19))
+        self.state = new_state(self.puzzle)
+
+    def test_fresh_state_not_solved(self):
+        self.assertFalse(is_solved(self.state, self.puzzle))
+
+    def test_partial_not_solved(self):
+        self.assertTrue(fill_slot(self.state, self.puzzle, 1, "A", "RAINMAN"))
+        self.assertFalse(is_solved(self.state, self.puzzle))
+
+    def test_full_solve(self):
+        for direction, number, answer, _clue, _cells in slots(self.puzzle):
+            self.assertTrue(fill_slot(self.state, self.puzzle, number,
+                                       direction, answer))
+        self.assertTrue(is_solved(self.state, self.puzzle))
+
+    def test_fill_slot_rejects_wrong(self):
+        self.assertFalse(fill_slot(self.state, self.puzzle, 1, "A", "DIEHARD"))
+        self.assertFalse(is_solved(self.state, self.puzzle))
+
+    def test_wrong_fill_does_not_corrupt(self):
+        fill_slot(self.state, self.puzzle, 1, "A", "DIEHARD")
+        self.assertEqual(self.state["entries"][("A", 1)], [None] * 7)
+
+
+class RenderTests(unittest.TestCase):
+    def setUp(self):
+        self.puzzle = puzzle_for_day(date(1988, 12, 19))
+        self.state = new_state(self.puzzle)
+
+    def test_grid_has_seven_rows(self):
+        text = render_grid(self.puzzle, self.state)
+        row_lines = [ln for ln in text.splitlines()
+                     if re.match(r" [1-7] \|", ln)]
+        self.assertEqual(len(row_lines), 7)
+
+    def test_grid_contains_clue_numbers(self):
+        text = render_grid(self.puzzle, self.state)
+        for number in (1, 7, 8, 9, 15, 16):
+            self.assertIn(str(number), text)
+
+    def test_grid_shows_blanks_when_empty(self):
+        self.assertIn(".", render_grid(self.puzzle, self.state))
+
+    def test_grid_shows_filled_letters(self):
+        fill_slot(self.state, self.puzzle, 1, "A", "RAINMAN")
+        text = render_grid(self.puzzle, self.state)
+        self.assertIn("R", text)
+        # the solved across word appears left to right in row 1
+        row1 = [ln for ln in text.splitlines() if ln.startswith(" 1 |")][0]
+        letters_only = re.sub(r"[^A-Z.]", "", row1)
+        self.assertEqual(letters_only, "RAINMAN")
+
+    def test_clues_list_all_entries(self):
+        text = render_clues(self.puzzle)
+        self.assertIn("ACROSS", text)
+        self.assertIn("DOWN", text)
+        for _d, number, _a, clue, _c in slots(self.puzzle):
+            self.assertIn(clue, text)
+
+
+class EraSafetyTests(unittest.TestCase):
+    # Terms that did not exist (or not in this sense) in December 1988.
+    BANNED = {
+        "IPHONE", "GOOGLE", "INTERNET", "WEBSITE", "WEBLOG", "BLOG",
+        "WIFI", "BLUETOOTH", "DVD", "MP3", "IPOD", "XBOX", "PLAYSTATION",
+        "GAMEBOY", "TEXTING", "SELFIE", "EMOJI", "MEME", "PODCAST",
+        "STREAMING", "NETFLIX", "FACEBOOK", "TWITTER", "YOUTUBE", "HASHTAG",
+        "SMARTPHONE", "TABLET", "DRONE", "BITCOIN", "COVID", "BATMAN",
+        "SEINFELD", "SIMPSONS", "FRIENDS",
+    }
+
+    def test_no_post_1988_terms(self):
+        for puzzle in PUZZLES:
+            for _d, number, answer, clue, _cells in slots(puzzle):
+                words = set(re.findall(r"[A-Z]+", (answer + " " + clue).upper()))
+                bad = words & self.BANNED
+                self.assertEqual(bad, set(),
+                                 f"{puzzle['weekday']} clue {number}: {bad}")
+
+    def test_all_answers_alpha(self):
+        for puzzle in PUZZLES:
+            for _d, _n, answer, _c, _cells in slots(puzzle):
+                self.assertTrue(answer.isalpha() and answer.isupper(), answer)
+
+
+class PlayLoopTests(unittest.TestCase):
+    def _run(self, inputs, day):
+        puzzle = puzzle_for_day(day)
+        with patch("builtins.input", side_effect=inputs + ["QUIT"]):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                with patch("cis_crossword.puzzle_for_day", return_value=puzzle):
+                    play(None)
+        return buf.getvalue(), puzzle
+
+    def test_quit_immediately(self):
+        out, _ = self._run(["QUIT"], date(1988, 12, 19))
+        self.assertIn("DAILY CROSSWORD", out)
+        self.assertIn("abandoned", out)
+
+    def test_bad_input_is_robust(self):
+        out, _ = self._run(["", "nonsense", "A99 ZZ", "A1", "HELP",
+                            "GRID", "CLUES", "QUIT"], date(1988, 12, 19))
+        self.assertIn("HELP", out)
+        self.assertNotIn("Traceback", out)
+
+    def test_wrong_guess_rejected(self):
+        out, _ = self._run(["A1 DIEHARD", "QUIT"], date(1988, 12, 19))
+        self.assertIn("Not quite", out)
+
+    def test_wrong_length_message(self):
+        out, _ = self._run(["A1 RAIN", "QUIT"], date(1988, 12, 19))
+        self.assertIn("7 letters", out)
+
+    def test_full_solve_congratulates(self):
+        puzzle = puzzle_for_day(date(1988, 12, 19))
+        commands = ["%s%d %s" % (d, n, a)
+                    for d, n, a, _c, _cells in slots(puzzle)]
+        out, _ = self._run(commands, date(1988, 12, 19))
+        self.assertIn("CONGRATULATIONS", out)
+        self.assertIn("17 moves", out)
+
+
+"""Unit tests for the Books & Magazines module (cis_books)."""
+
+import re
+import unittest
+from datetime import date
+
+import cis_books
+
+
+class BooksServiceTest(unittest.TestCase):
+    def test_books_service_returns_expected_sections(self):
+        sections = cis_books.books_service(app=None)
+        self.assertIsInstance(sections, list)
+        titles = [title for title, _lines in sections]
+        self.assertEqual(
+            titles,
+            [
+                "Hardcover Fiction Bestsellers",
+                "Hardcover Nonfiction Bestsellers",
+                "This Month's Magazines",
+                "From the Review Desk",
+            ],
+        )
+
+    def test_each_section_has_non_empty_lines(self):
+        for title, lines in cis_books.books_service(app=None):
+            self.assertIsInstance(lines, list, title)
+            self.assertGreater(len(lines), 0, title)
+            for line in lines:
+                self.assertIsInstance(line, str, title)
+        all_text = "\n".join(
+            line for _title, lines in cis_books.books_service(app=None) for line in lines
+        )
+        self.assertIn("The Cardinal of the Kremlin", all_text)
+        self.assertIn("A Brief History of Time", all_text)
+        self.assertIn("TIME", all_text)
+
+    def test_books_menu_lines_accepts_explicit_day(self):
+        sections = cis_books.books_menu_lines(day=date(1988, 12, 25))
+        self.assertEqual(len(sections), 4)
+        # Deterministic: same day gives same editor's pick line.
+        again = cis_books.books_menu_lines(day=date(1988, 12, 25))
+        self.assertEqual(sections, again)
+
+
+class SeedFilesTest(unittest.TestCase):
+    REQUIRED_KEYS = {
+        "content_id",
+        "library",
+        "name",
+        "description",
+        "date",
+        "version",
+        "system",
+        "instructions",
+        "history",
+        "reviews",
+        "content",
+    }
+
+    def test_seed_files_count_and_shape(self):
+        files = cis_books.seed_files()
+        self.assertTrue(6 <= len(files) <= 10, len(files))
+        for entry in files:
+            self.assertTrue(
+                self.REQUIRED_KEYS.issubset(entry.keys()),
+                f"missing keys in {entry.get('content_id')}",
+            )
+            for key in self.REQUIRED_KEYS:
+                if key == "reviews":
+                    # Reviews may be an empty list for freshly seeded issues;
+                    # only the key's presence is required.
+                    continue
+                self.assertTrue(entry[key], f"empty {key} in {entry.get('content_id')}")
+
+    def test_seed_files_unique_content_ids(self):
+        files = cis_books.seed_files()
+        ids = [entry["content_id"] for entry in files]
+        self.assertEqual(len(ids), len(set(ids)))
+        for cid in ids:
+            self.assertTrue(cid.startswith("community-file:"))
+
+    def test_seed_files_use_known_library(self):
+        files = cis_books.seed_files()
+        for entry in files:
+            self.assertEqual(entry["library"], "dos_library")
+
+    def test_seed_files_dates_are_december_1988(self):
+        files = cis_books.seed_files()
+        for entry in files:
+            self.assertRegex(
+                entry["date"], r"^12/\d{2}/88$", entry["content_id"]
+            )
+            day = int(entry["date"].split("/")[1])
+            self.assertTrue(1 <= day <= 31)
+
+
+class EraSafetyTest(unittest.TestCase):
+    POST_1988_TITLES = [
+        "The Dark Half",
+        "The Russia House",
+        "The Stand",  # miniseries tie-in era wording aside, listed as a guard
+        "Jurassic Park",
+        "The Firm",
+        "Schindler's List",
+    ]
+    FORBIDDEN_YEAR = re.compile(r"\b(19\d{2})\b")
+
+    def _all_output_text(self):
+        texts = []
+        for _title, lines in cis_books.books_service(app=None):
+            texts.extend(lines)
+        for entry in cis_books.seed_files():
+            texts.append(str(entry["content"]))
+            texts.append(str(entry["description"]))
+        return "\n".join(texts)
+
+    def test_no_year_after_1988(self):
+        for match in self.FORBIDDEN_YEAR.finditer(self._all_output_text()):
+            self.assertLessEqual(int(match.group(1)), 1988)
+
+    def test_no_known_post_1988_titles(self):
+        text = self._all_output_text()
+        for title in self.POST_1988_TITLES:
+            if title == "The Stand":
+                continue  # guard placeholder; the book itself is 1978
+            self.assertNotIn(title, text)
+
+    def test_no_apostrophe_year_beyond_88(self):
+        text = self._all_output_text()
+        for match in re.finditer(r"'(\d{2})\b", text):
+            self.assertLessEqual(int(match.group(1)), 88)
+
+class ContentPack3WiringTests(unittest.TestCase):
+    def test_forum_catalog_entries(self):
+        self.assertIn("tech", compuserve.FORUM_CATALOG)
+        sections = compuserve.FORUM_CATALOG["tech"]["sections"]
+        self.assertEqual(sections, cis_tech.SECTIONS)
+
+    def test_forum_choices(self):
+        self.assertEqual(compuserve.FORUM_CHOICES["14"], "tech")
+
+    def test_screens_options(self):
+        screens = json.loads((REPO_ROOT / "screens.json").read_text(encoding="utf-8"))
+        self.assertEqual(screens["forums"]["options"]["14"], "Tech Talk Forum")
+        self.assertEqual(screens["news"]["options"]["10"], "Weather Wire")
+        self.assertEqual(screens["news"]["options"]["11"], "Books & Magazines")
+        self.assertEqual(screens["games"]["options"]["8"], "Daily Crossword")
+
+    def test_go_commands(self):
+        self.assertEqual(compuserve.resolve_go_destination("TECH"), "tech")
+        # GO WEATHER intentionally still reaches the pre-existing live wire.
+        self.assertEqual(compuserve.resolve_go_destination("WEATHER"), "weather")
+        self.assertEqual(compuserve.resolve_go_destination("BOOKS"), "news")
+        self.assertEqual(compuserve.resolve_go_destination("CROSSWORD"), "games")
+
+    def test_seed_messages_in_computer_communities(self):
+        pack = json.loads((REPO_ROOT / "computer_communities.json").read_text(encoding="utf-8"))
+        tech_posts = [m for m in pack["messages"]
+                      if m["content_id"].startswith("tech-1988-")]
+        self.assertEqual(len(tech_posts), len(cis_tech.SEED_POSTS))
+        valid = {sec_id for sec_id, _ in cis_tech.SECTIONS.values()}
+        for message in tech_posts:
+            self.assertIn(message["section"], valid, message["content_id"])
+
+    def test_merge_forums_installs_new_sections(self):
+        merged = cis_communities.merge_forums({})
+        self.assertTrue(merged.get("tech_pc"), "tech_pc")
+        for message in merged["tech_pc"]:
+            self.assertIn("id", message)
+            self.assertIn("parent_id", message)
+
+    def test_seed_files_in_computer_communities(self):
+        pack = json.loads((REPO_ROOT / "computer_communities.json").read_text(encoding="utf-8"))
+        mag_files = [f for f in pack["files"]
+                     if f["content_id"] in {e["content_id"] for e in cis_books.seed_files()}]
+        self.assertEqual(len(mag_files), len(cis_books.seed_files()))
+        for record in mag_files:
+            self.assertTrue(record["date"].endswith("/88"), record["content_id"])
+
+    def test_news_menu_dispatches_weather_and_books(self):
+        with patch.object(compuserve, 'session_state', SessionState()), \
+                patch.object(compuserve, 'show_screen'), \
+                patch.object(compuserve, 'weather_menu') as weather, \
+                patch.object(compuserve, 'books_menu') as books, \
+                patch.object(compuserve, 'show_logout_summary'), \
+                patch('builtins.input', side_effect=['4', '10', 'M', '4', '11', 'M', 'OFF']):
+            compuserve.navigate()
+        weather.assert_called_once_with()
+        books.assert_called_once_with()
+
+    def test_games_menu_dispatches_crossword(self):
+        with patch.object(cis_crossword, 'play') as play:
+            compuserve.games_service("8")
+        play.assert_called_once_with(compuserve)
