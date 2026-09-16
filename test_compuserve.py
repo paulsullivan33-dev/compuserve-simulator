@@ -2350,7 +2350,7 @@ class ConnectionSetupTimeCapsuleTests(unittest.TestCase):
     def test_temporal_menu_in_connection_setup_stores_featured_date(self):
         from datetime import date
         with (
-            patch("builtins.input", side_effect=["", "2", "5"]),
+            patch("builtins.input", side_effect=["", "2", "8"]),
             patch.object(compuserve, "ansi_scroll"),
             patch.object(compuserve, "clear"),
             patch.object(compuserve, "header_bar"),
@@ -2448,7 +2448,8 @@ if __name__ == "__main__":
 
 
 # --- Feature 1: ham radio forum (cis_hamnet) ---
-JSON_PATH = Path("/home/hatch/workspace/compuserve-simulator/computer_communities.json")
+REPO_ROOT = Path(__file__).resolve().parent
+JSON_PATH = REPO_ROOT / "computer_communities.json"
 
 REQUIRED_FIELDS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
 
@@ -3107,7 +3108,7 @@ class SportsContentTests(unittest.TestCase):
 
 
 # --- Feature 5: era-aware world ---
-REPO = "/home/hatch/workspace/compuserve-simulator"
+REPO = str(REPO_ROOT)
 sys.path.insert(0, REPO)
 
 import cis_dynamic

@@ -1,0 +1,33 @@
+From 63fe49f33e3ed49ff2c39be2d3ae122ad76031f9 Mon Sep 17 00:00:00 2001
+From: "Max (Muse)" <max@local.prototype>
+Date: Tue, 15 Sep 2026 19:37:51 -0500
+Subject: [PATCH] Fix flaky CHIP-88 test: pin CIS_SIMULATION_DATE to 1988-12-23
+
+The PUBLISH sentiment effect only applies when the simulated December
+day is <= 23, but the test let simulation_day() vary with the real
+calendar date (1 + today.toordinal() % 31). Pinning the date makes the
+test deterministic year-round.
+---
+ test_compuserve.py | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/test_compuserve.py b/test_compuserve.py
+index 0cd2cce..fdb8fda 100644
+--- a/test_compuserve.py
++++ b/test_compuserve.py
+@@ -1914,7 +1914,11 @@ class BusinessTravelTests(unittest.TestCase):
+ 
+     def test_chip_88_decision_changes_semiconductor_sentiment(self):
+         with tempfile.TemporaryDirectory() as directory:
+-            with patch.object(compuserve, "BASE_DIR", Path(directory)), patch.object(compuserve, "current_user_id", "70000,0001"):
++            with (
++                patch.object(compuserve, "BASE_DIR", Path(directory)),
++                patch.object(compuserve, "current_user_id", "70000,0001"),
++                patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-23"}),
++            ):
+                 ordinary = cis_dynamic.market_quotes(compuserve.service_data["quotes"])
+                 state = cis_dynamic.load_state(compuserve)
+                 state["story_cases"] = {"70000,0001": {"decision": "PUBLISH"}}
+-- 
+2.43.0
+

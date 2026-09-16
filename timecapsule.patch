@@ -1,0 +1,757 @@
+From 191633fb53deab49f7e3361065cb1ba19574127f Mon Sep 17 00:00:00 2001
+From: "Max (Muse)" <max@local.prototype>
+Date: Tue, 15 Sep 2026 17:24:44 +0000
+Subject: [PATCH 1/2] Prototype time-capsule mode: pick a simulation date at
+ login
+
+- New cis_timecapsule module: featured dates, 1979-1998 range,
+  MM/DD/YYYY validation, deterministic surprise dates (content packs stubbed)
+- SessionState gains simulation_date (no new module-level globals);
+  cis_session.active_session/current_session_state/session_simulation_date
+  expose it via ContextVar (process-per-session keeps it session-scoped)
+- simulation_day() prefers the session date, else existing env/default behavior
+- Temporal destination screen runs once after login, before the main menu:
+  present day / featured dates / manual entry / surprise me, plus a
+  'Return to <date>?' shortcut persisted per account in profiles.json
+- Post-login briefing shows the chosen date with a dynamic year title and
+  falls back to on-this-day history outside the 1988 archive; period news
+  and CB ambience inherit per-date determinism via the existing seeded rng()
+- Works over console, web, and telnet (all spawn compuserve.py per session)
+- Adds TimeCapsuleTests (6 tests); suite: 179/180 pass, sole failure is the
+  known pre-existing date-flaky chip-88 test
+---
+ cis_dynamic.py     |   8 +++
+ cis_session.py     |  35 +++++++++++++
+ cis_timecapsule.py |  75 ++++++++++++++++++++++++++++
+ compuserve.py      | 121 +++++++++++++++++++++++++++++++++++++++++----
+ test_compuserve.py |  44 +++++++++++++++++
+ 5 files changed, 273 insertions(+), 10 deletions(-)
+ create mode 100644 cis_timecapsule.py
+
+diff --git a/cis_dynamic.py b/cis_dynamic.py
+index 7174fd1..a59cb63 100644
+--- a/cis_dynamic.py
++++ b/cis_dynamic.py
+@@ -6,6 +6,8 @@ import random
+ import re
+ from datetime import date, datetime, time, timedelta
+ 
++from cis_session import session_simulation_date
++
+ 
+ HANDLES = [
+     "ByteBender", "NightOwl", "SilverFox", "ModemMan", "DataDave", "LadyLogic",
+@@ -117,6 +119,12 @@ TRIVIA = [
+ 
+ 
+ def simulation_day():
++    # A logged-in session may carry its own time-capsule date (chosen at the
++    # temporal destination screen). It takes precedence; otherwise the global
++    # CIS_SIMULATION_DATE override and the standard calendar apply as before.
++    chosen = session_simulation_date()
++    if chosen is not None:
++        return chosen
+     configured = os.environ.get("CIS_SIMULATION_DATE")
+     if configured:
+         return datetime.strptime(configured, "%Y-%m-%d").date()
+diff --git a/cis_session.py b/cis_session.py
+index d78f06a..8316458 100644
+--- a/cis_session.py
++++ b/cis_session.py
+@@ -3,6 +3,7 @@ from contextlib import contextmanager
+ import builtins
+ import re
+ from dataclasses import dataclass, field
++from datetime import date
+ from typing import Any
+ 
+ 
+@@ -12,6 +13,7 @@ class SessionState:
+     profile: dict[str, Any] = field(default_factory=dict)
+     handle: str | None = None
+     started_at: float | None = None
++    simulation_date: date | None = None
+     top_announcements_shown: bool = False
+     navigation_stack: list[str] = field(default_factory=lambda: ["main"])
+     last_choices: dict[str, str] = field(default_factory=dict)
+@@ -53,6 +55,39 @@ class SessionState:
+ 
+ _prompt_app = ContextVar("compuserve_prompt_app", default=None)
+ 
++# The SessionState of the currently running session. Each OS process serves a
++# single session (local console, Flask web terminal, and telnet gateway all
++# spawn one compuserve.py per session), so this is session-scoped in practice.
++# Date-aware modules read it via current_session_state() / session_simulation_date()
++# instead of consulting module-level globals.
++_session_state = ContextVar("compuserve_session_state", default=None)
++
++
++@contextmanager
++def active_session(state):
++    """Mark ``state`` as the session of record for the enclosed block."""
++    token = _session_state.set(state)
++    try:
++        yield
++    finally:
++        _session_state.reset(token)
++
++
++def current_session_state():
++    """Return the SessionState for the running session, or None outside one."""
++    return _session_state.get()
++
++
++def session_simulation_date():
++    """Return the active session's chosen simulation date, or None.
++
++    None means "present day": callers should fall back to their default
++    behavior (the CIS_SIMULATION_DATE override, then the service's
++    standard simulated calendar).
++    """
++    state = _session_state.get()
++    return state.simulation_date if state is not None else None
++
+ 
+ class GoNavigation(Exception):
+     """Unwind a service prompt without treating navigation as submitted data."""
+diff --git a/cis_timecapsule.py b/cis_timecapsule.py
+new file mode 100644
+index 0000000..8d0e772
+--- /dev/null
++++ b/cis_timecapsule.py
+@@ -0,0 +1,75 @@
++"""Time-capsule mode: experience the service as of a date you choose.
++
++Prototype scope: date selection at login, a per-session simulation date, and
++deterministic seeding derived from that date. The FEATURED_DATES list exists so
++the destination screen has somewhere to point; curated per-date content packs
++(archival headlines, era-specific announcements) are stubbed for later --
++see CONTENT_PACK_STATUS.
++"""
++from __future__ import annotations
++
++import random
++from datetime import date, datetime, timedelta
++
++# The CompuServe era this simulator covers.
++MIN_DATE = date(1979, 1, 1)
++MAX_DATE = date(1998, 12, 31)
++
++# Curated jump points. Each entry is (date, short label shown on the menu).
++# Content packs are NOT YET IMPLEMENTED: choosing one sets the simulation date
++# and everything date-driven (briefing, period news, CB ambience, markets)
++# responds to it, but there is no hand-written archival content per date yet.
++FEATURED_DATES = (
++    (date(1981, 8, 12), "IBM PC announced"),
++    (date(1984, 1, 24), "Apple Macintosh debuts"),
++    (date(1986, 1, 28), "Challenger"),
++    (date(1987, 10, 19), "Black Monday market crash"),
++    (date(1989, 11, 9), "Berlin Wall falls"),
++    (date(1991, 8, 6), "First website goes live at CERN"),
++)
++
++CONTENT_PACK_STATUS = "stub"
++
++
++def in_range(value: date) -> bool:
++    """True when ``value`` falls inside the supported CompuServe era."""
++    return MIN_DATE <= value <= MAX_DATE
++
++
++def parse_user_date(text: str) -> date:
++    """Parse an MM/DD/YYYY entry, enforcing the supported era.
++
++    Raises ValueError with a user-facing message on any problem.
++    """
++    try:
++        picked = datetime.strptime(text.strip(), "%m/%d/%Y").date()
++    except (ValueError, TypeError):
++        raise ValueError("Enter the date as MM/DD/YYYY, for example 06/12/1985.")
++    if not in_range(picked):
++        raise ValueError(
++            f"Dates must fall between {MIN_DATE:%m/%d/%Y} and {MAX_DATE:%m/%d/%Y}."
++        )
++    return picked
++
++
++def parse_stored_date(text) -> date | None:
++    """Parse an ISO date from a member profile; None when missing/invalid."""
++    if not text:
++        return None
++    try:
++        picked = datetime.strptime(str(text), "%Y-%m-%d").date()
++    except (ValueError, TypeError):
++        return None
++    return picked if in_range(picked) else None
++
++
++def surprise_date(seed_text: str = "") -> date:
++    """Pick a random date in range. Stable per seed_text (e.g. user + day)."""
++    chooser = random.Random(f"time-capsule-surprise:{seed_text}")
++    span = (MAX_DATE - MIN_DATE).days
++    return MIN_DATE + timedelta(days=chooser.randrange(span + 1))
++
++
++def describe(value: date | None) -> str:
++    """Human label for a simulation date; 'the present day' when None."""
++    return "the present day" if value is None else value.strftime("%A, %B %d, %Y")
+diff --git a/compuserve.py b/compuserve.py
+index e00bcff..4f54bb7 100644
+--- a/compuserve.py
++++ b/compuserve.py
+@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
+ from pathlib import Path
+ from cis_security import hash_password, verify_password
+ from cis_migrations import CURRENT_SCHEMA_VERSION, migrate_data
+-from cis_session import SessionState, GoNavigation, navigation_prompts
++from cis_session import SessionState, GoNavigation, navigation_prompts, active_session
+ from cis_settings import PRESETS, apply_preset, merged_settings
+ from cis_storage import (
+     MUTABLE_DATA_FILES,
+@@ -54,6 +54,7 @@ import cis_drafts
+ import cis_announcements
+ import cis_weather
+ import cis_timeline
++import cis_timecapsule
+ import cis_features
+ import cis_magazine
+ import cis_cb
+@@ -542,6 +543,98 @@ def login_screen():
+     return True
+ 
+ 
++# --- Temporal Destination (time-capsule mode) ---------------------------------
++
++def _remembered_simulation_date():
++    """The account's last-chosen era, or None."""
++    return cis_timecapsule.parse_stored_date(current_profile.get("last_simulation_date"))
++
++
++def _set_simulation_date(value):
++    session_state.simulation_date = value
++    if value is None:
++        current_profile.pop("last_simulation_date", None)
++    else:
++        current_profile["last_simulation_date"] = value.isoformat()
++    save_profiles()
++    ansi_scroll(f"Temporal destination: {cis_timecapsule.describe(value)}.", 0.01)
++
++
++def _featured_date_menu():
++    """Return the chosen featured date, or None to go back."""
++    while True:
++        clear()
++        header_bar("main")
++        ansi_scroll("FEATURED DATES", 0.01)
++        ansi_scroll("--------------", 0.01)
++        for index, (when, label) in enumerate(cis_timecapsule.FEATURED_DATES, 1):
++            ansi_scroll(f"{index}  {when:%m/%d/%Y}  {label}", 0.01)
++        ansi_scroll("M  Back", 0.01)
++        choice = input("Choice: ").strip().upper()
++        if choice == "M":
++            return None
++        if choice.isdigit() and 1 <= int(choice) <= len(cis_timecapsule.FEATURED_DATES):
++            return cis_timecapsule.FEATURED_DATES[int(choice) - 1][0]
++        ansi_scroll("Enter a number from the list, or M.", 0.01)
++
++
++def _prompt_for_simulation_date():
++    """Return the typed date, or None to go back."""
++    while True:
++        text = input("Date (MM/DD/YYYY), or M to go back: ").strip()
++        if text.upper() == "M":
++            return None
++        try:
++            return cis_timecapsule.parse_user_date(text)
++        except ValueError as exc:
++            ansi_scroll(str(exc), 0.01)
++
++
++def choose_temporal_destination():
++    """Offer time-capsule date selection once, right after login."""
++    remembered = _remembered_simulation_date()
++    if remembered is not None:
++        answer = input(f"Return to {remembered:%A, %B %d, %Y}? (Y/N) ").strip().upper()
++        if answer in ("Y", "YES", ""):
++            _set_simulation_date(remembered)
++            return
++        if answer not in ("N", "NO"):
++            ansi_scroll("Assuming NO.", 0.01)
++    while True:
++        clear()
++        header_bar("main")
++        ansi_scroll("TEMPORAL DESTINATION", 0.01)
++        ansi_scroll("--------------------", 0.01)
++        ansi_scroll("Experience CompuServe as of the date you choose.", 0.01)
++        ansi_scroll("", 0.01)
++        ansi_scroll("1  Present Day (the service's current date)", 0.01)
++        ansi_scroll("2  Featured dates...", 0.01)
++        ansi_scroll("3  Enter a date (MM/DD/YYYY, 1979-1998)", 0.01)
++        ansi_scroll("4  Surprise me", 0.01)
++        choice = input("Choice: ").strip()
++        if choice == "1":
++            _set_simulation_date(None)
++            return
++        if choice == "2":
++            picked = _featured_date_menu()
++            if picked is None:
++                continue
++            _set_simulation_date(picked)
++            return
++        if choice == "3":
++            picked = _prompt_for_simulation_date()
++            if picked is None:
++                continue
++            _set_simulation_date(picked)
++            return
++        if choice == "4":
++            picked = cis_timecapsule.surprise_date(current_user_id or "")
++            ansi_scroll(f"Your destination: {picked:%A, %B %d, %Y}.", 0.01)
++            _set_simulation_date(picked)
++            return
++        ansi_scroll("Enter 1, 2, 3, or 4.", 0.01)
++
++
+ def account_settings():
+     ansi_scroll(f"Account: {current_user_id}", 0.01)
+     choice = input("P Change password, or M for menu ! ").strip().upper()
+@@ -2736,6 +2829,11 @@ def today_in_1988_lines(fetch_weather=True):
+     """Build the compact post-login briefing from existing service data."""
+     today = cis_dynamic.simulation_day()
+     records = cis_timeline.records_for_date(today)
++    if not records:
++        # Outside the curated 1988 archive, fall back to "on this day".
++        month_day = today.isoformat()[5:]
++        records = [record for record in cis_timeline.RECORDS
++                   if record.get("date", "")[5:] == month_day]
+     counts = {}
+     for item in cis_discovery.activity_items(sys.modules[__name__]):
+         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
+@@ -2776,8 +2874,9 @@ def today_in_1988_lines(fetch_weather=True):
+ def today_in_1988_dashboard(fetch_weather=True):
+     clear()
+     header_bar("main")
+-    ansi_scroll("TODAY IN 1988", 0.01)
+-    ansi_scroll("-------------", 0.01)
++    title = f"TODAY IN {cis_dynamic.simulation_day().year}"
++    ansi_scroll(title, 0.01)
++    ansi_scroll("-" * len(title), 0.01)
+     for line in today_in_1988_lines(fetch_weather):
+         ansi_scroll(line, 0.005)
+     input("Press ENTER for the main menu ! ")
+@@ -3285,13 +3384,15 @@ def main():
+         return 0
+     if not login_screen():
+         return 1
+-    try:
+-        create_data_backup()
+-        if startup_options["refresh_news"]:
+-            refresh_current_news()
+-        navigate(show_briefing=True)
+-    finally:
+-        unregister_session(BASE_DIR, live_session_id)
++    with active_session(session_state):
++        try:
++            choose_temporal_destination()
++            create_data_backup()
++            if startup_options["refresh_news"]:
++                refresh_current_news()
++            navigate(show_briefing=True)
++        finally:
++            unregister_session(BASE_DIR, live_session_id)
+     return 0
+ 
+ 
+diff --git a/test_compuserve.py b/test_compuserve.py
+index f7485af..b571eb1 100644
+--- a/test_compuserve.py
++++ b/test_compuserve.py
+@@ -2194,5 +2194,49 @@ class FeedTests(unittest.TestCase):
+         self.assertEqual(len(data["World"][0]["title"]), feed_utils.MAX_FIELD_LENGTH)
+ 
+ 
++class TimeCapsuleTests(unittest.TestCase):
++    def test_parse_user_date_accepts_valid_entry(self):
++        from datetime import date
++        import cis_timecapsule
++        self.assertEqual(cis_timecapsule.parse_user_date("11/09/1989"), date(1989, 11, 9))
++
++    def test_parse_user_date_rejects_bad_form_and_range(self):
++        import cis_timecapsule
++        for bad in ("1989-11-09", "13/01/1990", "02/30/1990", "01/01/1970", "06/12/2026"):
++            with self.subTest(bad=bad), self.assertRaises(ValueError):
++                cis_timecapsule.parse_user_date(bad)
++
++    def test_surprise_date_is_deterministic_per_seed(self):
++        import cis_timecapsule
++        first = cis_timecapsule.surprise_date("70000,0001")
++        second = cis_timecapsule.surprise_date("70000,0001")
++        self.assertEqual(first, second)
++        self.assertTrue(cis_timecapsule.in_range(first))
++
++    def test_simulation_day_prefers_session_date(self):
++        from datetime import date
++        from cis_session import active_session, session_simulation_date
++        state = SessionState()
++        state.simulation_date = date(1989, 11, 9)
++        with active_session(state):
++            self.assertEqual(cis_dynamic.simulation_day(), date(1989, 11, 9))
++            self.assertEqual(session_simulation_date(), date(1989, 11, 9))
++            first = cis_dynamic.rng("period-news-0", "70000,0001").random()
++            second = cis_dynamic.rng("period-news-0", "70000,0001").random()
++            self.assertEqual(first, second)
++
++    def test_simulation_day_falls_back_without_session_choice(self):
++        from cis_session import active_session, session_simulation_date
++        state = SessionState()
++        with active_session(state):
++            self.assertIsNone(session_simulation_date())
++            # No session date: existing env/default behavior is preserved.
++            self.assertEqual(cis_dynamic.simulation_day(), cis_dynamic.simulation_day())
++
++    def test_no_active_session_means_no_session_date(self):
++        from cis_session import session_simulation_date
++        self.assertIsNone(session_simulation_date())
++
++
+ if __name__ == "__main__":
+     unittest.main()
+-- 
+2.43.0
+
+
+From 9eeee5dbe40eaa3e72b1365a5d21438c89e72879 Mon Sep 17 00:00:00 2001
+From: "Max (Muse)" <max@local.prototype>
+Date: Tue, 15 Sep 2026 17:31:50 +0000
+Subject: [PATCH 2/2] Time-capsule content packs: curated archival content for
+ all six featured dates
+
+Adds timecapsule_packs.json with hand-written, wire-service-voice packs for
+1981-08-12 (IBM PC), 1984-01-24 (Macintosh), 1986-01-28 (Challenger),
+1987-10-19 (Black Monday), 1989-11-09 (Berlin Wall), and 1991-08-06 (first
+public Web invitation). Each pack holds 8-12 archival headlines, 2-4 service
+announcements, 4-6 CB topics, 0-4 market notes, and 2-3 on-this-day items,
+all researched from real events of the date/week with zero anachronisms.
+
+Wiring:
+- cis_timecapsule: validated JSON loader (mirrors cis_timeline), pack_for(),
+  pack_headlines(), cb_conversation(); CONTENT_PACK_STATUS now 'loaded'.
+- compuserve.period_news_edition(): featured dates get their archival wire
+  edition with a date-aware banner instead of the December-1988 edition.
+- compuserve.today_in_1988_lines(): briefing gains ARCHIVAL HEADLINES,
+  MARKET WIRE, and SERVICE ANNOUNCEMENTS sections; pack on-this-day items
+  take precedence in TODAY IN HISTORY.
+- cis_dynamic.cb_ambient_events(): 35% of ambient CB chatter on featured
+  dates comes from the pack's topics, paired with period handles.
+
+Challenger coverage is grave and respectful throughout. Adds 8 tests;
+full suite 187/188 (only the known pre-existing flaky CHIP-88 failure,
+verified against the base commit); smoke_test.py passes.
+---
+ cis_dynamic.py         |  7 ++++
+ cis_timecapsule.py     | 85 +++++++++++++++++++++++++++++++++++++++---
+ compuserve.py          | 40 ++++++++++++++++----
+ test_compuserve.py     | 77 ++++++++++++++++++++++++++++++++++++++
+ timecapsule_packs.json |  1 +
+ 5 files changed, 198 insertions(+), 12 deletions(-)
+ create mode 100644 timecapsule_packs.json
+
+diff --git a/cis_dynamic.py b/cis_dynamic.py
+index a59cb63..b998808 100644
+--- a/cis_dynamic.py
++++ b/cis_dynamic.py
+@@ -7,6 +7,7 @@ import re
+ from datetime import date, datetime, time, timedelta
+ 
+ from cis_session import session_simulation_date
++from cis_timecapsule import pack_for as _timecapsule_pack_for, cb_conversation as _pack_cb_conversation
+ 
+ 
+ HANDLES = [
+@@ -362,6 +363,12 @@ def cb_ambient_events(channel, bucket, recent_text=(), hour=None):
+     chance = 0.20 if 1 <= hour < 7 else 0.45 if 7 <= hour < 17 else 0.80
+     if randomizer.random() > chance:
+         return []
++    # Featured-date packs contribute ambient chatter about their own events.
++    pack = _timecapsule_pack_for(simulation_day())
++    if pack and randomizer.random() < 0.35:
++        conversation = _pack_cb_conversation(pack, randomizer, HANDLES)
++        if conversation:
++            return list(conversation)
+     recent = " ".join(str(item).casefold() for item in recent_text[-30:])
+     conversations = CB_CONVERSATIONS.get(channel, CB_CONVERSATIONS["1"])
+     available = [conversation for conversation in conversations if not any(line.casefold() in recent for _, line in conversation)]
+diff --git a/cis_timecapsule.py b/cis_timecapsule.py
+index 8d0e772..fff3c73 100644
+--- a/cis_timecapsule.py
++++ b/cis_timecapsule.py
+@@ -1,15 +1,18 @@
+ """Time-capsule mode: experience the service as of a date you choose.
+ 
+ Prototype scope: date selection at login, a per-session simulation date, and
+-deterministic seeding derived from that date. The FEATURED_DATES list exists so
+-the destination screen has somewhere to point; curated per-date content packs
+-(archival headlines, era-specific announcements) are stubbed for later --
+-see CONTENT_PACK_STATUS.
++deterministic seeding derived from that date. The FEATURED_DATES list has
++curated per-date content packs (archival headlines, era-specific
++announcements, CB topics, market notes, on-this-day context) loaded from
++timecapsule_packs.json -- see CONTENT_PACK_STATUS.
+ """
+ from __future__ import annotations
+ 
++import json
+ import random
+ from datetime import date, datetime, timedelta
++from pathlib import Path
++from typing import Any, Mapping, Optional, Sequence
+ 
+ # The CompuServe era this simulator covers.
+ MIN_DATE = date(1979, 1, 1)
+@@ -28,7 +31,79 @@ FEATURED_DATES = (
+     (date(1991, 8, 6), "First website goes live at CERN"),
+ )
+ 
+-CONTENT_PACK_STATUS = "stub"
++CONTENT_PACK_STATUS = "loaded"
++
++_PACK_SECTIONS = ("date", "label", "headlines", "announcements", "cb_topics",
++                  "market_notes", "on_this_day")
++_STORY_FIELDS = ("id", "category", "title", "summary", "published", "source")
++
++
++def _load_packs() -> dict:
++    """Load and validate the curated content packs for the featured dates."""
++    path = Path(__file__).resolve().with_name("timecapsule_packs.json")
++    data = json.loads(path.read_text(encoding="utf-8"))
++    packs = data.get("packs", {})
++    missing = [when.isoformat() for when, _ in FEATURED_DATES
++               if when.isoformat() not in packs]
++    if missing:
++        raise RuntimeError(f"Time-capsule packs missing for dates: {missing}")
++    for key, pack in packs.items():
++        if not set(_PACK_SECTIONS).issubset(pack):
++            raise RuntimeError(f"Time-capsule pack {key} is missing sections.")
++        date.fromisoformat(pack["date"])  # validates the ISO date string
++        if not 8 <= len(pack["headlines"]) <= 12:
++            raise RuntimeError(f"Time-capsule pack {key}: need 8-12 headlines.")
++        if not 2 <= len(pack["announcements"]) <= 4:
++            raise RuntimeError(f"Time-capsule pack {key}: need 2-4 announcements.")
++        if not 4 <= len(pack["cb_topics"]) <= 6:
++            raise RuntimeError(f"Time-capsule pack {key}: need 4-6 CB topics.")
++        if not 0 <= len(pack["market_notes"]) <= 4:
++            raise RuntimeError(f"Time-capsule pack {key}: need 0-4 market notes.")
++        if not 2 <= len(pack["on_this_day"]) <= 3:
++            raise RuntimeError(f"Time-capsule pack {key}: need 2-3 on-this-day items.")
++        for story in pack["headlines"]:
++            if not set(_STORY_FIELDS).issubset(story):
++                raise RuntimeError(f"Time-capsule pack {key}: story missing fields.")
++    return packs
++
++
++# Curated content packs for the featured dates. Loaded at import like the
++# other historical JSON content (see cis_timeline); validation raises
++# immediately if a pack is malformed so bad data cannot reach the screen.
++PACKS: dict = _load_packs()
++
++
++def pack_for(value: Any) -> Optional[dict]:
++    """Return the content pack for ``value`` (a date) or None."""
++    if value is None:
++        return None
++    key = value.isoformat() if hasattr(value, "isoformat") else str(value)
++    return PACKS.get(key)
++
++
++def pack_headlines(pack: Mapping[str, Any]) -> Sequence[Mapping[str, Any]]:
++    """Archival headlines in the article shape the news screen consumes."""
++    return [dict(story) for story in pack.get("headlines", [])]
++
++
++def cb_conversation(pack: Mapping[str, Any], randomizer, handles: Sequence[str]):
++    """Build a small (sender, line) CB exchange from a pack's CB topics.
++
++    ``handles`` is passed in so this dependency-free module does not need to
++    import cis_dynamic's handle table.
++    """
++    topics = list(pack.get("cb_topics", []))
++    if not topics or not handles:
++        return []
++    picks = randomizer.sample(topics, min(2, len(topics)))
++    lines = []
++    used = set()
++    for topic in picks:
++        available = [h for h in handles if h not in used] or list(handles)
++        handle = randomizer.choice(available)
++        used.add(handle)
++        lines.append((handle, topic))
++    return lines
+ 
+ 
+ def in_range(value: date) -> bool:
+diff --git a/compuserve.py b/compuserve.py
+index 4f54bb7..3aab6b4 100644
+--- a/compuserve.py
++++ b/compuserve.py
+@@ -1528,16 +1528,26 @@ def news_article(article, category):
+ 
+ 
+ def period_news_edition():
+-    articles = cis_period_news.edition(sys.modules[__name__])
+-    if current_user_id and cis_dynamic.simulation_day().day >= 12:
+-        story_article = cis_story.news_article(sys.modules[__name__])
+-        story_article["story_case"] = cis_story.CASE_ID
+-        articles = [story_article, *articles]
++    pack = cis_timecapsule.pack_for(cis_dynamic.simulation_day())
++    if pack is not None:
++        # Featured date with a curated archival pack: real dispatches from
++        # that date, in the same article shape the news screen consumes.
++        articles = cis_timecapsule.pack_headlines(pack)
++        banner = f'CIS ARCHIVAL NEWS WIRE -- {pack["date"]}'
++        sub = f'Archival edition: dispatches as of {pack["label"]}.'
++    else:
++        articles = cis_period_news.edition(sys.modules[__name__])
++        if current_user_id and cis_dynamic.simulation_day().day >= 12:
++            story_article = cis_story.news_article(sys.modules[__name__])
++            story_article["story_case"] = cis_story.CASE_ID
++            articles = [story_article, *articles]
++        banner = "CIS PERIOD NEWS WIRE - DECEMBER 1988"
++        sub = "A historical simulation edition; all dispatches remain within 1988."
+     while True:
+         clear()
+         header_bar("news")
+-        ansi_scroll("CIS PERIOD NEWS WIRE - DECEMBER 1988", 0.01)
+-        ansi_scroll("A historical simulation edition; all dispatches remain within 1988.", 0.005)
++        ansi_scroll(banner, 0.01)
++        ansi_scroll(sub, 0.005)
+         for index, article in enumerate(articles, 1):
+             ansi_scroll(f'{index:>2} [{article["category"][:3]}] {article["title"]}', 0.005)
+         choice = input("\nEnter item or M ! ").strip().upper()
+@@ -2834,6 +2844,13 @@ def today_in_1988_lines(fetch_weather=True):
+         month_day = today.isoformat()[5:]
+         records = [record for record in cis_timeline.RECORDS
+                    if record.get("date", "")[5:] == month_day]
++    pack = cis_timecapsule.pack_for(today)
++    if pack:
++        # Featured date: the pack's context items take precedence.
++        records = list(records) + [
++            {"id": f"TCD-{index}", "title": item["title"]}
++            for index, item in enumerate(pack["on_this_day"], 1)
++        ]
+     counts = {}
+     for item in cis_discovery.activity_items(sys.modules[__name__]):
+         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
+@@ -2841,6 +2858,15 @@ def today_in_1988_lines(fetch_weather=True):
+     lines.extend(f'  {record["id"]}  {record["title"]}' for record in records)
+     if not records:
+         lines.append("  No curated entry for today.")
++    if pack:
++        # Curated archival content for the featured date.
++        lines.extend(["", "ARCHIVAL HEADLINES"])
++        lines.extend(f'  {story["title"]}' for story in pack["headlines"][:6])
++        if pack.get("market_notes"):
++            lines.extend(["", "MARKET WIRE"])
++            lines.extend(f"  {note}" for note in pack["market_notes"][:3])
++        lines.extend(["", "SERVICE ANNOUNCEMENTS"])
++        lines.extend(f"  {note}" for note in pack["announcements"])
+     lines.extend(["", "YOUR SERVICE"])
+     service_kinds = ("MAIL", "FORUM", "ORDER", "TRAVEL", "DRAFT", "NOTICE")
+     summaries = [f"{kind} {counts[kind]}" for kind in service_kinds if counts.get(kind)]
+diff --git a/test_compuserve.py b/test_compuserve.py
+index b571eb1..0cd2cce 100644
+--- a/test_compuserve.py
++++ b/test_compuserve.py
+@@ -2238,5 +2238,82 @@ class TimeCapsuleTests(unittest.TestCase):
+         self.assertIsNone(session_simulation_date())
+ 
+ 
++class TimeCapsulePackTests(unittest.TestCase):
++    def test_packs_are_loaded_for_every_featured_date(self):
++        import cis_timecapsule
++        self.assertEqual(cis_timecapsule.CONTENT_PACK_STATUS, "loaded")
++        for when, _label in cis_timecapsule.FEATURED_DATES:
++            with self.subTest(date=when.isoformat()):
++                pack = cis_timecapsule.pack_for(when)
++                self.assertIsNotNone(pack)
++                self.assertEqual(pack["date"], when.isoformat())
++
++    def test_pack_sections_meet_required_counts(self):
++        import cis_timecapsule
++        for when, _label in cis_timecapsule.FEATURED_DATES:
++            pack = cis_timecapsule.pack_for(when)
++            with self.subTest(date=when.isoformat()):
++                self.assertTrue(8 <= len(pack["headlines"]) <= 12)
++                self.assertTrue(2 <= len(pack["announcements"]) <= 4)
++                self.assertTrue(4 <= len(pack["cb_topics"]) <= 6)
++                self.assertTrue(0 <= len(pack["market_notes"]) <= 4)
++                self.assertTrue(2 <= len(pack["on_this_day"]) <= 3)
++
++    def test_pack_headlines_have_news_article_shape(self):
++        import cis_timecapsule
++        required = {"id", "category", "title", "summary", "published", "source"}
++        for when, _label in cis_timecapsule.FEATURED_DATES:
++            pack = cis_timecapsule.pack_for(when)
++            for story in pack["headlines"]:
++                with self.subTest(date=when.isoformat(), story=story.get("id")):
++                    self.assertTrue(required.issubset(story))
++                    for field in required:
++                        self.assertTrue(story[field], f"empty {field}")
++
++    def test_pack_for_returns_none_without_a_pack(self):
++        import cis_timecapsule
++        from datetime import date
++        self.assertIsNone(cis_timecapsule.pack_for(None))
++        self.assertIsNone(cis_timecapsule.pack_for(date(1985, 6, 15)))
++
++    def test_pack_headlines_returns_copies(self):
++        import cis_timecapsule
++        from datetime import date
++        pack = cis_timecapsule.pack_for(date(1981, 8, 12))
++        stories = cis_timecapsule.pack_headlines(pack)
++        self.assertEqual(len(stories), len(pack["headlines"]))
++        self.assertIsNot(stories[0], pack["headlines"][0])
++        self.assertEqual(stories[0]["title"], "IBM ENTERS PERSONAL COMPUTER MARKET")
++
++    def test_cb_conversation_uses_pack_topics_and_given_handles(self):
++        import random
++        import cis_timecapsule
++        from datetime import date
++        pack = cis_timecapsule.pack_for(date(1986, 1, 28))
++        handles = ["Alpha", "Beta", "Gamma"]
++        lines = cis_timecapsule.cb_conversation(pack, random.Random(7), handles)
++        self.assertEqual(len(lines), 2)
++        for sender, line in lines:
++            self.assertIn(sender, handles)
++            self.assertIn(line, pack["cb_topics"])
++        self.assertNotEqual(lines[0][0], lines[1][0])
++
++    def test_cb_conversation_empty_without_topics_or_handles(self):
++        import random
++        import cis_timecapsule
++        self.assertEqual(cis_timecapsule.cb_conversation({}, random.Random(1), ["A"]), [])
++        self.assertEqual(cis_timecapsule.cb_conversation({"cb_topics": ["hi"]}, random.Random(1), []), [])
++
++    def test_cb_ambient_is_deterministic_on_featured_date(self):
++        from datetime import date
++        from cis_session import active_session
++        state = SessionState()
++        state.simulation_date = date(1987, 10, 19)
++        with active_session(state):
++            first = cis_dynamic.cb_ambient_events("1", "bucket", hour=20)
++            second = cis_dynamic.cb_ambient_events("1", "bucket", hour=20)
++            self.assertEqual(first, second)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/timecapsule_packs.json b/timecapsule_packs.json
+new file mode 100644
+index 0000000..9fb78da
+--- /dev/null
++++ b/timecapsule_packs.json
+@@ -0,0 +1 @@
++{"packs":{"1981-08-12":{"announcements":["NEW: The IBM PC Users Forum is now open -- GO IBMPC. Share configuration tips and software notes for the new IBM Personal Computer.","CB Simulator: Channel 12 is reserved for IBM PC discussion this weekend. All handles welcome.","Scheduled maintenance: the service will be unavailable Sunday 2:00-6:00 AM Eastern for system upgrades."],"cb_topics":["Anybody else see the IBM announcement? $1565 for 16K. SIXTEEN K.","My TRS-80 has more memory than that base model, and I paid less in '79.","VisiCalc on an IBM. That is the whole ballgame for business users.","CP/M-86 costs how much more than DOS? Kildall must be fuming.","Gas is over a buck thirty here. Remember when it was fifty cents?","Who is watching Dallas this fall? Sue Ellen had better behave."],"date":"1981-08-12","headlines":[{"category":"TECHNOLOGY","id":"TC81-01","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"IBM announced its smallest, lowest-priced computer, the IBM Personal Computer, at a New York press conference this morning. The base system, with 16K of memory and BASIC built in, sells for $1,565 through ComputerLand dealers, Sears business machine stores, and IBM sales centers.","title":"IBM ENTERS PERSONAL COMPUTER MARKET"},{"category":"TECHNOLOGY","id":"TC81-02","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"The system uses an Intel 8088 processor running at 4.77 megahertz. Buyers may choose PC-DOS from Microsoft for $40, CP/M-86 from Digital Research, or the UCSD p-System. VisiCalc and Peachtree business software were named among the programs available at launch.","title":"NEW IBM MACHINE RUNS MICROSOFT DOS"},{"category":"TECHNOLOGY","id":"TC81-03","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"Byte magazine called the machine 'one of the most important announcements we have seen in the industry.' Apple answered with a full-page Wall Street Journal advertisement reading 'Welcome, IBM. Seriously,' welcoming the giant to the personal computer business.","title":"INDUSTRY REACTS TO IBM ANNOUNCEMENT"},{"category":"TECHNOLOGY","id":"TC81-04","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"Breaking with its closed-system tradition, IBM is publishing a Technical Reference manual with BIOS listings and expansion schematics, and will sell its own line of plug-in expansion boards for the new machine.","title":"IBM OPENS MACHINE TO DEVELOPERS"},{"category":"BUSINESS","id":"TC81-05","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"Congress has sent the President the Economic Recovery Tax Act, the largest tax cut in American history, calling for a 25 percent across-the-board reduction phased in over three years. Signing is expected this week at his California ranch.","title":"REAGAN TAX CUT AWAITS PRESIDENT'S SIGNATURE"},{"category":"WORLD","id":"TC81-06","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"More than 11,000 air traffic controllers remain off the job after President Reagan ordered striking PATCO members fired last week. Military controllers and supervisors are handling commercial traffic, and airlines are flying reduced schedules.","title":"AIR CONTROLLERS STRIKE ENTERS SECOND WEEK"},{"category":"SPORTS","id":"TC81-07","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"Major league baseball resumed this week after a 50-day players' strike, with the All-Star Game played Sunday in Cleveland. Owners and players agreed to a split-season format with an extra round of playoffs.","title":"BASEBALL BACK AFTER PLAYERS' STRIKE"},{"category":"TECHNOLOGY","id":"TC81-08","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"MTV: Music Television began cablecasting August 1 with the Buggles' 'Video Killed the Radio Star.' The Warner-Amex channel programs rock videos around the clock.","title":"CABLE VIEWERS GET ALL-MUSIC CHANNEL"},{"category":"WORLD","id":"TC81-09","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"Solidarity, the independent Polish labor federation, continues pressing the Warsaw government for economic reforms amid food shortages and labor unrest.","title":"POLISH UNION PRESSURES WARSAW GOVERNMENT"},{"category":"BUSINESS","id":"TC81-10","published":"AUG 12, 1981","source":"CIS ARCHIVAL WIRE","summary":"The Federal Reserve's tight-money campaign keeps the prime lending rate near 20 percent as the central bank battles double-digit inflation. Business borrowing costs remain at historic highs.","title":"PRIME RATE HOLDS NEAR 20 PERCENT"}],"label":"IBM PC announced","market_notes":["Prime rate near 20% as Volcker's Federal Reserve squeezes inflation; business borrowing at historic cost.","IBM shares watched closely after the PC announcement; analysts debate whether Big Blue can move fast in the microcomputer market."],"on_this_day":[{"summary":"MTV: Music Television began cablecasting with 'Video Killed the Radio Star.'","title":"MTV signs on (August 1, 1981)"},{"summary":"PATCO members strike; President Reagan orders strikers fired.","title":"Air traffic controllers walk out (August 3, 1981)"},{"summary":"IBM announces the Model 5150 at $1,565, entering the microcomputer market.","title":"IBM introduces the Personal Computer (August 12, 1981)"}]},"1984-01-24":{"announcements":["NEW: The Macintosh Owners Forum is now open -- GO MAC. Tips, desk accessories, and software notes for Apple's new machine.","The '1984' ad got you curious? Our Apple SIG has Macintosh technical threads starting today.","CB Simulator: Channel 8 is the unofficial Macintosh channel. Mouse users welcome."],"cb_topics":["The Mac talked! Did anyone else read about the shareholders meeting?","$2495 for 128K and no hard disk. My PC-XT laughs.","A mouse. Icons. No more DOS commands to memorize. My wife could use this.","That 1984 commercial during the Super Bowl -- the hammer throw! Best ad ever.","Raiders killed the Redskins. 38-9. Marcus Allen is unreal.","Long distance is a mess since the breakup. MCI keeps calling me at dinner."],"date":"1984-01-24","headlines":[{"category":"TECHNOLOGY","id":"TC84-01","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"Apple Computer introduced the Macintosh at its annual shareholders meeting in Cupertino today. The $2,495 machine replaces typed commands with a mouse, icons, and pull-down menus on a 9-inch black-and-white display.","title":"APPLE UNVEILS MACINTOSH"},{"category":"TECHNOLOGY","id":"TC84-02","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"In a flourish, Steven Jobs had the machine introduce itself in synthesized speech before a cheering audience: 'Never trust a computer you can't lift!' The demonstration drew a standing ovation.","title":"'HELLO, I'M MACINTOSH'"},{"category":"TECHNOLOGY","id":"TC84-03","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"Motorola 68000 processor at 8 megahertz, 128K of memory, a 3.5-inch 400K floppy drive, and bundled MacWrite and MacPaint software. There is no hard disk; a second floppy drive is optional.","title":"MACINTOSH SPECIFICATIONS DETAILED"},{"category":"BUSINESS","id":"TC84-04","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"Two days before the unveiling, Apple's Ridley Scott-directed '1984' commercial aired during Super Bowl XVIII. The Los Angeles Raiders defeated Washington 38-9 at Tampa Stadium before more than 77 million viewers.","title":"APPLE'S '1984' AD STUNS SUPER BOWL VIEWERS"},{"category":"BUSINESS","id":"TC84-05","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"The AT&T divestiture became effective January 1, spinning off seven regional Bell companies. Long-distance customers are choosing among AT&T, MCI, and Sprint for the first time.","title":"BELL SYSTEM BREAKUP TAKES EFFECT"},{"category":"WORLD","id":"TC84-06","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"U.S. Marines remain at the Beirut airport as part of the multinational force, months after the October barracks bombing killed 241 American servicemen.","title":"MARINES HOLD BEIRUT POSITIONS"},{"category":"SCIENCE","id":"TC84-07","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"Astronomers are preparing for Halley's Comet, due at perihelion in February 1986, with an international armada of spacecraft planned for close encounters.","title":"ASTRONOMERS AWAIT HALLEY'S COMET"},{"category":"SPORTS","id":"TC84-08","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"Marcus Allen ran for 191 yards and two touchdowns as Los Angeles won 38-9 at Tampa Stadium on Sunday, the most lopsided Super Bowl yet played.","title":"RAIDERS ROUT REDSKINS IN SUPER BOWL"},{"category":"TECHNOLOGY","id":"TC84-09","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"The spreadsheet program remains the must-have business application, moving IBM-compatible hardware off dealer shelves as offices automate.","title":"LOTUS 1-2-3 DRIVES PC SALES"},{"category":"WORLD","id":"TC84-10","published":"JAN 24, 1984","source":"CIS ARCHIVAL WIRE","summary":"The Yugoslavian city is readying venues for the Winter Olympics, opening February 8 with athletes from dozens of nations.","title":"SARAJEVO PREPARES FOR WINTER GAMES"}],"label":"Apple Macintosh debuts","market_notes":["Apple shares in focus after the Macintosh unveiling; analysts split on whether $2,495 is too rich for the home market.","AT&T begins life as a long-distance company; the seven regional Bells open separately. Dividend checks will look different this quarter."],"on_this_day":[{"summary":"The Ridley Scott spot runs during Super Bowl XVIII.","title":"Apple's '1984' commercial airs (January 22, 1984)"},{"summary":"The Bell System splits into AT&T and seven regional companies.","title":"AT&T divestiture takes effect (January 1, 1984)"},{"summary":"James Marshall's find sets off the California Gold Rush.","title":"Gold discovered at Sutter's Mill (January 24, 1848)"}]},"1986-01-28":{"announcements":["A message from the sysops: our thoughts are with the families of the Challenger crew, and with the teachers and students who followed this mission. Tonight's CB conference will observe a moment of silence.","The Space/Astronomy forum has opened a memorial thread for Challenger. Please keep discussion respectful.","NASA mission summaries are being added to the reference library as they become available."],"cb_topics":["I watched it happen live. My kids' classroom went silent. I do not have words.","Christa McAuliffe was supposed to teach lessons from orbit. My daughter wrote her a letter.","Reagan speaks tonight. 'Slipped the surly bonds of earth.' I am not ashamed to say I cried.","The Bears won the Super Bowl Sunday. Feels like a month ago already.","Does anyone know if the shuttle program will fly again? My son keeps asking.","Gas is under a dollar here for the first time in years. Small mercies."],"date":"1986-01-28","headlines":[{"category":"WORLD","id":"TC86-01","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"The space shuttle Challenger broke apart 73 seconds after liftoff from Kennedy Space Center this morning, killing all seven aboard. The crew included Christa McAuliffe, the New Hampshire teacher chosen as the first private citizen in space.","title":"SHUTTLE CHALLENGER LOST AFTER LIFTOFF"},{"category":"WORLD","id":"TC86-02","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"The President set aside tonight's address to Congress, declaring 'today is a day for mourning and remembering,' and will speak to the nation from the Oval Office this evening.","title":"REAGAN POSTPONES STATE OF THE UNION"},{"category":"WORLD","id":"TC86-03","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"Commander Francis Scobee, pilot Michael Smith, mission specialists Judith Resnik, Ellison Onizuka and Ronald McNair, and payload specialists Gregory Jarvis and Christa McAuliffe.","title":"THE CREW OF STS-51L"},{"category":"SCIENCE","id":"TC86-04","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"The launch went ahead despite overnight temperatures near freezing, the coldest shuttle launch yet. NASA officials say it is too early to know whether the cold played a role; a board of inquiry is being appointed.","title":"QUESTIONS ABOUT COLD-WEATHER LAUNCH"},{"category":"WORLD","id":"TC86-05","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"Millions of schoolchildren watched live as McAuliffe, 37, a social studies teacher from Concord, New Hampshire, was to teach two lessons from orbit during the mission.","title":"SCHOOLS MOURN TEACHER IN SPACE"},{"category":"SPORTS","id":"TC86-06","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"Chicago defeated New England 46-10 Sunday at the Superdome, capping a dominant season. William 'The Refrigerator' Perry scored a touchdown.","title":"BEARS CRUSH PATRIOTS IN SUPER BOWL"},{"category":"SCIENCE","id":"TC86-07","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"The comet reaches its closest approach to the sun next month; spacecraft from the Soviet Union, Japan, and Europe are closing in for encounters.","title":"HALLEY'S COMET NEARS PERIHELION"},{"category":"BUSINESS","id":"TC86-08","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"Crude oil continues its slide as OPEC members pump beyond quotas, squeezing Texas producers and alarming energy lenders.","title":"OIL PRICES SLIDE BELOW $20"},{"category":"WORLD","id":"TC86-09","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"Corazon Aquino is drawing large crowds challenging Ferdinand Marcos ahead of next month's snap presidential election.","title":"AQUINO CAMPAIGNS IN PHILIPPINES"},{"category":"TECHNOLOGY","id":"TC86-10","published":"JAN 28, 1986","source":"CIS ARCHIVAL WIRE","summary":"Apple's LaserWriter printer and Aldus PageMaker software are bringing typeset-quality pages to desktop Macintoshes, creating a new category of business computing.","title":"DESKTOP PUBLISHING GROWS"}],"label":"Challenger","market_notes":["Oil's slide continues; crude under $20 pressures energy stocks and Texas banks.","Defense and aerospace shares steady; investors await NASA's inquiry before reassessing shuttle contractors."],"on_this_day":[{"summary":"Chicago defeats New England 46-10 at the Superdome.","title":"Chicago Bears win Super Bowl XX (January 26, 1986)"},{"summary":"New Haven, Connecticut, switches on the first telephone exchange.","title":"First commercial telephone exchange opens (January 28, 1878)"},{"summary":"STS-51L breaks apart 73 seconds after liftoff; seven crew members killed.","title":"Space Shuttle Challenger lost (January 28, 1986)"}]},"1987-10-19":{"announcements":["Market data services are experiencing extremely heavy volume today. Quotes may be delayed; thank you for your patience.","The Investors Forum has opened a special thread on today's market action -- GO INVESTORS.","Scheduled maintenance remains set for Sunday 2:00-6:00 AM Eastern."],"cb_topics":["The Dow just fell 500 points. FIVE HUNDRED. Is my 401(k) gone?","My broker's line has been busy for two hours. TWO HOURS.","They are saying the computers did it -- program trading just kept selling.","And on the same day we are shelling Iranian oil platforms. What a Monday.","Twins are up 2-0 in the Series, at least. Small comfort.","My dad says he remembers '29. He says do not panic. Trying not to."],"date":"1987-10-19","headlines":[{"category":"BUSINESS","id":"TC87-01","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"The Dow Jones industrial average fell 508.32 points, or 22.6 percent, to 1,738.74 -- the largest one-day decline in Wall Street history, nearly double the 1929 record. A record 604 million shares changed hands.","title":"DOW PLUNGES 508 POINTS IN HISTORIC CRASH"},{"category":"BUSINESS","id":"TC87-02","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Order systems were overwhelmed as the selloff accelerated; dozens of stocks faced delayed openings, and investors waited an hour or more for trade confirmations.","title":"SELLING SWAMPS EXCHANGE SYSTEMS"},{"category":"BUSINESS","id":"TC87-03","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Computer-driven portfolio insurance strategies are blamed for accelerating the decline, turning a selloff into a cascade as programs dumped stock-index futures automatically.","title":"PROGRAM TRADING BLAMED FOR CASCADE"},{"category":"BUSINESS","id":"TC87-04","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Panic circled the globe as exchanges from Hong Kong to London to Sydney posted heavy losses, with London's market suffering its worst week on record.","title":"CRASH GOES GLOBAL"},{"category":"BUSINESS","id":"TC87-05","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"The White House said the economy remains fundamentally sound. Treasury and Federal Reserve officials are in close contact as markets reel, and traders await word on emergency measures.","title":"WASHINGTON RESPONDS TO MELTDOWN"},{"category":"WORLD","id":"TC87-06","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Navy warships shelled two Iranian oil platforms in the Persian Gulf in retaliation for last week's missile attack on the reflagged tanker Sea Isle City. President Reagan called it 'a prudent yet restrained response.'","title":"U.S. DESTROYS IRANIAN OIL PLATFORMS"},{"category":"BUSINESS","id":"TC87-07","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Treasury Secretary James Baker's weekend threat to let the dollar fall further, after criticizing West Germany's interest-rate hike, deepened fears of a policy rift days before the crash.","title":"BAKER'S DOLLAR REMARKS RATTLE MARKETS"},{"category":"WORLD","id":"TC87-08","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"U.S. and Soviet negotiators are pressing toward an intermediate-range missile treaty ahead of a planned December summit between Reagan and Gorbachev.","title":"ARMS TALKS PRESS TOWARD SUMMIT"},{"category":"SPORTS","id":"TC87-09","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Minnesota took the first two games at the Metrodome over St. Louis; the Series resumes Tuesday night in Missouri.","title":"TWINS LEAD WORLD SERIES 2-0"},{"category":"TECHNOLOGY","id":"TC87-10","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"IBM's PS/2 line, introduced this spring with the OS/2 operating system, faces a cautious market as businesses weigh the cost of upgrading.","title":"IBM'S PS/2 FACES SKEPTICAL MARKET"},{"category":"BUSINESS","id":"TC87-11","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Brokerage phone lines jammed as individual investors tried to reach advisors, and mutual fund redemption orders piled up through the afternoon.","title":"BROKERS SWAMPED BY WORRIED CALLERS"},{"category":"WORLD","id":"TC87-12","published":"OCT 19, 1987","source":"CIS ARCHIVAL WIRE","summary":"Candidates are campaigning ahead of December's presidential election, the country's first direct vote in 16 years.","title":"SOUTH KOREA CAMPAIGNS FOR DECEMBER VOTE"}],"label":"Black Monday","market_notes":["Dow: -508.32 (22.6%) to 1,738.74. S&P 500 -20%. Wilshire 5000 -18%.","Volume: 604.3 million shares, triple the daily average; dozens of NYSE trading delays and halts.","An estimated $500+ billion in NYSE market value erased in a single session.","Portfolio insurance and program trading identified as accelerants; dollar policy and trade-deficit fears as triggers."],"on_this_day":[{"summary":"The British surrender effectively ends the American Revolutionary War.","title":"Cornwallis surrenders at Yorktown (October 19, 1781)"},{"summary":"The Grande Armee turns back toward France as winter closes in.","title":"Napoleon begins retreat from Moscow (October 19, 1812)"},{"summary":"The largest one-day percentage drop in Wall Street history.","title":"Dow falls 508 points (October 19, 1987)"}]},"1989-11-09":{"announcements":["The International News forum has an open thread on events in Berlin. Please keep discussion civil -- GO WORLDNEWS.","CB Simulator: Channel 1 is hosting an open discussion on tonight's events in Germany. All members welcome.","New in the reference library: a Germany fact file with maps of Berlin's crossing points."],"cb_topics":["Are you watching Berlin? People are standing ON the Wall. ON it.","My cousin was stationed in West Berlin in the 70s. He says he is crying.","Schabowski just... announced it by accident? Unbelievable.","Wilder won in Virginia and Dinkins in New York. What a week.","My kid wants a Game Boy for Christmas. So does every kid in America.","The A's swept the Series and now this. October and November have been unreal."],"date":"1989-11-09","headlines":[{"category":"WORLD","id":"TC89-01","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"East German authorities announced this evening that citizens may travel to the West effective immediately. Thousands massed at border crossings in Berlin, and overwhelmed guards opened the gates. Crowds are celebrating atop the Wall tonight.","title":"EAST GERMANY OPENS THE WALL"},{"category":"WORLD","id":"TC89-02","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"Politburo spokesman Guenter Schabowski, handed new travel regulations he had not been briefed on, told a televised press conference the rules take effect 'immediately, without delay.' Within the hour, East Berliners were streaming toward the crossings.","title":"SCHABOWSKI ANNOUNCEMENT IGNITES EXODUS"},{"category":"WORLD","id":"TC89-03","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"Border guards, who had received no clear orders, yielded to the crowds late in the evening as chants of 'Open the gate!' rose at checkpoints across the divided city.","title":"CROSSINGS OVERWHELMED LATE TONIGHT"},{"category":"WORLD","id":"TC89-04","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"President Bush welcomed the development but struck a cautious note, saying he would not 'dance on the Berlin Wall.' In Moscow, Soviet officials offered no objection as the night unfolded.","title":"BUSH WELCOMES OPENING, URGES CALM"},{"category":"WORLD","id":"TC89-05","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"In Tuesday's elections, L. Douglas Wilder became the first elected black governor in American history in Virginia, and David Dinkins became New York City's first black mayor.","title":"WILDER, DINKINS MAKE HISTORY IN U.S. VOTE"},{"category":"BUSINESS","id":"TC89-06","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"European markets took the Berlin news in stride; analysts are weighing what open borders and reunification talk mean for the continent's economy.","title":"MARKETS STEADY AS EUROPE SHIFTS"},{"category":"TECHNOLOGY","id":"TC89-07","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"Nintendo's handheld, launched in the U.S. this summer with Tetris packed in, is the season's must-have toy as the holidays approach.","title":"GAME BOY CONQUERS PLAYGROUNDS"},{"category":"WORLD","id":"TC89-08","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"The Bay Area continues cleanup from the October 17 Loma Prieta earthquake, which killed 63 people and collapsed a section of the Bay Bridge.","title":"QUAKE RECOVERY CONTINUES IN CALIFORNIA"},{"category":"SPORTS","id":"TC89-09","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"Oakland completed a four-game sweep of San Francisco in the World Series, played ten days late after the earthquake interrupted it.","title":"A'S SWEEP GIANTS IN QUAKE-DELAYED SERIES"},{"category":"SCIENCE","id":"TC89-10","published":"NOV 9, 1989","source":"CIS ARCHIVAL WIRE","summary":"The Galileo spacecraft, launched last month aboard the shuttle Atlantis, is on its six-year voyage to Jupiter.","title":"GALILEO EN ROUTE TO JUPITER"}],"label":"Berlin Wall falls","market_notes":["West German markets steady; traders debate what open borders mean for European growth.","U.S. markets little changed; analysts say the week's U.S. election results matter more to domestic stocks."],"on_this_day":[{"summary":"Anti-Jewish violence erupts across Germany; synagogues and shops destroyed.","title":"Kristallnacht pogroms begin (November 9, 1938)"},{"summary":"A massive power failure darkens New York and much of the Northeast.","title":"Northeast blackout (November 9, 1965)"},{"summary":"East Germany announces free travel; crowds stream through the crossings.","title":"Berlin Wall opened (November 9, 1989)"}]},"1991-08-06":{"announcements":["NEW: The Internet SIG is now open -- GO INTERNET. Discussion of TCP/IP tools, Gopher, and the new WorldWideWeb project from CERN.","The file library has a new Internet section with FTP site lists and protocol documents.","CB Simulator: Channel 9 hosts a weekly Internet roundtable, Thursdays at 9 PM Eastern."],"cb_topics":["Some fellow at CERN posted about a 'WorldWideWeb.' Hypertext over the Internet. Anyone tried it?","You need a NeXT to run his browser. A NeXT! Who has ten grand?","Gopher is easier. Menus, no fancy formatting. This web thing is a toy.","START treaty signed. Maybe the Cold War is really over.","Terminator 2 last month -- the liquid metal fellow. Best effects I have ever seen.","Gas is $1.14 here and I am supposed to be happy about it?"],"date":"1991-08-06","headlines":[{"category":"TECHNOLOGY","id":"TC91-01","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Tim Berners-Lee, a computer scientist at CERN in Geneva, posted a public invitation on the alt.hypertext newsgroup today describing the WorldWideWeb project: a hypertext system for sharing information across the Internet. The first site runs on his NeXT computer at info.cern.ch.","title":"CERN PHYSICIST INVITES WORLD TO 'WEB'"},{"category":"TECHNOLOGY","id":"TC91-02","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Berners-Lee's system links documents with hypertext using new protocols called HTTP and HTML. Readers need his WorldWideWeb browser program, now publicly available, to follow the links between documents.","title":"WHAT IS THE WORLDWIDEWEB?"},{"category":"TECHNOLOGY","id":"TC91-03","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"The University of Minnesota's Gopher protocol, released this spring, offers a simpler, menu-driven rival for finding information on the Internet -- and currently has far more users than the new Web.","title":"GOPHER OFFERS MENU-DRIVEN RIVAL"},{"category":"WORLD","id":"TC91-04","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Presidents Bush and Gorbachev signed the Strategic Arms Reduction Treaty last week in Moscow, limiting each side to 6,000 nuclear warheads. The Senate must still ratify it.","title":"START TREATY SIGNED IN MOSCOW"},{"category":"WORLD","id":"TC91-05","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Soviet conservatives are criticizing Gorbachev's reforms as the republics press for sovereignty, raising questions about the reformer's hold on power.","title":"GORBACHEV FACES HARD-LINE PRESSURE"},{"category":"BUSINESS","id":"TC91-06","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Unemployment remains above 6.5 percent as the nation waits to see whether the recession that began last summer has truly ended.","title":"ECONOMY SHOWS MIXED SIGNALS"},{"category":"SPORTS","id":"TC91-07","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"With two months to play, division races are tightening across both leagues as contenders jockey for October.","title":"BASEBALL PENNANT RACES TIGHTEN"},{"category":"TECHNOLOGY","id":"TC91-08","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Microsoft's latest DOS adds task swapping, an improved BASIC, and a full-screen editor, with upgrade pricing under $100.","title":"MS-DOS 5.0 SHIPS TO DEALERS"},{"category":"WORLD","id":"TC91-09","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Clarence Thomas's Supreme Court nomination awaits fall confirmation hearings after his July selection to replace Thurgood Marshall.","title":"THOMAS NOMINATION AWAITS FALL HEARINGS"},{"category":"SCIENCE","id":"TC91-10","published":"AUG 6, 1991","source":"CIS ARCHIVAL WIRE","summary":"Astronomers are designing corrective optics for the Hubble Space Telescope's flawed mirror, with a shuttle repair mission planned for the coming years.","title":"HUBBLE TEAMS PLAN MIRROR REPAIR"}],"label":"first website public invitation","market_notes":["Stocks drift as investors parse mixed economic data; unemployment stuck above 6.5%.","Technology shares mixed; Microsoft's DOS 5.0 launch draws dealer interest."],"on_this_day":[{"summary":"The first combat use of an atomic weapon devastates the Japanese city.","title":"Atomic bomb dropped on Hiroshima (August 6, 1945)"},{"summary":"The Security Council imposes sweeping sanctions after the invasion of Kuwait.","title":"U.N. sanctions Iraq (August 6, 1990)"},{"summary":"Tim Berners-Lee posts a public invitation to the Web project on alt.hypertext.","title":"WorldWideWeb opened to the public (August 6, 1991)"}]}}}
+\ No newline at end of file
+-- 
+2.43.0
+
