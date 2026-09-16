@@ -62,5 +62,9 @@
   "GO EQUIPMENT": "equipment",
   "GO OWNED": "equipment",
   "GO SHAREWARE": "shareware",
-  "GO TERMLINK": "shareware"
+  "GO TERMLINK": "shareware",
+  "GO COOKING": "cooking",
+  "GO AVIATION": "aviation",
+  "GO SCIFI": "scifi",
+  "GO YEARINREVIEW": "news"
 }

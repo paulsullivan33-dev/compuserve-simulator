@@ -41,6 +41,10 @@ import cis_reference
 import cis_store
 import cis_business
 import cis_billing
+import cis_yearend
+import cis_cooking
+import cis_aviation
+import cis_scifi
 import cis_travel
 import cis_experience
 import cis_drafts
@@ -3018,7 +3022,7 @@ ANACHRONISMS = [
     "Texans", "Jaguars", "Panthers", "Ravens", "Titans",
     "Arizona Cardinals", "St. Louis Rams", "Tennessee Oilers",
     "Los Angeles Chargers", "2000", "1999", "1995", "1994",
-    "Super Bowl XXIII", "20-16", "iPhone", "internet", "www.",
+    "20-16", "iPhone", "internet", "www.",
 ]
 
 
@@ -3123,7 +3127,8 @@ class SportsContentTests(unittest.TestCase):
 
     def test_sports_service_returns_sections(self):
         sections = cis_sports.sports_service(app=None)
-        self.assertEqual([t for t, _ in sections], ["NFL", "TV", "MLB"])
+        self.assertEqual([t for t, _ in sections],
+                         ["NFL", "TV", "MLB", "SUPER BOWL", "WORLD SERIES", "NBA", "NHL"])
         for title, lines in sections:
             self.assertTrue(lines, f"{title} section empty")
 
@@ -5263,3 +5268,694 @@ class PagePauseTests(unittest.TestCase):
                 self.assertEqual(cis_session.read_input("P> "), "hello")
         finally:
             cis_session._prompt_app.reset(token)
+# =====================================================================
+# Content pack 5: 1988 Year in Review, Cooking/Aviation/Sci-Fi forums,
+# sports expansion (Super Bowl preview, World Series recap, NBA, NHL).
+# Merged from the five standalone worker test files by the finisher.
+# =====================================================================
+
+# --- 1988 Year in Review (cis_yearend) ---
+
+YEAREND_BANNED_TERMS = (
+    # "internet" intentionally excluded: the Morris worm was reported as
+    # the "Internet worm" in 1988 wire copy, and the term predates 1988.
+    "1989", "1990", "1991", "twitter", "iphone", "facebook",
+    "google", "911", "9/11",
+)
+
+
+def _content_lines(sim_day):
+    """All display lines emitted across yearend sections for a simulated date."""
+    lines = []
+    for _title, section_lines in cis_yearend.yearend_menu_lines(sim_day):
+        lines.extend(section_lines)
+    return lines
+
+
+class PanAmDateGatingTest(unittest.TestCase):
+    def test_panam_absent_dec_20(self):
+        lines = cis_yearend.panam_lines(date(1988, 12, 20))
+        self.assertEqual(lines, [])
+        titles = [t for t, _ in cis_yearend.yearend_menu_lines(date(1988, 12, 20))]
+        self.assertNotIn("Pan Am Flight 103", titles)
+        blob = "\n".join(_content_lines(date(1988, 12, 20))).lower()
+        self.assertNotIn("pan am", blob)
+        self.assertNotIn("lockerbie", blob)
+
+    def test_panam_present_dec_21(self):
+        lines = cis_yearend.panam_lines(date(1988, 12, 21))
+        self.assertTrue(lines)
+        blob = "\n".join(lines).lower()
+        self.assertIn("lockerbie", blob)
+        self.assertIn("developing", blob)
+        titles = [t for t, _ in cis_yearend.yearend_menu_lines(date(1988, 12, 21))]
+        self.assertIn("Pan Am Flight 103", titles)
+
+    def test_panam_developing_tone_dec_21(self):
+        # Cause under investigation on Dec 21; a Dec 22 update appears later.
+        dec21 = "\n".join(cis_yearend.panam_lines(date(1988, 12, 21))).lower()
+        self.assertIn("under investigation", dec21)
+        self.assertNotIn("december 22", dec21)
+        dec22 = "\n".join(cis_yearend.panam_lines(date(1988, 12, 22))).lower()
+        self.assertIn("december 22", dec22)
+
+
+class ArmeniaDateGatingTest(unittest.TestCase):
+    def test_armenia_absent_dec_6(self):
+        self.assertEqual(cis_yearend.disaster_lines(date(1988, 12, 6)), [])
+        titles = [t for t, _ in cis_yearend.yearend_menu_lines(date(1988, 12, 6))]
+        self.assertNotIn("Armenia Earthquake", titles)
+
+    def test_armenia_present_dec_7(self):
+        lines = cis_yearend.disaster_lines(date(1988, 12, 7))
+        self.assertTrue(lines)
+        blob = "\n".join(lines).lower()
+        self.assertIn("spitak", blob)
+
+
+class YearEndMenuContentTest(unittest.TestCase):
+    def test_menu_sections_non_empty(self):
+        sections = cis_yearend.yearend_menu_lines(date(1988, 12, 15))
+        self.assertTrue(sections)
+        for title, lines in sections:
+            with self.subTest(title=title):
+                self.assertTrue(lines, f"section {title!r} is empty")
+                self.assertTrue(all(isinstance(line, str) for line in lines))
+                self.assertTrue(any(line.strip() for line in lines))
+
+    def test_election_section(self):
+        blob = "\n".join(cis_yearend.election_lines(date(1988, 12, 1)))
+        self.assertIn("Bush", blob)
+        self.assertIn("Dukakis", blob)
+        self.assertIn("November 8, 1988", blob)
+        self.assertIn("426", blob)
+
+    def test_bestof_covers_four_areas(self):
+        blob = "\n".join(cis_yearend.bestof_lines(date(1988, 12, 1)))
+        for expected in ("MOVIES", "MUSIC", "SPORTS", "TECHNOLOGY"):
+            self.assertIn(expected, blob)
+
+    def test_no_post_1988_references(self):
+        for sim_day in (date(1988, 12, 1), date(1988, 12, 15),
+                        date(1988, 12, 31)):
+            blob = "\n".join(_content_lines(sim_day)).lower()
+            for bad in YEAREND_BANNED_TERMS:
+                self.assertNotIn(
+                    bad, blob,
+                    f"anachronism {bad!r} on {sim_day}")
+
+    def test_default_day_resolves_from_environment(self):
+        with patch.dict(os.environ, {"CIS_SIMULATION_DATE": "1988-12-21"}):
+            titles = [t for t, _ in cis_yearend.yearend_menu_lines()]
+            self.assertIn("Pan Am Flight 103", titles)
+        with patch.dict(os.environ, {"CIS_SIMULATION_DATE": "1988-12-10"}):
+            titles = [t for t, _ in cis_yearend.yearend_menu_lines()]
+            self.assertNotIn("Pan Am Flight 103", titles)
+
+    def test_yearend_service_signature(self):
+        sections = cis_yearend.yearend_service(app=None)
+        self.assertTrue(sections)
+        self.assertEqual(sections[0][0], "Election '88")
+
+    def test_display_lines_fit_80_column_screen(self):
+        for sim_day in (date(1988, 12, 1), date(1988, 12, 15),
+                        date(1988, 12, 31)):
+            for title, lines in cis_yearend.yearend_menu_lines(sim_day):
+                for line in lines:
+                    with self.subTest(day=sim_day, title=title):
+                        self.assertLessEqual(
+                            len(line), 78, f"overlong line: {line!r}")
+
+
+class YearEndNewsWiringTest(unittest.TestCase):
+    def test_go_yearinreview_present(self):
+        go_map = json.loads((REPO_ROOT / "go_commands.json").read_text())
+        self.assertIn("GO YEARINREVIEW", go_map)
+
+    def test_news_menu_option_12(self):
+        screens = json.loads((REPO_ROOT / "screens.json").read_text())
+        self.assertIn("12", screens["news"]["options"])
+
+    def test_news_choice_12_wired(self):
+        # compuserve.yearend_menu drives the cis_yearend submenu.
+        self.assertTrue(callable(compuserve.yearend_menu))
+        sections = cis_yearend.yearend_service(app=None)
+        self.assertTrue(sections)
+
+
+# --- Cooking Forum (cis_cooking) ---
+
+# Anything that did not exist by December 1988 is banned from post
+# subject/body text (the module docstring's "period rules" section is
+# exempt because it only names them to forbid them).
+COOKING_BANNED_TERMS = [
+    "INTERNET", "AIR FRYER", "INSTANT POT", "YOUTUBE", "WEBSITE",
+    "BLOG", "EMAIL", "SMARTPHONE", "GOOGLE", "WIFI", "BLUETOOTH",
+    "SOUS VIDE", "DIGITAL", "ONLINE", "NETFLIX", "FACEBOOK",
+    "TWITTER", "IPHONE", "IPAD", "STREAMING",
+]
+
+COOKING_EXPECTED_SECTIONS = {
+    "1": ("cooking_recipes", "Recipes"),
+    "2": ("cooking_baking", "Holiday Baking"),
+    "3": ("cooking_castiron", "Cast Iron & Cookware"),
+    "4": ("cooking_microwave", "Microwave Cooking"),
+    "5": ("cooking_canning", "Canning & Preserving"),
+    "6": ("cooking_restaurants", "Restaurant Talk"),
+}
+
+
+class CookingSectionSpecTests(unittest.TestCase):
+    def test_module_identity(self):
+        self.assertEqual(cis_cooking.FORUM_ID, "cooking")
+        self.assertEqual(cis_cooking.FORUM_TITLE, "Cooking Forum")
+
+    def test_section_spec_shape(self):
+        spec = cis_cooking.section_spec()
+        self.assertIsInstance(spec, dict)
+        self.assertEqual(len(spec), 6)
+        self.assertEqual(set(spec.keys()), {"1", "2", "3", "4", "5", "6"})
+        for key, entry in spec.items():
+            self.assertIsInstance(entry, (tuple, list))
+            self.assertEqual(len(entry), 2)
+            section_id, title = entry
+            self.assertTrue(section_id.startswith("cooking_"), key)
+            self.assertTrue(title.strip(), key)
+
+    def test_section_spec_matches_expected(self):
+        spec = cis_cooking.section_spec()
+        for key, expected in COOKING_EXPECTED_SECTIONS.items():
+            self.assertEqual(tuple(spec[key]), expected)
+
+    def test_seed_post_sections_covered(self):
+        section_ids = {entry[0] for entry in cis_cooking.section_spec().values()}
+        used = {post["section"] for post in cis_cooking.SEED_POSTS}
+        self.assertEqual(used, section_ids)
+
+    def test_wired_into_forum_catalog(self):
+        entry = compuserve.FORUM_CATALOG["cooking"]
+        self.assertEqual(entry["title"], "Cooking Forum")
+        self.assertEqual(compuserve.FORUM_CHOICES["16"], "cooking")
+
+
+class CookingSeedPostTests(unittest.TestCase):
+    def test_sixteen_seed_posts(self):
+        self.assertEqual(len(cis_cooking.SEED_POSTS), 16)
+
+    def test_content_id_format(self):
+        for post in cis_cooking.SEED_POSTS:
+            self.assertRegex(post["content_id"], r"^cooking-1988-\d{3}$")
+
+    def test_content_ids_sequential_and_unique(self):
+        ids = [post["content_id"] for post in cis_cooking.SEED_POSTS]
+        self.assertEqual(len(set(ids)), 16)
+        expected = [f"cooking-1988-{n:03d}" for n in range(1, 17)]
+        self.assertEqual(sorted(ids), expected)
+
+    def test_dates_all_december_1988(self):
+        for post in cis_cooking.SEED_POSTS:
+            self.assertRegex(post["date"], r"^12/\d{2}/88$", post["content_id"])
+            day = int(post["date"].split("/")[1])
+            self.assertGreaterEqual(day, 1)
+            self.assertLessEqual(day, 31)
+
+    def test_required_fields_present(self):
+        for post in cis_cooking.SEED_POSTS:
+            for field in ("content_id", "section", "date", "author",
+                          "subject", "body"):
+                self.assertTrue(post[field], f"{field} in {post['content_id']}")
+            self.assertIsNone(post["parent"], post["content_id"])
+
+    def test_varied_authors(self):
+        authors = {post["author"] for post in cis_cooking.SEED_POSTS}
+        self.assertGreaterEqual(len(authors), 10)
+
+    def test_no_anachronisms(self):
+        for post in cis_cooking.SEED_POSTS:
+            text = (post["subject"] + "\n" + post["body"]).lower()
+            for bad in COOKING_BANNED_TERMS:
+                self.assertNotIn(
+                    bad.lower(), text,
+                    f"anachronism {bad!r} in {post['content_id']} (cooking)")
+
+    def test_holiday_baking_flavor(self):
+        blob = " ".join(p["subject"] + " " + p["body"]
+                        for p in cis_cooking.SEED_POSTS).lower()
+        for keyword in ("christmas", "fruitcake", "cookie", "fudge"):
+            self.assertIn(keyword, blob)
+
+    def test_seed_posts_returns_copies(self):
+        copies = cis_cooking.seed_posts()
+        self.assertEqual(len(copies), 16)
+        copies[0]["subject"] = "MUTATED"
+        self.assertNotEqual(cis_cooking.SEED_POSTS[0]["subject"], "MUTATED")
+
+
+class CookingGoCommandTests(unittest.TestCase):
+    def test_go_cooking_mapped(self):
+        go_map = json.loads((REPO_ROOT / "go_commands.json").read_text())
+        self.assertEqual(go_map.get("GO COOKING"), "cooking")
+
+    def test_go_cooking_resolves(self):
+        self.assertEqual(compuserve.resolve_go_destination("COOKING"), "cooking")
+
+
+# --- Aviation Forum (cis_aviation) ---
+
+# Post-1988 terms that must never appear in the December 1988 seed posts.
+AVIATION_ANACHRONISMS = [
+    "garmin", "g1000", "internet", "foreflight", "website", "www.",
+    "gps", "ipad", "flightaware", "youtube", "mp3", "glass cockpit",
+    "1990", "1991",
+]
+
+AVIATION_REQUIRED_FIELDS = {"content_id", "section", "date", "author",
+                            "subject", "body", "parent"}
+
+
+class AviationForumTests(unittest.TestCase):
+    def test_forum_identity(self):
+        self.assertEqual(cis_aviation.FORUM_ID, "aviation")
+        self.assertEqual(cis_aviation.FORUM_TITLE, "Aviation Forum")
+
+    def test_section_spec_shape(self):
+        secs = cis_aviation.SECTIONS
+        self.assertIsInstance(secs, dict)
+        self.assertEqual(len(secs), 6)
+        self.assertEqual(set(secs.keys()), {"1", "2", "3", "4", "5", "6"})
+        ids = []
+        for key, spec in secs.items():
+            self.assertIsInstance(spec, (tuple, list), f"section {key}")
+            self.assertEqual(len(spec), 2, f"section {key}")
+            sec_id, title = spec
+            self.assertTrue(sec_id.startswith("aviation_"), sec_id)
+            self.assertTrue(title.strip(), sec_id)
+            ids.append(sec_id)
+        self.assertEqual(len(set(ids)), len(ids), "section ids must be unique")
+        self.assertEqual(cis_aviation.section_spec(), cis_aviation.SECTIONS)
+        titles = [t for _, t in secs.values()]
+        for expected in ("Private Pilots", "IFR Training",
+                         "Aircraft Ownership", "Flight Simulator",
+                         "Trip Reports", "Hangar Talk"):
+            self.assertIn(expected, titles)
+
+    def test_seed_post_count(self):
+        self.assertEqual(len(cis_aviation.SEED_POSTS), 16)
+        self.assertEqual(len(cis_aviation.seed_posts()), 16)
+
+    def test_seed_post_fields_dates_ids(self):
+        valid_sections = {sec_id for sec_id, _ in
+                          cis_aviation.SECTIONS.values()}
+        seen = []
+        for post in cis_aviation.SEED_POSTS:
+            self.assertEqual(set(post.keys()), AVIATION_REQUIRED_FIELDS,
+                             f"field mismatch in {post.get('content_id')}")
+            for field in ("content_id", "section", "date", "author",
+                          "subject", "body"):
+                self.assertTrue(str(post[field]).strip(),
+                                f"{field} empty in {post['content_id']}")
+            self.assertIsNone(post["parent"], post["content_id"])
+            self.assertIn(post["section"], valid_sections,
+                          post["content_id"])
+            month, day, year = post["date"].split("/")
+            self.assertEqual((month, year), ("12", "88"),
+                             post["content_id"])
+            self.assertTrue(1 <= int(day) <= 20, post["content_id"])
+            seen.append(post["content_id"])
+        self.assertEqual(len(set(seen)), len(seen), "duplicate content ids")
+        for cid in seen:
+            self.assertRegex(cid, r"^aviation-1988-\d{3}$", cid)
+
+    def test_no_anachronisms(self):
+        for post in cis_aviation.SEED_POSTS:
+            text = (post["subject"] + "\n" + post["body"]).lower()
+            for bad in AVIATION_ANACHRONISMS:
+                self.assertNotIn(bad, text,
+                                 f"anachronism {bad!r} in "
+                                 f"{post['content_id']}")
+
+    def test_go_aviation_present(self):
+        go_map = json.loads((REPO_ROOT / "go_commands.json").read_text())
+        self.assertIn("GO AVIATION", go_map)
+        self.assertEqual(go_map["GO AVIATION"], "aviation")
+
+    def test_go_aviation_resolves(self):
+        self.assertEqual(compuserve.resolve_go_destination("AVIATION"), "aviation")
+
+    def test_wired_into_forum_catalog(self):
+        entry = compuserve.FORUM_CATALOG["aviation"]
+        self.assertEqual(entry["title"], "Aviation Forum")
+        self.assertEqual(entry["sections"], cis_aviation.section_spec())
+
+    def test_forum_choice_number(self):
+        self.assertEqual(compuserve.FORUM_CHOICES["17"], "aviation")
+        self.assertEqual(compuserve.FORUM_CHOICES["16"], "cooking")
+
+
+# --- Comics & Sci-Fi Forum (cis_scifi) ---
+
+# Terms that must never appear in 1988-era content (case-insensitive).
+SCIFI_BANNED_TERMS = [
+    "INTERNET",
+    "SEASON 3",
+    "SEASON THREE",
+    "DVD",
+    "BLU-RAY",
+    "YOUTUBE",
+    "NETFLIX",
+    "STREAMING",
+    "HTTP://",
+    "MEASURE OF A MAN",
+    "TIM BURTON",
+    "BATMAN FILM",
+    "1989 BATMAN",
+    "WATCHMEN FILM",
+    "DEEP SPACE NINE",
+    "VOYAGER",
+    "FIREFLY",
+    "BABYLON 5",
+    "X-FILES",
+    "THE MATRIX",
+    "SEQUEL TRILOGY",
+]
+
+SCIFI_REQUIRED_FIELDS = {
+    "content_id", "section", "date", "author", "subject", "body", "parent",
+}
+
+scifi = cis_scifi  # worker D alias, kept for readability
+
+
+class SciFiForumTests(unittest.TestCase):
+    def test_forum_constants(self):
+        self.assertEqual(scifi.FORUM_ID, "scifi")
+        self.assertEqual(scifi.FORUM_TITLE, "Comics & Sci-Fi Forum")
+
+    def test_section_spec_has_six_sections(self):
+        spec = scifi.section_spec()
+        self.assertEqual(len(spec), 6)
+
+    def test_section_spec_shape(self):
+        spec = scifi.section_spec()
+        self.assertEqual(sorted(spec.keys()), ["1", "2", "3", "4", "5", "6"])
+        for key, value in spec.items():
+            self.assertIsInstance(value, tuple)
+            self.assertEqual(len(value), 2)
+            section_id, title = value
+            self.assertTrue(section_id.startswith("scifi_"))
+            self.assertTrue(isinstance(title, str) and title.strip())
+        titles = [v[1] for v in spec.values()]
+        self.assertEqual(
+            titles,
+            ["Comic Books", "Star Trek", "Doctor Who",
+             "Movies & TV", "Books", "Conventions"],
+        )
+
+    def test_sixteen_seed_posts(self):
+        self.assertEqual(len(scifi.SEED_POSTS), 16)
+
+    def test_seed_post_fields(self):
+        section_ids = {v[0] for v in scifi.SECTIONS.values()}
+        for post in scifi.SEED_POSTS:
+            self.assertTrue(
+                SCIFI_REQUIRED_FIELDS.issubset(post.keys()),
+                f"post {post.get('content_id')} missing fields",
+            )
+            self.assertIn(post["section"], section_ids)
+            self.assertTrue(post["author"].strip())
+            self.assertTrue(post["subject"].strip())
+            self.assertTrue(post["body"].strip())
+            self.assertIsNone(post["parent"])
+
+    def test_content_id_prefix_and_unique(self):
+        ids = [p["content_id"] for p in scifi.SEED_POSTS]
+        self.assertEqual(len(ids), len(set(ids)))
+        for i, content_id in enumerate(ids, start=1):
+            self.assertEqual(content_id, f"scifi-1988-{i:03d}")
+
+    def test_all_dates_december_1988(self):
+        for post in scifi.SEED_POSTS:
+            month, day, year = post["date"].split("/")
+            self.assertEqual(month, "12", f"{post['content_id']} month")
+            self.assertEqual(year, "88", f"{post['content_id']} year")
+            self.assertTrue(1 <= int(day) <= 20, f"{post['content_id']} day")
+
+    def test_no_post1988_terms(self):
+        for post in scifi.SEED_POSTS:
+            text = (post["subject"] + " " + post["body"]).upper()
+            for term in SCIFI_BANNED_TERMS:
+                self.assertNotIn(
+                    term, text,
+                    f"banned term {term!r} in {post['content_id']}",
+                )
+
+    def test_go_scifi_in_go_commands(self):
+        commands = json.loads((REPO_ROOT / "go_commands.json").read_text())
+        self.assertIn("GO SCIFI", commands)
+        self.assertEqual(commands["GO SCIFI"], "scifi")
+
+    def test_go_scifi_resolves(self):
+        self.assertEqual(compuserve.resolve_go_destination("SCIFI"), "scifi")
+
+    def test_wired_into_forum_catalog(self):
+        entry = compuserve.FORUM_CATALOG["scifi"]
+        self.assertEqual(entry["title"], "Comics & Sci-Fi Forum")
+        self.assertEqual(compuserve.FORUM_CHOICES["18"], "scifi")
+
+    def test_seed_posts_are_copies(self):
+        first = scifi.seed_posts()[0]
+        first["body"] = "mutated"
+        self.assertNotEqual(scifi.SEED_POSTS[0]["body"], "mutated")
+
+
+# --- Sports expansion (cis_sports) ---
+
+
+class SuperBowlPreviewTests(unittest.TestCase):
+    def setUp(self):
+        os.environ["CIS_SIMULATION_DATE"] = "1988-12-15"
+
+    def test_preview_non_empty(self):
+        lines = cis_sports.super_bowl_preview_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(l, str) for l in lines))
+        self.assertTrue(any(l.strip() for l in lines))
+
+    def test_preview_identifies_as_preview_only(self):
+        blob = "\n".join(cis_sports.super_bowl_preview_lines())
+        self.assertIn("PREVIEW", blob)
+        self.assertIn("has not been played", blob)
+
+    def test_preview_facts(self):
+        blob = "\n".join(cis_sports.super_bowl_preview_lines())
+        self.assertIn("49ers", blob)
+        self.assertIn("Bengals", blob)
+        self.assertIn("January 22, 1989", blob)
+        self.assertIn("Joe Robbie Stadium", blob)
+        self.assertIn("Miami", blob)
+        self.assertIn("10-6", blob)
+        self.assertIn("12-4", blob)
+        self.assertIn("Super Bowl XVI", blob)
+
+    def test_preview_key_players(self):
+        blob = "\n".join(cis_sports.super_bowl_preview_lines())
+        for name in ("Joe Montana", "Jerry Rice", "Roger Craig",
+                     "Boomer Esiason", "Ickey Woods"):
+            self.assertIn(name, blob)
+        self.assertIn("1988 NFL MVP", blob)
+
+    def test_preview_never_states_result(self):
+        # The game is in the future; no result may be stated or implied.
+        blob = "\n".join(cis_sports.super_bowl_preview_lines(date(1988, 12, 31)))
+        for forbidden in ("20-16", "49ers won", "Bengals won", "champions",
+                          "defeated the Bengals", "defeated the 49ers",
+                          "Super Bowl MVP"):
+            self.assertNotIn(forbidden, blob)
+
+    def test_preview_storyline_rotates_deterministically(self):
+        first = cis_sports.super_bowl_preview_lines(date(1988, 12, 1))
+        second = cis_sports.super_bowl_preview_lines(date(1988, 12, 2))
+        h1 = [l for l in first if l.startswith("STORYLINE:")]
+        h2 = [l for l in second if l.startswith("STORYLINE:")]
+        self.assertEqual(len(h1), 1)
+        self.assertNotEqual(h1, h2)
+        again = cis_sports.super_bowl_preview_lines(date(1988, 12, 1))
+        self.assertEqual([l for l in again if l.startswith("STORYLINE:")], h1)
+
+    def test_preview_default_day_uses_simulation_day(self):
+        self.assertEqual(cis_sports.super_bowl_preview_lines(),
+                         cis_sports.super_bowl_preview_lines(date(1988, 12, 15)))
+
+    def test_preview_records_are_verified(self):
+        nfc_name, nfc_w, nfc_l, nfc_v = cis_sports.SB_PREVIEW["nfc_team"]
+        afc_name, afc_w, afc_l, afc_v = cis_sports.SB_PREVIEW["afc_team"]
+        self.assertEqual((nfc_name, nfc_w, nfc_l), ("San Francisco 49ers", 10, 6))
+        self.assertEqual((afc_name, afc_w, afc_l), ("Cincinnati Bengals", 12, 4))
+        self.assertTrue(nfc_v and afc_v)
+
+
+class WorldSeriesTests(unittest.TestCase):
+    def setUp(self):
+        os.environ["CIS_SIMULATION_DATE"] = "1988-12-15"
+
+    def test_recap_non_empty(self):
+        lines = cis_sports.world_series_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(l, str) for l in lines))
+
+    def test_recap_facts(self):
+        blob = "\n".join(cis_sports.world_series_lines())
+        self.assertIn("Dodgers", blob)
+        self.assertIn("Athletics", blob)
+        self.assertIn("4", blob)
+        self.assertIn("Gibson", blob)
+        self.assertIn("Eckersley", blob)
+        self.assertIn("Hershiser", blob)
+        self.assertIn("MVP", blob)
+        self.assertIn("59", blob)
+
+    def test_recap_no_future_claims(self):
+        # Recap must not claim anything that happened after December 1988.
+        blob = "\n".join(cis_sports.world_series_lines())
+        self.assertNotIn("1989", blob)
+
+    def test_recap_default_day_matches_simulation_day(self):
+        self.assertEqual(cis_sports.world_series_lines(),
+                         cis_sports.world_series_lines(date(1988, 12, 15)))
+
+
+class NBAStandingsTests(unittest.TestCase):
+    def setUp(self):
+        os.environ["CIS_SIMULATION_DATE"] = "1988-12-15"
+
+    def test_lines_non_empty(self):
+        lines = cis_sports.nba_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(l, str) for l in lines))
+        self.assertTrue(any(l.strip() for l in lines))
+
+    def test_division_structure(self):
+        self.assertEqual(set(cis_sports.NBA_STANDINGS),
+                         {"ATLANTIC", "CENTRAL", "MIDWEST", "PACIFIC"})
+        total = sum(len(teams) for teams in cis_sports.NBA_STANDINGS.values())
+        self.assertEqual(total, 25, "1988-89 NBA had 25 teams")
+
+    def test_expansion_team_placement(self):
+        atlantic = [t[0] for t in cis_sports.NBA_STANDINGS["ATLANTIC"]]
+        midwest = [t[0] for t in cis_sports.NBA_STANDINGS["MIDWEST"]]
+        pacific = [t[0] for t in cis_sports.NBA_STANDINGS["PACIFIC"]]
+        self.assertIn("Charlotte Hornets", atlantic)
+        self.assertIn("Miami Heat", midwest)
+        self.assertIn("Sacramento Kings", pacific)
+
+    def test_all_records_verified(self):
+        for division, teams in cis_sports.NBA_STANDINGS.items():
+            for name, wins, losses, verified in teams:
+                self.assertTrue(name)
+                self.assertGreaterEqual(wins, 0)
+                self.assertGreaterEqual(losses, 0)
+                self.assertTrue(verified, f"{name} should be verified")
+
+    def test_no_duplicate_teams(self):
+        seen = set()
+        for teams in cis_sports.NBA_STANDINGS.values():
+            for name, _w, _l, _v in teams:
+                self.assertNotIn(name, seen, f"{name} in two divisions")
+                seen.add(name)
+
+    def test_lines_sorted_by_win_pct(self):
+        # Sorted by winning percentage, matching the source standings table.
+        for division, teams in cis_sports.NBA_STANDINGS.items():
+            pcts = [w / (w + l) for _n, w, l, _v in teams]
+            self.assertEqual(pcts, sorted(pcts, reverse=True),
+                             f"{division} not sorted by win pct")
+
+    def test_lakers_defending_champions_mentioned(self):
+        blob = "\n".join(cis_sports.nba_lines())
+        self.assertIn("Defending champions: Los Angeles Lakers", blob)
+
+    def test_default_day_matches_simulation_day(self):
+        self.assertEqual(cis_sports.nba_lines(),
+                         cis_sports.nba_lines(date(1988, 12, 15)))
+
+
+class NHLStandingsTests(unittest.TestCase):
+    def setUp(self):
+        os.environ["CIS_SIMULATION_DATE"] = "1988-12-15"
+
+    def test_lines_non_empty(self):
+        lines = cis_sports.nhl_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(l, str) for l in lines))
+        self.assertTrue(any(l.strip() for l in lines))
+
+    def test_division_structure(self):
+        self.assertEqual(set(cis_sports.NHL_STANDINGS),
+                         {"ADAMS", "PATRICK", "NORRIS", "SMYTHE"})
+        total = sum(len(teams) for teams in cis_sports.NHL_STANDINGS.values())
+        self.assertEqual(total, 21, "1988-89 NHL had 21 teams")
+
+    def test_all_records_verified(self):
+        for division, teams in cis_sports.NHL_STANDINGS.items():
+            for name, wins, losses, ties, verified in teams:
+                self.assertTrue(name)
+                self.assertGreaterEqual(wins, 0)
+                self.assertGreaterEqual(losses, 0)
+                self.assertGreaterEqual(ties, 0)
+                self.assertTrue(verified, f"{name} should be verified")
+
+    def test_points_math(self):
+        # pts = 2*W + T; spot-check leaders as of Dec 15, 1988.
+        leaders = {div: rows[0] for div, rows in cis_sports.NHL_STANDINGS.items()}
+        self.assertEqual(leaders["SMYTHE"][:4], ("Calgary Flames", 22, 5, 5))
+        self.assertEqual(leaders["ADAMS"][:4], ("Montreal Canadiens", 19, 10, 6))
+        self.assertEqual(leaders["PATRICK"][:4], ("Pittsburgh Penguins", 18, 11, 2))
+        self.assertEqual(leaders["NORRIS"][:4], ("Detroit Red Wings", 17, 9, 4))
+        for division, rows in cis_sports.NHL_STANDINGS.items():
+            pts = [2 * w + t for _n, w, _l, t, _v in rows]
+            self.assertEqual(pts, sorted(pts, reverse=True),
+                             f"{division} not sorted by points")
+
+    def test_no_duplicate_teams(self):
+        seen = set()
+        for teams in cis_sports.NHL_STANDINGS.values():
+            for name, _w, _l, _t, _v in teams:
+                self.assertNotIn(name, seen, f"{name} in two divisions")
+                seen.add(name)
+
+    def test_lines_show_points(self):
+        blob = "\n".join(cis_sports.nhl_lines())
+        self.assertIn("49 pts", blob)  # Calgary led the league
+        self.assertIn("2 for a win, 1 for a tie", blob)
+
+    def test_default_day_matches_simulation_day(self):
+        self.assertEqual(cis_sports.nhl_lines(),
+                         cis_sports.nhl_lines(date(1988, 12, 15)))
+
+    def test_highlights_rotate_deterministically(self):
+        first = cis_sports.nhl_lines(date(1988, 12, 3))
+        second = cis_sports.nhl_lines(date(1988, 12, 4))
+        h1 = [l for l in first if l.startswith("AROUND THE LEAGUE:")]
+        h2 = [l for l in second if l.startswith("AROUND THE LEAGUE:")]
+        self.assertEqual(len(h1), 1)
+        self.assertNotEqual(h1, h2)
+
+
+class SportsMenuWiringTests(unittest.TestCase):
+    def setUp(self):
+        os.environ["CIS_SIMULATION_DATE"] = "1988-12-15"
+
+    def test_menu_includes_all_four_new_sections(self):
+        titles = [title for title, _lines in cis_sports.sports_menu_lines()]
+        self.assertEqual(titles, ["NFL", "TV", "MLB", "SUPER BOWL",
+                                  "WORLD SERIES", "NBA", "NHL"])
+
+    def test_menu_sections_are_line_lists(self):
+        for title, lines in cis_sports.sports_menu_lines():
+            self.assertTrue(lines, f"{title} section empty")
+            self.assertTrue(all(isinstance(l, str) for l in lines),
+                            f"{title} has non-string lines")
+
+    def test_service_returns_sections(self):
+        sections = cis_sports.sports_service(object())
+        self.assertEqual(len(sections), 7)

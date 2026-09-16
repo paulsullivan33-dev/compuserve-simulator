@@ -76,6 +76,10 @@ import cis_crossword
 import cis_books
 import cis_arcade
 import cis_space
+import cis_yearend
+import cis_cooking
+import cis_aviation
+import cis_scifi
 
 try:
     import msvcrt
@@ -188,14 +192,18 @@ FORUM_CATALOG = {
     "guitar": {"title": "Guitar & Music Forum", "sections": cis_guitar.section_spec()},
     "tech": {"title": "Tech Talk Forum", "sections": cis_tech.section_spec()},
     "space": {"title": "Space & Astronomy Forum", "sections": cis_space.section_spec()},
+    "cooking": {"title": "Cooking Forum", "sections": cis_cooking.section_spec()},
+    "aviation": {"title": "Aviation Forum", "sections": cis_aviation.section_spec()},
+    "scifi": {"title": "Comics & Sci-Fi Forum", "sections": cis_scifi.section_spec()},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
 FORUM_CATALOG.update(cis_communities.FORUMS)
-FORUM_CHOICES = dict(zip((str(i) for i in range(1, 16)),
+FORUM_CHOICES = dict(zip((str(i) for i in range(1, 19)),
                         ('ibmhw', 'gamers', 'macdev', 'photo', 'hamnet', 'science',
                          'commodore', 'appleii', 'atarist', 'dos',
-                         'veterans', 'roots', 'guitar', 'tech', 'space')))
+                         'veterans', 'roots', 'guitar', 'tech', 'space',
+                         'cooking', 'aviation', 'scifi')))
 
 def cis_prompt(context="command"):
     prompts = {
@@ -1403,6 +1411,11 @@ def entertainment_menu():
             text_page("news", title.upper(), lines)
         else:
             ansi_scroll("Enter a number from the list, or M.", 0.01)
+
+
+def yearend_menu():
+    """1988 Year in Review news special (session-date aware)."""
+    cis_yearend.yearend_menu(sys.modules[__name__])
 
 
 def forum_announcements(forum_id):
@@ -3541,6 +3554,9 @@ def _navigate(initial_go=None):
                 continue
             if current == "news" and choice == "11":
                 books_menu()
+                continue
+            if current == "news" and choice == "12":
+                yearend_menu()
                 continue
 
             if current == "support" and choice in screens["support"]["options"]:

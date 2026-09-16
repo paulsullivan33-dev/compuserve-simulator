@@ -41,7 +41,11 @@
       "11": "Veterans Forum",
       "12": "Roots & Branches Genealogy Forum",
       "13": "Guitar & Music Forum",
-      "14": "Tech Talk Forum"
+      "14": "Tech Talk Forum",
+      "15": "Space & Astronomy Forum",
+      "16": "Cooking Forum",
+      "17": "Aviation Forum",
+      "18": "Comics & Sci-Fi Forum"
     }
   },
 
@@ -70,7 +74,8 @@
       "8": "Sports & TV",
       "9": "Entertainment",
       "10": "Weather Wire",
-      "11": "Books & Magazines"
+      "11": "Books & Magazines",
+      "12": "1988 Year in Review"
     }
   },
 
@@ -235,9 +240,9 @@
 
   "paul": {
   	"title": "Paul test",
-	"options": {
-	  "1": "Test 1",
-	  "2": "test 2"
-	}
+  	"options": {
+  	  "1": "Test 1",
+  	  "2": "test 2"
+  	}
   }
 }

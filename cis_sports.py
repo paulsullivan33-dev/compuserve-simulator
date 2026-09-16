@@ -1,14 +1,18 @@
 """Sports & TV service for the December 1988 simulation setting.
 
 Pure content + logic module: late-1988 NFL standings and scores, the
-1988-89 prime-time TV grid, and the 1988-89 MLB hot stove. All content
-functions accept an optional ``day`` parameter defaulting to
+1988-89 prime-time TV grid, the 1988-89 MLB hot stove, plus a Super
+Bowl XXIII preview (preview ONLY -- the game is in the future), a 1988
+World Series recap, and mid-December 1988 NBA and NHL standings. All
+content functions accept an optional ``day`` parameter defaulting to
 ``cis_dynamic.simulation_day()``; the coordinator wires the returned
 line lists into the menu system (e.g. via text_page).
 
 Standings records marked VERIFIED were confirmed against season
 records; a few AFC West non-leader records are marked as estimates.
 Scores shown are verified Week 15/16 (early/mid December 1988) results.
+NBA records are verified as of Dec 19, 1988 and NHL records as of
+Dec 15, 1988 against daily standings tables.
 """
 from __future__ import annotations
 
@@ -201,6 +205,207 @@ MLB_STORIES = [
 
 
 # ---------------------------------------------------------------------------
+# Super Bowl XXIII -- PREVIEW ONLY (game is Jan 22, 1989, after the sim date)
+# ---------------------------------------------------------------------------
+# Verified facts: matchup, regular-season records, date, venue, coaches,
+# 1988 NFL MVP, and the Super Bowl XVI rematch angle. Nothing here may
+# state or imply the game's result -- it has not happened yet.
+SB_PREVIEW = {
+    "matchup": "San Francisco 49ers (NFC) vs Cincinnati Bengals (AFC)",
+    "date": "January 22, 1989",
+    "venue": "Joe Robbie Stadium, Miami, Florida",
+    "nfc_team": ("San Francisco 49ers", 10, 6, True),
+    "afc_team": ("Cincinnati Bengals", 12, 4, True),
+    "coaches": ("Bill Walsh (San Francisco)", "Sam Wyche (Cincinnati)"),
+    "early_line": "49ers by 7",
+}
+
+# Verified 1988 regular-season player notes, drawn from season records.
+SB_KEY_PLAYERS = [
+    ("Joe Montana (49ers QB)",
+     "Won back the starting job down the stretch and led San Francisco to "
+     "four wins in its final five games. Threw for 2,981 yards and 18 TD."),
+    ("Jerry Rice (49ers WR)",
+     "64 catches for 1,306 yards and 9 TD in the regular season -- the deep "
+     "threat Montana trusts most when it matters."),
+    ("Roger Craig (49ers RB)",
+     "Team-high 76 catches plus 2,036 combined rushing/receiving yards and "
+     "10 TD -- the engine of the Walsh offense."),
+    ("Boomer Esiason (Bengals QB)",
+     "The 1988 NFL MVP (31 of 78 AP votes). Threw for 3,572 yards and 28 TD "
+     "while leading the AFC's highest-powered offense."),
+    ("Ickey Woods (Bengals RB)",
+     "The rookie sensation whose 'Ickey Shuffle' end-zone dance became a "
+     "national craze. Cincinnati's ground game goes through him."),
+]
+
+SB_STORYLINES = [
+    ("SUPER BOWL XVI REMATCH",
+     "Seven years after Super Bowl XVI, these same two franchises meet "
+     "again on the NFL's biggest stage. The Bengals have waited since the "
+     "1981 season for revenge."),
+    ("THE COACHING CHESS MATCH",
+     "Bill Walsh's precision West Coast offense against Sam Wyche's "
+     "no-huddle attack -- two of the game's great offensive minds."),
+    ("HOME-FIELD? NOT EXACTLY",
+     "The Bengals (12-4) own the AFC's best record, but the neutral field "
+     "in Miami erases any edge. The early line makes San Francisco (10-6) "
+     "a 7-point favorite."),
+    ("MVP VS. DYNASTY",
+     "Boomer Esiason just won the league MVP. Joe Montana is chasing his "
+     "third ring. Something has to give on January 22."),
+    ("THE QUIET CONTENDER",
+     "Nobody picked the 49ers at midseason -- Montana split time with "
+     "Steve Young and the club sat 6-5. Since then: a division title and "
+     "the hottest finish in the NFC."),
+]
+
+
+# ---------------------------------------------------------------------------
+# 1988 World Series -- completed October 1988, recap is fair game
+# ---------------------------------------------------------------------------
+# Verified: Dodgers 4, Athletics 1, Oct 15-20; Gibson's Game 1 pinch-hit
+# walk-off off Eckersley; Hershiser World Series MVP; 59 consecutive
+# scoreless innings (breaking Drysdale's 58 1/3); Dodgers 94-67, A's 104-58;
+# ALCS Oakland over Boston 4-0; NLCS Dodgers over Mets 4-3.
+WS_RECAP = [
+    "1988 WORLD SERIES -- RECAP",
+    "Los Angeles Dodgers 4, Oakland Athletics 1 (verified)",
+    "Played Oct 15-20, 1988: Dodger Stadium and the Oakland-Alameda County Coliseum.",
+    "",
+    "GAME 1 (Oct 15, Dodger Stadium): Down to his last out, barely able to "
+    "walk, Kirk Gibson limped to the plate as a pinch-hitter and crushed a "
+    "two-out, two-run walk-off homer off Dennis Eckersley to stun Oakland.",
+    "GAME 2: Orel Hershiser threw a shutout as the Dodgers took a 2-0 lead.",
+    "GAME 3: Oakland got its only win of the series behind the Bash Brothers.",
+    "GAME 4: Los Angeles stayed in command on the road.",
+    "GAME 5 (Oct 20, Oakland): Hershiser went the distance in a 5-2 "
+    "complete-game win. The Dodgers were world champions.",
+    "",
+    "SERIES MVP: Orel Hershiser (verified). 2-0 with a shutout and a "
+    "complete game in two starts.",
+    "Hershiser's season: 23-8, NL Cy Young Award, and a record 59 "
+    "consecutive scoreless innings from Aug 30 to Sep 28, breaking Don "
+    "Drysdale's 58 1/3.",
+    "The Athletics entered as heavy favorites after a 104-58 season and a "
+    "4-0 sweep of Boston in the ALCS. The Dodgers (94-67) had survived a "
+    "7-game NLCS against the 100-win Mets.",
+    "Managers: Tommy Lasorda (Dodgers), Tony La Russa (Athletics).",
+]
+
+
+# ---------------------------------------------------------------------------
+# 1988-89 NBA: standings as of Dec 19, 1988 (verified vs. daily tables)
+# ---------------------------------------------------------------------------
+# Structure of the 1988-89 season (verified): 25 teams in four divisions --
+# Atlantic/Central in the East, Midwest/Pacific in the West. The Charlotte
+# Hornets (24th franchise) were placed in the Atlantic and the Miami Heat
+# (25th) in the Midwest; the Sacramento Kings moved from the Midwest to
+# the Pacific. Format: (team name, wins, losses, verified?).
+NBA_STANDINGS: Dict[str, List[Tuple[str, int, int, bool]]] = {
+    "ATLANTIC": [
+        ("New York Knicks", 16, 7, True),
+        ("Philadelphia 76ers", 14, 10, True),
+        ("Boston Celtics", 12, 11, True),
+        ("New Jersey Nets", 10, 15, True),
+        ("Washington Bullets", 6, 15, True),
+        ("Charlotte Hornets", 6, 15, True),
+    ],
+    "CENTRAL": [
+        ("Cleveland Cavaliers", 15, 5, True),
+        ("Detroit Pistons", 17, 6, True),
+        ("Atlanta Hawks", 15, 9, True),
+        ("Chicago Bulls", 12, 10, True),
+        ("Milwaukee Bucks", 11, 10, True),
+        ("Indiana Pacers", 5, 17, True),
+    ],
+    "MIDWEST": [
+        ("Dallas Mavericks", 14, 7, True),
+        ("Denver Nuggets", 15, 8, True),
+        ("Houston Rockets", 14, 9, True),
+        ("Utah Jazz", 13, 10, True),
+        ("San Antonio Spurs", 6, 15, True),
+        ("Miami Heat", 1, 19, True),
+    ],
+    "PACIFIC": [
+        ("Los Angeles Lakers", 16, 7, True),
+        ("Seattle SuperSonics", 12, 9, True),
+        ("Portland Trail Blazers", 13, 10, True),
+        ("Phoenix Suns", 11, 10, True),
+        ("Golden State Warriors", 9, 12, True),
+        ("Los Angeles Clippers", 8, 15, True),
+        ("Sacramento Kings", 5, 15, True),
+    ],
+}
+
+NBA_HIGHLIGHTS = [
+    "The defending champion Lakers (16-7) are rolling again, but the Knicks "
+    "(16-7) have caught them -- New York sits atop the Atlantic.",
+    "Cleveland (15-5) and Detroit (17-6) are staging a Central Division dogfight "
+    "two months into the season.",
+    "The expansion Heat are 1-19 -- Miami lost its first 17 games, an NBA "
+    "record, before finally winning one. Charlotte (6-15) is fairing better.",
+    "Denver, Dallas, Houston and Utah are all bunched in the Midwest -- the "
+    "tightest race in the league right now.",
+    "Chicago's young core is right in the Central mix at 12-10; the Bulls are "
+    "one to watch as the season grinds on.",
+]
+
+
+# ---------------------------------------------------------------------------
+# 1988-89 NHL: standings as of Dec 15, 1988 (verified vs. daily tables)
+# ---------------------------------------------------------------------------
+# Structure of the 1988-89 season (verified): 21 teams in four divisions --
+# Adams/Patrick in the Prince of Wales Conference, Norris/Smythe in the
+# Clarence Campbell Conference. Format: (team, wins, losses, ties,
+# verified?); points = 2*W + T.
+NHL_STANDINGS: Dict[str, List[Tuple[str, int, int, int, bool]]] = {
+    "ADAMS": [
+        ("Montreal Canadiens", 19, 10, 6, True),
+        ("Boston Bruins", 13, 12, 8, True),
+        ("Hartford Whalers", 13, 15, 2, True),
+        ("Buffalo Sabres", 12, 17, 3, True),
+        ("Quebec Nordiques", 11, 20, 2, True),
+    ],
+    "PATRICK": [
+        ("Pittsburgh Penguins", 18, 11, 2, True),
+        ("New York Rangers", 16, 12, 4, True),
+        ("Washington Capitals", 15, 13, 4, True),
+        ("Philadelphia Flyers", 15, 17, 2, True),
+        ("New Jersey Devils", 12, 14, 5, True),
+        ("New York Islanders", 7, 22, 2, True),
+    ],
+    "NORRIS": [
+        ("Detroit Red Wings", 17, 9, 4, True),
+        ("St. Louis Blues", 12, 13, 5, True),
+        ("Minnesota North Stars", 9, 16, 6, True),
+        ("Toronto Maple Leafs", 11, 19, 2, True),
+        ("Chicago Blackhawks", 8, 19, 4, True),
+    ],
+    "SMYTHE": [
+        ("Calgary Flames", 22, 5, 5, True),
+        ("Los Angeles Kings", 20, 11, 1, True),
+        ("Edmonton Oilers", 18, 12, 3, True),
+        ("Winnipeg Jets", 13, 10, 5, True),
+        ("Vancouver Canucks", 12, 16, 5, True),
+    ],
+}
+
+NHL_HIGHLIGHTS = [
+    "Wayne Gretzky's trade to Los Angeles is paying off -- the Kings (20-11-1) "
+    "are second in the Smythe and the highest-scoring club in the league.",
+    "Calgary (22-5-5, 49 points) is the best team in hockey right now, "
+    "running away with the Smythe Division.",
+    "Pittsburgh (18-11-2) leads the Patrick -- the young Penguins are "
+    "playing the most exciting hockey in the East.",
+    "Montreal (19-10-6) is in control of the Adams, with Boston and Hartford "
+    "chasing. Quebec is bringing up the rear.",
+    "Detroit (17-9-4) leads the Norris, but the division is a logjam behind "
+    "them -- every club is within striking distance of second.",
+]
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 def _day(day: Optional[date]) -> date:
@@ -218,6 +423,20 @@ def _record(team: Tuple[str, int, int, int, bool]) -> str:
     name, wins, losses, ties, verified = team
     record = f"{wins}-{losses}" if ties == 0 else f"{wins}-{losses}-{ties}"
     return f"{name:<26} {record:<8}" + ("" if verified else " (est.)")
+
+
+def _nba_record(team: Tuple[str, int, int, bool]) -> str:
+    """W-L line for an NBA standings row (no ties in basketball)."""
+    name, wins, losses, verified = team
+    return f"{name:<26} {wins}-{losses:<7}" + ("" if verified else " (est.)")
+
+
+def _nhl_record(team: Tuple[str, int, int, int, bool]) -> str:
+    """W-L-T plus points line for an NHL standings row (points = 2*W + T)."""
+    name, wins, losses, ties, verified = team
+    pts = 2 * wins + ties
+    return f"{name:<26} {wins}-{losses}-{ties}  {pts} pts" + \
+        ("" if verified else " (est.)")
 
 
 # ---------------------------------------------------------------------------
@@ -291,12 +510,107 @@ def mlb_lines(day: Optional[date] = None) -> List[str]:
 
 
 def sports_menu_lines(day: Optional[date] = None) -> List[Tuple[str, List[str]]]:
-    """All three sections as (title, lines) pairs for the menu wire-up."""
+    """All seven sections as (title, lines) pairs for the menu wire-up."""
     return [
         ("NFL", nfl_lines(day)),
         ("TV", tv_lines(day)),
         ("MLB", mlb_lines(day)),
+        ("SUPER BOWL", super_bowl_preview_lines(day)),
+        ("WORLD SERIES", world_series_lines(day)),
+        ("NBA", nba_lines(day)),
+        ("NHL", nhl_lines(day)),
     ]
+
+
+def super_bowl_preview_lines(day: Optional[date] = None) -> List[str]:
+    """Super Bowl XXIII PREVIEW -- strictly preview, the game is in the future.
+
+    Kickoff is January 22, 1989 at Joe Robbie Stadium in Miami. This
+    section must never state or imply a result: the game has not been
+    played in the December 1988 simulation setting.
+    """
+    day = _day(day)
+    nfc_name, nfc_w, nfc_l, _ = SB_PREVIEW["nfc_team"]
+    afc_name, afc_w, afc_l, _ = SB_PREVIEW["afc_team"]
+    coach_nfc, coach_afc = SB_PREVIEW["coaches"]
+    lines = [
+        "SUPER BOWL XXIII -- PREVIEW",
+        "PREVIEW ONLY: this game has not been played yet.",
+        "",
+        "MATCHUP: " + SB_PREVIEW["matchup"],
+        f"  {nfc_name} (NFC, {nfc_w}-{nfc_l}) -- verified",
+        f"  {afc_name} (AFC, {afc_w}-{afc_l}) -- verified",
+        f"KICKOFF: {SB_PREVIEW['date']}, {SB_PREVIEW['venue']}",
+        f"COACHES: {coach_nfc} vs {coach_afc}",
+        f"EARLY LINE: {SB_PREVIEW['early_line']}",
+        "",
+        "KEY PLAYERS (verified regular-season notes)",
+        "-------------------------------------------",
+    ]
+    for name, note in SB_KEY_PLAYERS:
+        lines.append("* " + name + ": " + note)
+    lines.append("")
+    title, text = SB_STORYLINES[day.day % len(SB_STORYLINES)]
+    lines.extend(["STORYLINE: " + title, text])
+    lines.append("")
+    lines.append("The road to Miami ends January 22. Preview only -- no result yet.")
+    return lines
+
+
+def world_series_lines(day: Optional[date] = None) -> List[str]:
+    """1988 World Series recap: Dodgers over Athletics, 4 games to 1."""
+    day = _day(day)
+    lines = list(WS_RECAP)
+    lines.append("")
+    start = day.day % 3
+    extra = [
+        "Gibson's Game 1 blast came on two bad knees -- he didn't play again "
+        "in the series, and didn't need to.",
+        "The A's 'Bash Brothers' -- Canseco and McGwire -- hit 74 homers in "
+        "the regular season but couldn't carry Oakland past October.",
+        "The Mets won 100 games and fell to L.A. in seven. Shea is restless.",
+    ]
+    lines.append("NOTEBOOK: " + extra[start])
+    return lines
+
+
+def nba_lines(day: Optional[date] = None) -> List[str]:
+    """1988-89 NBA standings as of mid-December 1988 (verified)."""
+    lines = [
+        "NBA 1988-89 -- STANDINGS (verified as of Dec 19, 1988)",
+        "Season runs Nov 4, 1988 - Apr 23, 1989. 25 teams, four divisions.",
+        "Expansion: Charlotte Hornets (Atlantic), Miami Heat (Midwest).",
+        "",
+    ]
+    for division, teams in NBA_STANDINGS.items():
+        lines.append(division)
+        lines.append("-" * len(division))
+        lines.extend(_nba_record(team) for team in teams)
+        lines.append("")
+    day = _day(day)
+    lines.append("AROUND THE LEAGUE: " + NBA_HIGHLIGHTS[day.day % len(NBA_HIGHLIGHTS)])
+    lines.append("")
+    lines.append("Defending champions: Los Angeles Lakers. All records verified.")
+    return lines
+
+
+def nhl_lines(day: Optional[date] = None) -> List[str]:
+    """1988-89 NHL standings as of mid-December 1988 (verified)."""
+    lines = [
+        "NHL 1988-89 -- STANDINGS (verified as of Dec 15, 1988)",
+        "21 teams, four divisions. Points: 2 for a win, 1 for a tie.",
+        "",
+    ]
+    for division, teams in NHL_STANDINGS.items():
+        lines.append(division)
+        lines.append("-" * len(division))
+        lines.extend(_nhl_record(team) for team in teams)
+        lines.append("")
+    day = _day(day)
+    lines.append("AROUND THE LEAGUE: " + NHL_HIGHLIGHTS[day.day % len(NHL_HIGHLIGHTS)])
+    lines.append("")
+    lines.append("All records verified.")
+    return lines
 
 
 def sports_service(app) -> List[Tuple[str, List[str]]]:

@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Added the 1988 Year in Review news special (News option 12, `GO YEARINREVIEW`):
+  Election '88 results, top news stories, the Armenia earthquake wire, science
+  and technology highlights, and a best-of roundup spanning movies, music,
+  sports, and technology. Armenia coverage appears from December 7 onward and
+  the Pan Am Flight 103 developing story appears from December 21 onward,
+  gated by the session's simulated date.
+
+- Added three new interest forums (choices 16-18): the Cooking Forum
+  (`GO COOKING`, 6 sections, 16 December 1988 posts), the Aviation Forum
+  (`GO AVIATION`, 6 sections, 16 posts), and the Comics & Sci-Fi Forum
+  (`GO SCIFI`, 6 sections, 16 posts). Seed messages are merged into the forums
+  from computer_communities.json at startup via cis_communities.merge_forums,
+  matching the Guitar/Space pattern.
+
+- Expanded December 1988 Sports & TV (News option 8, `GO SPORTS`) with four new
+  sections: a Super Bowl XXIII preview (preview-only; the game is January 22,
+  1989, after the sim date), a 1988 World Series recap, mid-December 1988 NBA
+  standings (25 teams, 1988-89 expansion placements verified), and NHL standings
+  with points math (21 teams, verified as of Dec 15, 1988).
+
+- Fixed the Forums Directory screen to list all 18 forum choices (it previously
+  stopped at 14, omitting Space, Cooking, Aviation, and Comics & Sci-Fi).
+
 - Added the time capsule: a Temporal Destination step during connection setup
   beside the baud-rate prompt, offering Present Day, fourteen featured dates
   (1981-1991), any date from 1979 through 1998, or session-scoped Surprise Me.

@@ -313,7 +313,7 @@ duplicate the content or restore seeded posts a SysOp has deleted.
 
 ## Community forums
 
-Beyond the computer forums, the directory offers six interest forums. The
+Beyond the computer forums, the directory offers nine interest forums. The
 **Amateur Radio Forum** (`GO HAMNET`, choice 5) covers packet radio, HF/VHF rigs,
 antennas and towers, DX and contesting, license study, ARRL bulletins, and swap
 and shop, with December 1988 seed posts and two scheduled on-air nets. The
@@ -329,7 +329,14 @@ Macintosh, Amiga vs Atari ST, OS/2 and operating systems, modems and telecom,
 and CD-ROM and new tech. The **Space & Astronomy Forum** (`GO SPACE`, choice 15)
 covers shuttle and spaceflight, deep-sky observing, planets and probes, amateur
 telescopes, NASA and space news, and star parties, with December 1988 seed posts.
-All six use the standard forum commands for reading,
+The **Cooking Forum** (`GO COOKING`, choice 16) swaps recipes, holiday baking
+ideas, cast-iron and cookware talk, microwave cooking, canning and preserving,
+and restaurant recommendations. The **Aviation Forum** (`GO AVIATION`, choice 17)
+covers private flying, IFR training, aircraft ownership, flight simulators, trip
+reports, and hangar talk. The **Comics & Sci-Fi Forum** (`GO SCIFI`, choice 18)
+discusses comic books, Star Trek, Doctor Who, movies and TV, science-fiction
+books, and conventions, all era-appropriate to December 1988.
+All nine use the standard forum commands for reading,
 posting, replying, and watching threads. These forums are original fictional
 simulation content, not recovered historical messages.
 
@@ -464,7 +471,10 @@ history so five consecutive editions contain no repeated items. Option 6 updates
 clearly separate current-news wire.
 
 **Sports & TV** (News option 8, `GO SPORTS`) presents 1988 NFL standings and
-December scores, the 1988-89 prime-time TV grid, and MLB hot-stove news. **Entertainment**
+December scores, the 1988-89 prime-time TV grid, and MLB hot-stove news, plus a
+Super Bowl XXIII preview (clearly marked preview-only; the game is played
+January 22, 1989), a 1988 World Series recap, and mid-December 1988 NBA and NHL
+standings. **Entertainment**
 (News option 9, `GO ENTERTAINMENT`) carries the December 1988 Billboard Hot 100 with
 a date-aware number one ("Look Away" by Chicago early in the month, "Every Rose Has
 Its Thorn" by Poison at Christmas), reviews of films in theaters that month, and
@@ -474,7 +484,13 @@ conditions with three date-aware variants; `GO WEATHER` continues to open the li
 Open-Meteo weather service described in Travel. **Books & Magazines** (News option
 11, `GO BOOKS`) lists December 1988 hardcover bestseller lists, December magazine
 issues with cover-story blurbs, staff reviews of 1988 books, and back-issue files
-readable from the Data Library. All News content stays dated no later than December
+readable from the Data Library. **1988 Year in Review** (News option 12,
+`GO YEARINREVIEW`) is a news special recapping the year: Election '88 results,
+the year's top news stories, the Armenia earthquake wire, science and
+technology highlights, and a best-of roundup spanning movies, music, sports,
+and technology. Date gating applies: the Armenia earthquake coverage appears
+from December 7 onward and the Pan Am Flight 103 developing story appears from
+December 21 onward, following the session's simulated date. All News content stays dated no later than December
 1988; these are authored simulation contents, not archived period publications.
 
 CB recognizes a broad set of period topics including modems, DOS memory, disks, display
