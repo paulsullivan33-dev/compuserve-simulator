@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+- Added ELIZA, a faithful 1966-style computer therapist engine (`cis_eliza`),
+  in two places: as arcade game 5 (`GO ARCADE`) and as CB Channel 4,
+  "Eliza's Office" (CB option 7). In both, she answers in classic Rogerian
+  style, reflects the user's words back, remembers context across turns for
+  each member, and a goodbye ends the session and clears its state. The engine
+  is deterministic (round-robin replies, no randomness), and CB degrades to a
+  polite "away" message if the engine module is ever absent.
+
+- Added Lunar Lander to the Classic Games Arcade (game 6, `GO ARCADE`): the
+  1970s BASIC classic — choose a fuel burn each turn, mind gravity, land soft;
+  safe landings are graded and recorded in Player Records. The arcade menu and
+  Player Records now cover all six games.
+
+- Added the Pets & Animals Forum (`GO PETS`, forum choice 20) with six sections
+  (dogs, cats, birds, fish & aquariums, small pets, ask the vet) and 16
+  December 1988 seed posts.
+
+- Added the Model Railroading Forum (`GO TRAINS`, forum choice 21) with six
+  sections (layout design, DCC & wiring, locomotives, scenery, prototype
+  research, buy/sell/trade) and 16 December 1988 seed posts.
+
+- Expanded the Photography Forum (`GO PHOTO`, choice 4) from one section to
+  five (general, cameras & lenses, darkroom, composition & technique, film &
+  processing) with 14 December 1988 seed posts.
+
+- Added shortwave broadcast schedules to the Amateur Radio Forum (`GO HAMNET`):
+  a new Broadcast Listening section (section 8) with December 1988 schedules for
+  the BBC World Service, Voice of America, and Deutsche Welle, rendered with a
+  verified-vs-estimate fact marking convention, plus one seed post announcing
+  the section (`hamnet-1988-017`).
+
+- Merged 47 new seed posts (16 pets, 16 trains, 14 photography, 1 hamnet) from
+  computer_communities.json (pack id bumped to
+  `computer-communities-1988-v4` so existing databases pick up the new posts;
+  the merge skips known content_ids, so the bump is safe and repeat installs
+  are no-ops).
+
 - Added the 1988 Holiday Shopping Guide news special (News option 13,
   `GO GIFTGUIDE`): hottest gifts of Christmas 1988, a catalog-vs.-mall price
   comparison, a toy shortage and shelf-watch report, and gift trends for '88,

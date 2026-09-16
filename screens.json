@@ -14,7 +14,6 @@
       "10": "User Information"
     }
   },
-
   "mail": {
     "title": "EasyPlex Electronic Mail",
     "options": {
@@ -24,7 +23,6 @@
       "4": "Mail Settings"
     }
   },
-
   "forums": {
     "title": "Forums Directory",
     "options": {
@@ -46,10 +44,11 @@
       "16": "Cooking Forum",
       "17": "Aviation Forum",
       "18": "Comics & Sci-Fi Forum",
-      "19": "Health & Fitness Forum"
+      "19": "Health & Fitness Forum",
+      "20": "Pets & Animals Forum",
+      "21": "Model Railroading Forum"
     }
   },
-
   "cb": {
     "title": "CB Simulator",
     "options": {
@@ -58,10 +57,10 @@
       "3": "Enter Channel 3",
       "4": "Private Messages",
       "5": "CB Help & Commands",
-      "6": "Channel Directory / Who Is On"
+      "6": "Channel Directory / Who Is On",
+      "7": "Enter Channel 4 - Eliza's Office"
     }
   },
-
   "news": {
     "title": "News Services",
     "options": {
@@ -81,7 +80,6 @@
       "14": "Christmas in the Sim"
     }
   },
-
   "finance": {
     "title": "Business & Financial",
     "options": {
@@ -95,7 +93,6 @@
       "8": "Investment Club Market Watch"
     }
   },
-
   "travel": {
     "title": "Travel Services",
     "options": {
@@ -110,7 +107,6 @@
       "9": "Weather Operations Center"
     }
   },
-
   "reference": {
     "title": "Reference Data Bases",
     "options": {
@@ -123,7 +119,6 @@
       "7": "Special Desk Case Index"
     }
   },
-
   "shopping": {
     "title": "Comp-U-Store & Classifieds",
     "options": {
@@ -135,7 +130,6 @@
       "6": "Trading Post Classifieds"
     }
   },
-
   "games": {
     "title": "Games and Entertainment",
     "options": {
@@ -150,7 +144,6 @@
       "9": "Classic Games Arcade"
     }
   },
-
   "support": {
     "title": "User Information",
     "options": {
@@ -167,7 +160,6 @@
       "11": "Monthly Usage Statement"
     }
   },
-
   "ibmhw": {
     "title": "IBM PC Hardware Forum",
     "options": {
@@ -181,7 +173,6 @@
       "8": "Help & Forum Rules"
     }
   },
-
   "gamers": {
     "title": "Gamers Forum",
     "options": {
@@ -191,7 +182,6 @@
       "4": "Game Reviews"
     }
   },
-
   "ibmhw_libs": {
     "title": "IBMHW Libraries & Downloads",
     "options": {
@@ -201,7 +191,6 @@
       "4": "Library 4: Benchmark Tools"
     }
   },
-
   "ibmhw_lib1": {
     "title": "Library 1: Diagnostics",
     "options": {
@@ -211,7 +200,6 @@
       "4": "POST Code Reference"
     }
   },
-
   "ibmhw_lib2": {
     "title": "Library 2: BIOS Updates",
     "options": {
@@ -220,7 +208,6 @@
       "3": "Phoenix BIOS Updates"
     }
   },
-
   "ibmhw_lib3": {
     "title": "Library 3: Motherboard Docs",
     "options": {
@@ -230,7 +217,6 @@
       "4": "CMOS Setup Guide"
     }
   },
-
   "ibmhw_lib4": {
     "title": "Library 4: Benchmark Tools",
     "options": {
@@ -240,12 +226,11 @@
       "4": "Benchmark Results Archive"
     }
   },
-
   "paul": {
-  	"title": "Paul test",
-  	"options": {
-  	  "1": "Test 1",
-  	  "2": "test 2"
-  	}
+    "title": "Paul test",
+    "options": {
+      "1": "Test 1",
+      "2": "test 2"
+    }
   }
 }

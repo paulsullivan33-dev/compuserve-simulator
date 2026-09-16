@@ -1,9 +1,11 @@
-"""CLASSIC GAMES ARCADE -- four 1988-authentic playable games.
+"""CLASSIC GAMES ARCADE -- six 1988-authentic playable games.
 
 HUNT THE WUMPUS: the 20-room dodecahedron cave, 5 arrows, pits and bats.
 HAMURABI: a 10-year reign over grain, land, and people.
 SUPER STAR TREK: a compact 8x8-galaxy quadrant campaign.
 BLACKJACK: fictional-chip shoe blackjack against the dealer.
+ELIZA: the 1966 computer therapist, a bulletin-board staple.
+LUNAR LANDER: the 1970s BASIC classic -- burn fuel, mind gravity.
 
 Engine design: each game is a small logic class with all state in the
 object and randomness injected through a random.Random instance, so the
@@ -25,6 +27,8 @@ GAME_LABELS = {
     "hamurabi": "HAMURABI",
     "startrek": "SUPER STAR TREK",
     "blackjack": "BLACKJACK",
+    "eliza": "ELIZA",
+    "lander": "LUNAR LANDER",
 }
 
 
@@ -68,32 +72,94 @@ def record_play(app, user_id, game_key, won, best=None, best_note=""):
             f"{entry['plays']} games.")
 
 
+def record_eliza_session(app, user_id):
+    """Log one finished ELIZA conversation.
+
+    Increments the per-user ``eliza_sessions`` counter under RECORDS_KEY,
+    mirroring the nightstation cis_dynamic pattern.
+    """
+    state, dyn = _score_store(app)
+    if state is None:
+        return "Arcade log: offline -- no archive."
+    records = state.setdefault(RECORDS_KEY, {})
+    mine = records.setdefault(user_id, {})
+    entry = mine.setdefault("eliza", _blank_record())
+    entry["plays"] += 1
+    entry["eliza_sessions"] = entry.get("eliza_sessions", 0) + 1
+    try:
+        dyn.save_state(app, state)
+    except Exception:
+        pass
+    n = entry["eliza_sessions"]
+    return (f"ARCADE LOG: ELIZA -- {n} session{'s' if n != 1 else ''} "
+            f"on file.")
+
+
+def record_lander_result(app, user_id, landed, touchdown_velocity):
+    """Log one finished LUNAR LANDER descent.
+
+    Increments the per-user ``lander_landings`` counter on a safe landing
+    and tracks ``lander_best_velocity`` (lowest touchdown speed) under
+    RECORDS_KEY, mirroring the nightstation cis_dynamic pattern.
+    """
+    state, dyn = _score_store(app)
+    if state is None:
+        return "Arcade log: offline -- no archive."
+    records = state.setdefault(RECORDS_KEY, {})
+    mine = records.setdefault(user_id, {})
+    entry = mine.setdefault("lander", _blank_record())
+    entry["plays"] += 1
+    if landed:
+        entry["wins"] += 1
+        entry["lander_landings"] = entry.get("lander_landings", 0) + 1
+        prev = entry.get("lander_best_velocity")
+        if prev is None or touchdown_velocity < prev:
+            entry["lander_best_velocity"] = round(touchdown_velocity, 1)
+    try:
+        dyn.save_state(app, state)
+    except Exception:
+        pass
+    landings = entry.get("lander_landings", 0)
+    best = entry.get("lander_best_velocity")
+    best_text = f"{best:.1f} ft/s" if best else "---"
+    return (f"ARCADE LOG: LUNAR LANDER -- {landings} soft landing"
+            f"{'s' if landings != 1 else ''}, best touchdown {best_text}.")
+
+
 def arcade_records_lines(state, user_id):
     """Display lines for the coordinator's PLAYER RECORDS screen."""
     mine = (state or {}).get(RECORDS_KEY, {}).get(user_id, {})
     lines = []
-    order = ("wumpus", "hamurabi", "startrek", "blackjack")
+    order = ("wumpus", "hamurabi", "startrek", "blackjack", "eliza", "lander")
     labels = {
         "wumpus": "WUMPUS",
         "hamurabi": "HAMURABI",
         "startrek": "STAR TREK",
         "blackjack": "BLACKJACK",
+        "eliza": "ELIZA",
+        "lander": "LANDER",
     }
     notes = {
         "wumpus": ("WINS", "wins", "best arrows left"),
         "hamurabi": ("REIGNS", "wins", "best score"),
         "startrek": ("VICTORIES", "wins", "best klingons down"),
         "blackjack": ("HANDS", "plays", "best chip stack"),
+        "eliza": ("SESSIONS", "eliza_sessions", None),
+        "lander": ("LANDINGS", "lander_landings", "softest touchdown ft/s"),
     }
     for key in order:
         entry = mine.get(key, _blank_record())
         tag, count_field, best_desc = notes[key]
-        if key == "blackjack":
-            count = entry["plays"]
+        count = entry.get(count_field, 0)
+        if key == "lander":
+            # Lower touchdown velocity is better, so it gets its own key.
+            best = entry.get("lander_best_velocity")
+            best_text = f"{best:.1f} {best_desc}" if best else "---"
+        elif best_desc is None:
+            best_text = "---"
         else:
-            count = entry["wins"] if count_field == "wins" else entry["plays"]
-        best = entry["best"]
-        best_text = f"{best} {best_desc}" if best else "---"
+            best = entry.get("best", 0)
+            best_text = f"{best} {best_desc}" if best else "---"
         lines.append(f"ARCADE {labels[key]:<8} {tag} {count:<4} BEST {best_text}")
     return lines
 
@@ -1245,6 +1311,224 @@ def play_blackjack(app, user_id):
 
 
 # ===========================================================================
+# 5. ELIZA
+# ===========================================================================
+#
+# The famous computer therapist, born at MIT in 1966 and a fixture of
+# bulletin boards through the 1980s. The conversation engine lives in
+# cis_eliza; this wrapper handles the BBS-style session around it.
+
+ELIZA_INTRO = (
+    "*** ELIZA ***",
+    "The famous computer therapist -- born at MIT in 1966,",
+    "a fixture of bulletin boards through the 1980s.",
+    "Pour out your troubles one line at a time.",
+    "Type BYE when you are finished.",
+)
+
+ELIZA_GOODBYE = "Goodbye. It has been a pleasure talking with you."
+
+
+def play_eliza(app, user_id):
+    """Chat with ELIZA via the cis_eliza engine. One session, then log it."""
+    try:
+        import cis_eliza
+    except ImportError:
+        app.ansi_scroll("ELIZA is resting -- the therapist module is not "
+                        "installed.", 0.01)
+        return
+    app.ansi_scroll("", 0.01)
+    for line in ELIZA_INTRO:
+        app.ansi_scroll(line, 0.01)
+    state = cis_eliza.new_state()
+    try:
+        while True:
+            line = input("> ")
+            if cis_eliza.is_quit(line):
+                app.ansi_scroll("ELIZA: " + ELIZA_GOODBYE, 0.01)
+                break
+            reply, state = cis_eliza.respond(line, state)
+            app.ansi_scroll("ELIZA: " + reply, 0.01)
+    except (EOFError, KeyboardInterrupt):
+        app.ansi_scroll("", 0.01)
+        app.ansi_scroll("ELIZA: Our time is up for today. Goodbye.", 0.01)
+    app.ansi_scroll(record_eliza_session(app, user_id), 0.01)
+
+
+# ===========================================================================
+# 6. LUNAR LANDER
+# ===========================================================================
+#
+# A loving recreation of the 1970s BASIC classic. The LanderGame engine
+# holds all physics state (altitude, velocity, fuel) and advances one turn
+# per step() call, so the math is fully testable without I/O.
+
+LANDER_GRAVITY = 5.0        # ft/s of downward velocity gained per turn
+LANDER_THRUST = 0.25        # ft/s of braking per unit of fuel burned
+LANDER_MAX_BURN = 40        # most fuel burnable in one turn
+LANDER_SAFE_VELOCITY = 8.0  # touchdown at or below this speed is a landing
+
+# key: (site name, starting altitude ft, starting descent velocity ft/s)
+LANDER_SITES = {
+    "1": ("MARE TRANQUILLITATIS", 1500.0, 25.0),
+    "2": ("COPERNICUS CRATER", 1500.0, 30.0),
+}
+
+# key: (difficulty name, starting fuel)
+LANDER_DIFFICULTY = {
+    "1": ("CADET", 1200.0),
+    "2": ("COMMANDER", 1050.0),
+}
+
+
+class LanderGame:
+    """Scriptable LUNAR LANDER engine.
+
+    Velocity is ft/s, positive downward. Each step() burns the requested
+    fuel, applies gravity and thrust, and moves the module. Returns
+    "flying", "landed", or "crashed".
+    """
+
+    def __init__(self, altitude=1500.0, velocity=25.0, fuel=1200.0):
+        self.altitude = float(altitude)
+        self.velocity = float(velocity)
+        self.fuel = float(fuel)
+        self.turn = 0
+        self.landed = False
+        self.crashed = False
+        self.landing_velocity = None
+
+    def step(self, burn):
+        """Apply one turn of thrust. Returns 'flying', 'landed', 'crashed'."""
+        if self.landed or self.crashed:
+            return "landed" if self.landed else "crashed"
+        burn = max(0.0, min(float(burn), LANDER_MAX_BURN, self.fuel))
+        self.fuel -= burn
+        new_velocity = self.velocity + LANDER_GRAVITY - burn * LANDER_THRUST
+        self.altitude -= (self.velocity + new_velocity) / 2.0
+        self.velocity = new_velocity
+        self.turn += 1
+        if self.altitude <= 0.0:
+            self.altitude = 0.0
+            self.landing_velocity = max(0.0, self.velocity)
+            if self.landing_velocity <= LANDER_SAFE_VELOCITY:
+                self.landed = True
+                return "landed"
+            self.crashed = True
+            return "crashed"
+        return "flying"
+
+    def status_line(self):
+        """One 1970s-teletype status line for the current turn."""
+        if self.velocity >= 0:
+            motion = f"DESCENDING {self.velocity:.0f} FT/S"
+        else:
+            motion = f"ASCENDING {-self.velocity:.0f} FT/S"
+        return (f"T+{self.turn:04d}  ALT {self.altitude:5.0f} FT  "
+                f"{motion}  FUEL {self.fuel:4.0f}")
+
+
+def lander_grade(speed):
+    """Flavor text for a safe touchdown, graded by softness."""
+    if speed <= 3.0:
+        return "FEATHER-SOFT TOUCHDOWN! Mission Control is applauding."
+    if speed <= 6.0:
+        return "A fine landing -- the Eagle has landed."
+    return "A hard landing! You bent the gear, but you walked away."
+
+
+def _lander_pick(app, prompt, options):
+    """Prompt until the player picks a valid option key; None on abort."""
+    valid = " OR ".join(sorted(options))
+    while True:
+        try:
+            choice = input(prompt).strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        if choice in options:
+            return choice
+        app.ansi_scroll(f"?REDO -- PICK {valid}.", 0.01)
+
+
+def _lander_read_burn(app):
+    """Prompt for a burn rate; None on abort."""
+    while True:
+        try:
+            raw = input(f"BURN RATE (0-{LANDER_MAX_BURN})? ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        try:
+            burn = int(raw)
+        except ValueError:
+            app.ansi_scroll("?REDO -- ENTER A WHOLE NUMBER.", 0.01)
+            continue
+        if 0 <= burn <= LANDER_MAX_BURN:
+            return burn
+        app.ansi_scroll(f"?REDO -- 0 TO {LANDER_MAX_BURN}.", 0.01)
+
+
+def play_lander(app, user_id):
+    """Interactive LUNAR LANDER: pick site and difficulty, then fly her down."""
+    app.ansi_scroll("", 0.01)
+    for line in (
+        "*** LUNAR LANDER ***",
+        "A loving recreation of the 1970s BASIC classic.",
+        "Your lunar module is on final approach. Each turn you",
+        "choose a burn rate, and gravity does the rest.",
+        f"GRAVITY: {LANDER_GRAVITY:.0f} FT/S PER TURN. EACH UNIT OF FUEL",
+        f"BURNS OFF {LANDER_THRUST} FT/S. A BURN OF 20 HOVERS.",
+        f"TOUCH DOWN AT {LANDER_SAFE_VELOCITY:.0f} FT/S OR LESS --",
+        "OR MAKE A CRATER.",
+    ):
+        app.ansi_scroll(line, 0.01)
+    difficulty = _lander_pick(
+        app, "DIFFICULTY -- 1=CADET (FULL TANKS) 2=COMMANDER (TIGHT TANKS)? ",
+        LANDER_DIFFICULTY)
+    if difficulty is None:
+        return
+    site = _lander_pick(
+        app, "LANDING SITE -- 1=MARE TRANQUILLITATIS 2=COPERNICUS CRATER? ",
+        LANDER_SITES)
+    if site is None:
+        return
+    diff_name, fuel = LANDER_DIFFICULTY[difficulty]
+    site_name, altitude, velocity = LANDER_SITES[site]
+    app.ansi_scroll(f"{diff_name} PILOT -- DESCENDING ON {site_name}.", 0.01)
+    app.ansi_scroll("GOOD LUCK. THE CREW IS COUNTING ON YOU.", 0.01)
+    game = LanderGame(altitude=altitude, velocity=velocity, fuel=fuel)
+    try:
+        while True:
+            app.ansi_scroll(game.status_line(), 0.01)
+            burn = _lander_read_burn(app)
+            if burn is None:
+                app.ansi_scroll("MISSION ABORTED -- THE MODULE DRIFTS ON.", 0.01)
+                return
+            if burn > game.fuel:
+                app.ansi_scroll(f"ONLY {game.fuel:.0f} FUEL LEFT -- "
+                                "BURNING IT ALL.", 0.01)
+            outcome = game.step(burn)
+            if outcome == "landed":
+                speed = game.landing_velocity
+                app.ansi_scroll(f"TOUCHDOWN AT {speed:.1f} FT/S!", 0.01)
+                app.ansi_scroll(lander_grade(speed), 0.01)
+                app.ansi_scroll(record_lander_result(app, user_id, True,
+                                                     speed), 0.01)
+                return
+            if outcome == "crashed":
+                speed = game.landing_velocity
+                app.ansi_scroll(f"IMPACT AT {speed:.1f} FT/S -- "
+                                "YOU MADE A NEW CRATER.", 0.01)
+                app.ansi_scroll("THE CREW WILL BE REMEMBERED. "
+                                "FLY SAFER NEXT TIME.", 0.01)
+                app.ansi_scroll(record_lander_result(app, user_id, False,
+                                                     speed), 0.01)
+                return
+    except (EOFError, KeyboardInterrupt):
+        app.ansi_scroll("", 0.01)
+        app.ansi_scroll("MISSION ABORTED -- THE MODULE DRIFTS ON.", 0.01)
+
+
+# ===========================================================================
 # Arcade submenu
 # ===========================================================================
 
@@ -1253,6 +1537,8 @@ ARCADE_MENU = (
     ("2", "HAMURABI", "Rule Sumeria for 10 years: grain, land, and fate."),
     ("3", "SUPER STAR TREK", "Hunt Klingons across an 8x8-quadrant sector."),
     ("4", "BLACKJACK", "Beat the dealer with fictional arcade chips."),
+    ("5", "ELIZA", "The 1966 computer therapist -- a BBS staple. Tell it your troubles."),
+    ("6", "LUNAR LANDER", "1970s BASIC classic: burn fuel, mind gravity, land soft."),
 )
 
 
@@ -1278,6 +1564,8 @@ def play(app):
         "2": play_hamurabi,
         "3": play_startrek,
         "4": play_blackjack,
+        "5": play_eliza,
+        "6": play_lander,
     }
     while True:
         for line in arcade_menu_text():
@@ -1295,4 +1583,4 @@ def play(app):
             handlers[choice](app, user_id)
             app.ansi_scroll("", 0.01)
             continue
-        app.ansi_scroll("Pick 1-4, or M to return.", 0.01)
+        app.ansi_scroll("Pick 1-6, or M to return.", 0.01)

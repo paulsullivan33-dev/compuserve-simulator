@@ -4,6 +4,7 @@ CHANNELS = {
     "1": "The Lobby - general conversation",
     "2": "The Lounge - friendly social chat",
     "3": "Technical Exchange - computers and communications",
+    "4": "Eliza's Office - a quiet corner for conversation with ELIZA",
 }
 
 

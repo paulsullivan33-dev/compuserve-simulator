@@ -2,6 +2,7 @@ import json
 import io
 import os
 import re
+import types
 import importlib.util
 import subprocess
 import sqlite3
@@ -49,6 +50,10 @@ import cis_scifi
 import cis_giftguide
 import cis_fitness
 import cis_christmas
+import cis_eliza
+import cis_pets
+import cis_trains
+import cis_photo
 from cis_giftguide import (GIFT_CATALOG, _parse_recipient, catalog_vs_mall_lines, cheapest_for, gift_picker, giftguide_menu, giftguide_menu_lines, giftguide_service, hottest_lines, pick_gifts, shortages_lines, trends_lines)
 from cis_christmas import (ADVENT_TREATS, CHRISTMAS_ALBUMS, CHRISTMAS_CB_LINES, CHRISTMAS_CB_TOPICS, CHRISTMAS_SONGS, christmas_cb_lines, christmas_cb_topics, christmas_menu, christmas_menu_lines, christmas_music_lines, christmas_service, christmas_treat)
 import cis_travel
@@ -2492,7 +2497,7 @@ class TestSections(unittest.TestCase):
     def test_sections_shape(self):
         secs = cis_hamnet.SECTIONS
         self.assertIsInstance(secs, dict)
-        self.assertEqual(set(secs.keys()), {"1", "2", "3", "4", "5", "6", "7"})
+        self.assertEqual(set(secs.keys()), {"1", "2", "3", "4", "5", "6", "7", "8"})
         ids = []
         for key, spec in secs.items():
             self.assertIsInstance(spec, (tuple, list), f"section {key}")
@@ -4760,16 +4765,18 @@ class TestRecords(unittest.TestCase):
             "blackjack": {"plays": 10, "wins": 6, "best": 900, "best_note": "chips"},
         }}}
         lines = arcade_records_lines(state, "T100")
-        self.assertEqual(len(lines), 4)
+        self.assertEqual(len(lines), 6)
         self.assertTrue(lines[0].startswith("ARCADE WUMPUS"))
         self.assertIn("WINS 1", lines[0])
         self.assertIn("4 best arrows left", lines[0])
         self.assertTrue(lines[3].startswith("ARCADE BLACKJACK"))
         self.assertIn("HANDS 10", lines[3])
+        self.assertTrue(lines[4].startswith("ARCADE ELIZA"))
+        self.assertTrue(lines[5].startswith("ARCADE LANDER"))
 
     def test_arcade_records_lines_empty_state(self):
         lines = arcade_records_lines({}, "NOBODY")
-        self.assertEqual(len(lines), 4)
+        self.assertEqual(len(lines), 6)
         self.assertIn("---", lines[0])
 
 
@@ -4780,13 +4787,15 @@ class TestRecords(unittest.TestCase):
 class TestArcadeMenu(unittest.TestCase):
     def test_menu_lists_four_games(self):
         keys = [key for key, _, _ in ARCADE_MENU]
-        self.assertEqual(keys, ["1", "2", "3", "4"])
+        self.assertEqual(keys, ["1", "2", "3", "4", "5", "6"])
         names = [name for _, name, _ in ARCADE_MENU]
-        self.assertEqual(names, ["HUNT THE WUMPUS", "HAMURABI", "SUPER STAR TREK", "BLACKJACK"])
+        self.assertEqual(names, ["HUNT THE WUMPUS", "HAMURABI", "SUPER STAR TREK",
+                                 "BLACKJACK", "ELIZA", "LUNAR LANDER"])
 
     def test_menu_text_mentions_all_games(self):
         text = "\n".join(cis_arcade.arcade_menu_text())
-        for name in ("HUNT THE WUMPUS", "HAMURABI", "SUPER STAR TREK", "BLACKJACK"):
+        for name in ("HUNT THE WUMPUS", "HAMURABI", "SUPER STAR TREK", "BLACKJACK",
+                     "ELIZA", "LUNAR LANDER"):
             self.assertIn(name, text)
 
     def test_play_quits_on_m(self):
@@ -6888,3 +6897,925 @@ class TestRetrospectiveShape(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+# ---------------------------------------------------------------------------
+# Content pack 7: pack7_test_eliza
+# ---------------------------------------------------------------------------
+"""Standalone tests for the cis_eliza Eliza engine (content pack 7).
+
+Run with:
+    cd ~/workspace/compuserve-simulator && PYTHONPATH=. python3 /tmp/pack7_test_eliza.py -v
+"""
+
+
+
+
+import cis_eliza
+
+
+class ElizaEngineTests(unittest.TestCase):
+    # -- API contract --------------------------------------------------------
+
+    def test_new_state_is_json_serializable(self):
+        state = cis_eliza.new_state()
+        self.assertIsInstance(state, dict)
+        json.dumps(state)  # must not raise
+
+    def test_respond_returns_reply_and_new_state(self):
+        reply, new_state = cis_eliza.respond("hello", cis_eliza.new_state())
+        self.assertIsInstance(reply, str)
+        self.assertTrue(reply)
+        self.assertIsInstance(new_state, dict)
+        json.dumps(new_state)  # must not raise
+
+    def test_respond_does_not_mutate_input_state(self):
+        state = cis_eliza.new_state()
+        snapshot = json.dumps(state)
+        cis_eliza.respond("I am sad", state)
+        self.assertEqual(json.dumps(state), snapshot)
+
+    def test_state_stays_serializable_across_turns(self):
+        state = cis_eliza.new_state()
+        for line in ["hello", "I am sad", "My dog is cute", "why do you ask",
+                     "xyzzy", "plugh", "qwerty", "bye"]:
+            _reply, state = cis_eliza.respond(line, state)
+            json.dumps(state)  # must not raise every turn
+
+    # -- quit detection ------------------------------------------------------
+
+    def test_is_quit_words(self):
+        for text in ["bye", "Bye", "BYE!", "I think I should quit now",
+                     "EXIT", "exit.", "goodbye", "Goodbye, Eliza.",
+                     "  quit  "]:
+            self.assertTrue(cis_eliza.is_quit(text), text)
+
+    def test_is_quit_rejects_non_words(self):
+        for text in ["", "quiet", "goodbyes", "exiting", "byebye",
+                     "hello there", "I am quite happy"]:
+            self.assertFalse(cis_eliza.is_quit(text), text)
+
+    def test_quit_respond_gives_goodbye(self):
+        reply, _state = cis_eliza.respond("bye", cis_eliza.new_state())
+        self.assertIn("goodbye", reply.lower())
+
+    # -- pronoun reflection --------------------------------------------------
+
+    def test_i_am_reflects_to_you_are(self):
+        reply, _state = cis_eliza.respond("I am sad", cis_eliza.new_state())
+        self.assertIn("you are", reply.lower())
+        self.assertIn("sad", reply.lower())
+
+    def test_contraction_reflection(self):
+        reply, _state = cis_eliza.respond("I'm worried", cis_eliza.new_state())
+        self.assertIn("you are", reply.lower())
+        self.assertIn("worried", reply.lower())
+
+    def test_my_reflects_to_your(self):
+        reply, _state = cis_eliza.respond("My dog is cute", cis_eliza.new_state())
+        self.assertIn("your dog is cute", reply.lower())
+
+    def test_you_are_reflects_to_i_am(self):
+        reply, _state = cis_eliza.respond("You are clever", cis_eliza.new_state())
+        self.assertIn("i am clever", reply.lower())
+
+    # -- structural input/output pairs ---------------------------------------
+
+    def test_hello_greeting(self):
+        reply, _state = cis_eliza.respond("hello", cis_eliza.new_state())
+        self.assertIn("how do you do", reply.lower())
+
+    def test_want_rule(self):
+        reply, _state = cis_eliza.respond("I want a new car", cis_eliza.new_state())
+        self.assertEqual(reply, "What would you do if you got a new car?")
+
+    def test_because_rule(self):
+        reply, _state = cis_eliza.respond("because my dog ran away",
+                                          cis_eliza.new_state())
+        self.assertEqual(reply, "Is that the real reason?")
+
+    def test_keyword_rank_i_am_beats_sad(self):
+        # "I am sad" hits the higher-ranked I AM keyword, not SAD.
+        reply, _state = cis_eliza.respond("I am sad", cis_eliza.new_state())
+        self.assertIn("you are", reply.lower())
+
+    def test_no_match_fallback_is_neutral(self):
+        reply, _state = cis_eliza.respond("xyzzy plugh", cis_eliza.new_state())
+        self.assertIn(reply, cis_eliza.NOTHING_MATCHED)
+
+    # -- round-robin rule selection (deterministic) ----------------------------
+
+    def test_round_robin_cycles_rules(self):
+        state = cis_eliza.new_state()
+        reply1, state = cis_eliza.respond("I am sad", state)
+        reply2, state = cis_eliza.respond("I am sad", state)
+        self.assertNotEqual(reply1, reply2)
+        self.assertEqual(reply1, "Why do you say you are sad?")
+        self.assertEqual(reply2, "How long have you been sad?")
+
+    def test_round_robin_wraps_around(self):
+        state = cis_eliza.new_state()
+        replies = []
+        for _ in range(5):  # I AM has 4 rules for "* I AM *"
+            reply, state = cis_eliza.respond("I am sad", state)
+            replies.append(reply)
+        self.assertEqual(replies[0], replies[4])
+
+    def test_deterministic_replay(self):
+        def run():
+            state = cis_eliza.new_state()
+            out = []
+            for line in ["hello", "I am sad", "My dog is cute", "why?",
+                         "xyzzy", "plugh", "qwerty"]:
+                reply, state = cis_eliza.respond(line, state)
+                out.append(reply)
+            return out
+
+        self.assertEqual(run(), run())
+
+    # -- memory queue --------------------------------------------------------
+
+    def test_memory_callback_fires(self):
+        state = cis_eliza.new_state()
+        _r, state = cis_eliza.respond("My dog is cute", state)
+        self.assertEqual(len(state["memory"]), 1)
+        # Feed inputs that match no keyword; the memory callback fires
+        # deterministically on a regular cadence.
+        seen_callback = False
+        for word in ["xyzzy", "plugh", "qwerty", "blorp", "snarf", "zizzle"]:
+            reply, state = cis_eliza.respond(word, state)
+            if "earlier you mentioned" in reply.lower():
+                seen_callback = True
+                self.assertIn("your dog is cute", reply.lower())
+                break
+        self.assertTrue(seen_callback, "memory callback never fired")
+
+    def test_memory_item_consumed_once(self):
+        state = cis_eliza.new_state()
+        _r, state = cis_eliza.respond("My dog is cute", state)
+        callbacks = 0
+        for word in ["xyzzy", "plugh", "qwerty", "blorp", "snarf",
+                     "zizzle", "wobble", "frotz", "gloop"]:
+            reply, state = cis_eliza.respond(word, state)
+            if "earlier you mentioned" in reply.lower():
+                callbacks += 1
+        self.assertEqual(callbacks, 1)
+        self.assertEqual(state["memory"], [])
+
+    def test_no_memory_callback_when_queue_empty(self):
+        state = cis_eliza.new_state()
+        for word in ["xyzzy", "plugh", "qwerty", "blorp", "snarf", "zizzle"]:
+            reply, state = cis_eliza.respond(word, state)
+            self.assertNotIn("earlier you mentioned", reply.lower())
+
+# ---------------------------------------------------------------------------
+# Content pack 7: pack7_test_arcade
+# ---------------------------------------------------------------------------
+"""Standalone tests for content pack 7 arcade additions: ELIZA + LUNAR LANDER.
+
+Run: cd ~/workspace/compuserve-simulator && PYTHONPATH=. python3 /tmp/pack7_test_arcade.py -v
+"""
+
+
+
+
+import cis_arcade
+from cis_arcade import RECORDS_KEY
+
+
+# ---------------------------------------------------------------------------
+# Fakes (mirror the ArcadeFakeApp / ArcadeFakeDynamic pattern in
+# test_compuserve.py)
+# ---------------------------------------------------------------------------
+
+class FakeDynamic:
+    """In-memory stand-in for app.cis_dynamic."""
+
+    def __init__(self):
+        self.state = {}
+
+    def load_state(self, app):
+        return self.state
+
+    def save_state(self, app, state):
+        self.state = state
+
+
+class Pack7ArcadeFakeApp:
+    def __init__(self, user_id="T100"):
+        self.current_user_id = user_id
+        self.cis_dynamic = FakeDynamic()
+        self.output_lines = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.output_lines.append(str(text))
+        return True
+
+    def output(self):
+        return "\n".join(self.output_lines)
+
+
+class FakeEliza:
+    """Stub for the cis_eliza engine contract (built by Worker A)."""
+
+    @staticmethod
+    def new_state():
+        return {"turns": 0}
+
+    @staticmethod
+    def is_quit(line):
+        return line.strip().lower() in ("bye", "goodbye", "quit", "exit")
+
+    @staticmethod
+    def respond(line, state):
+        state["turns"] += 1
+        return ("Tell me more about that.", state)
+
+
+# A scripted suicide-burn sequence for CADET / MARE TRANQUILLITATIS
+# (alt 1500, vel 25, fuel 1200): free-fall, then full burn, then feathering.
+# Verified to touch down at 5.0 ft/s (safe: <= 8.0).
+SAFE_BURNS = (
+    [0] * 12
+    + [40] * 16
+    + [0, 40, 0, 40, 0, 40, 0, 40, 0, 40, 0, 40, 0, 40, 0, 40]
+)
+
+
+class ArcadeElizaLanderTests(unittest.TestCase):
+    def setUp(self):
+        self._saved_eliza = sys.modules.get("cis_eliza")
+        sys.modules["cis_eliza"] = FakeEliza
+
+    def tearDown(self):
+        if self._saved_eliza is None:
+            sys.modules.pop("cis_eliza", None)
+        else:
+            sys.modules["cis_eliza"] = self._saved_eliza
+
+    # -- menu ----------------------------------------------------------
+
+    def test_menu_lists_six_games(self):
+        keys = [key for key, _name, _blurb in cis_arcade.ARCADE_MENU]
+        self.assertEqual(keys, ["1", "2", "3", "4", "5", "6"])
+        names = [name for _key, name, _blurb in cis_arcade.ARCADE_MENU]
+        self.assertIn("ELIZA", names)
+        self.assertIn("LUNAR LANDER", names)
+
+    def test_menu_text_shows_new_games(self):
+        text = "\n".join(cis_arcade.arcade_menu_text())
+        self.assertIn("ELIZA", text)
+        self.assertIn("LUNAR LANDER", text)
+
+    def test_play_prompt_says_pick_1_to_6(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "input", side_effect=["9", "M"]):
+            cis_arcade.play(app)
+        self.assertIn("Pick 1-6, or M to return.", app.output())
+
+    def test_menu_choice_5_dispatches_to_eliza(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "play_eliza") as mock_eliza, \
+             mock.patch.object(cis_arcade, "input", side_effect=["5", "M"]):
+            cis_arcade.play(app)
+        mock_eliza.assert_called_once_with(app, "T100")
+
+    def test_menu_choice_6_dispatches_to_lander(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "play_lander") as mock_lander, \
+             mock.patch.object(cis_arcade, "input", side_effect=["6", "M"]):
+            cis_arcade.play(app)
+        mock_lander.assert_called_once_with(app, "T100")
+
+    # -- ELIZA ---------------------------------------------------------
+
+    def test_eliza_session_ends_on_bye_and_records_session(self):
+        app = Pack7ArcadeFakeApp()
+        script = ["hello there", "tell me about my mother", "bye"]
+        with mock.patch.object(cis_arcade, "input", side_effect=script):
+            cis_arcade.play_eliza(app, "U1")
+        out = app.output()
+        self.assertIn("*** ELIZA ***", out)
+        self.assertIn("ELIZA: Tell me more about that.", out)
+        self.assertIn("ELIZA: Goodbye.", out)
+        entry = app.cis_dynamic.state[RECORDS_KEY]["U1"]["eliza"]
+        self.assertEqual(entry["eliza_sessions"], 1)
+        self.assertEqual(entry["plays"], 1)
+        self.assertIn("ARCADE LOG: ELIZA -- 1 session on file.", out)
+
+    def test_eliza_quit_is_case_insensitive(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "input", side_effect=["BYE"]):
+            cis_arcade.play_eliza(app, "U1")
+        entry = app.cis_dynamic.state[RECORDS_KEY]["U1"]["eliza"]
+        self.assertEqual(entry["eliza_sessions"], 1)
+        self.assertIn("ELIZA: Goodbye.", app.output())
+
+    def test_eliza_sessions_accumulate(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "input", side_effect=["bye"]):
+            cis_arcade.play_eliza(app, "U1")
+        with mock.patch.object(cis_arcade, "input", side_effect=["bye"]):
+            cis_arcade.play_eliza(app, "U1")
+        entry = app.cis_dynamic.state[RECORDS_KEY]["U1"]["eliza"]
+        self.assertEqual(entry["eliza_sessions"], 2)
+
+    def test_eliza_missing_module_is_graceful(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.dict(sys.modules, {"cis_eliza": None}):
+            cis_arcade.play_eliza(app, "U1")
+        self.assertIn("not installed", app.output())
+        self.assertNotIn("U1", app.cis_dynamic.state.get(RECORDS_KEY, {}))
+
+    # -- LUNAR LANDER engine -------------------------------------------
+
+    def test_lander_engine_safe_burn_sequence_lands(self):
+        game = cis_arcade.LanderGame(altitude=1500.0, velocity=25.0,
+                                     fuel=1200.0)
+        outcome = "flying"
+        for burn in SAFE_BURNS:
+            outcome = game.step(burn)
+            if outcome != "flying":
+                break
+        self.assertEqual(outcome, "landed")
+        self.assertLessEqual(game.landing_velocity,
+                             cis_arcade.LANDER_SAFE_VELOCITY)
+
+    def test_lander_engine_zero_burn_crashes(self):
+        game = cis_arcade.LanderGame(altitude=1500.0, velocity=25.0,
+                                     fuel=1200.0)
+        outcome = "flying"
+        for _ in range(200):
+            outcome = game.step(0)
+            if outcome != "flying":
+                break
+        self.assertEqual(outcome, "crashed")
+        self.assertGreater(game.landing_velocity,
+                           cis_arcade.LANDER_SAFE_VELOCITY)
+
+    def test_lander_engine_burn_clamped_to_fuel(self):
+        game = cis_arcade.LanderGame(fuel=10.0)
+        game.step(40)
+        self.assertEqual(game.fuel, 0.0)
+
+    def test_lander_grades(self):
+        self.assertIn("FEATHER-SOFT", cis_arcade.lander_grade(2.0))
+        self.assertIn("Eagle", cis_arcade.lander_grade(5.0))
+        self.assertIn("hard landing", cis_arcade.lander_grade(7.9))
+
+    # -- LUNAR LANDER interactive --------------------------------------
+
+    def _lander_script(self, burns, difficulty="1", site="1"):
+        return [difficulty, site] + [str(b) for b in burns]
+
+    def test_lander_interactive_safe_landing_records(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "input",
+                               side_effect=self._lander_script(SAFE_BURNS)):
+            cis_arcade.play_lander(app, "U1")
+        out = app.output()
+        self.assertIn("TOUCHDOWN AT 5.0 FT/S!", out)
+        self.assertIn("Eagle has landed", out)
+        entry = app.cis_dynamic.state[RECORDS_KEY]["U1"]["lander"]
+        self.assertEqual(entry["lander_landings"], 1)
+        self.assertAlmostEqual(entry["lander_best_velocity"], 5.0)
+        self.assertIn("1 soft landing", out)
+
+    def test_lander_interactive_crash_records_no_landing(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "input",
+                               side_effect=self._lander_script([0] * 60)):
+            cis_arcade.play_lander(app, "U1")
+        out = app.output()
+        self.assertIn("NEW CRATER", out)
+        entry = app.cis_dynamic.state[RECORDS_KEY]["U1"]["lander"]
+        self.assertEqual(entry.get("lander_landings", 0), 0)
+        self.assertNotIn("lander_best_velocity", entry)
+        self.assertEqual(entry["plays"], 1)
+
+    def test_lander_invalid_burn_reprompts(self):
+        app = Pack7ArcadeFakeApp()
+        script = self._lander_script(["abc", "99"] + [0] * 60)
+        with mock.patch.object(cis_arcade, "input", side_effect=script):
+            cis_arcade.play_lander(app, "U1")
+        self.assertIn("?REDO", app.output())
+
+    def test_lander_best_velocity_tracks_softest(self):
+        app = Pack7ArcadeFakeApp()
+        cis_arcade.record_lander_result(app, "U1", True, 5.0)
+        cis_arcade.record_lander_result(app, "U1", True, 3.2)
+        cis_arcade.record_lander_result(app, "U1", True, 7.5)
+        cis_arcade.record_lander_result(app, "U1", False, 40.0)
+        entry = app.cis_dynamic.state[RECORDS_KEY]["U1"]["lander"]
+        self.assertEqual(entry["lander_landings"], 3)
+        self.assertAlmostEqual(entry["lander_best_velocity"], 3.2)
+        self.assertEqual(entry["plays"], 4)
+
+    def test_lander_abort_on_bad_menu_pick_then_quit(self):
+        app = Pack7ArcadeFakeApp()
+        with mock.patch.object(cis_arcade, "input",
+                               side_effect=["9", "1", "1"] + ["0"] * 60):
+            cis_arcade.play_lander(app, "U1")
+        self.assertIn("?REDO -- PICK 1 OR 2.", app.output())
+
+    # -- records display -----------------------------------------------
+
+    def test_records_lines_cover_both_new_games(self):
+        state = {
+            RECORDS_KEY: {
+                "U1": {
+                    "eliza": {"plays": 2, "wins": 0, "best": 0,
+                              "best_note": "", "eliza_sessions": 2},
+                    "lander": {"plays": 3, "wins": 2, "best": 0,
+                               "best_note": "", "lander_landings": 2,
+                               "lander_best_velocity": 4.2},
+                }
+            }
+        }
+        lines = cis_arcade.arcade_records_lines(state, "U1")
+        self.assertEqual(len(lines), 6)
+        eliza_line = next(l for l in lines if "ELIZA" in l)
+        lander_line = next(l for l in lines if "LANDER" in l)
+        self.assertIn("SESSIONS 2", eliza_line)
+        self.assertIn("BEST ---", eliza_line)
+        self.assertIn("LANDINGS 2", lander_line)
+        self.assertIn("4.2 softest touchdown ft/s", lander_line)
+
+    def test_records_lines_empty_state(self):
+        lines = cis_arcade.arcade_records_lines({}, "NOBODY")
+        self.assertEqual(len(lines), 6)
+        self.assertTrue(all("BEST ---" in l for l in lines[-2:]))
+
+# ---------------------------------------------------------------------------
+# Content pack 7: pack7_test_cb
+# ---------------------------------------------------------------------------
+"""Standalone tests for Worker C: Eliza CB responder (content pack 7).
+
+Run: cd ~/workspace/compuserve-simulator && PYTHONPATH=. python3 /tmp/pack7_test_cb.py -v
+"""
+
+
+
+
+
+
+
+class FakeElizaEngine(types.ModuleType):
+    """Stand-in for Worker A's cis_eliza module, honoring the exact contract."""
+
+    def new_state(self):
+        return {"turns": 0, "last_topic": None}
+
+    def is_quit(self, text):
+        lowered = text.lower()
+        return any(word in lowered for word in ("bye", "goodbye", "quit", "exit"))
+
+    def respond(self, text, state):
+        state = dict(state)
+        state["turns"] += 1
+        if self.is_quit(text):
+            return "Goodbye. I am glad we could talk. Please come back anytime.", state
+        lowered = text.lower()
+        if "worried about" in lowered:
+            topic = lowered.split("worried about", 1)[1].strip(" .!")
+            topic = re.sub(r"\bmy\b", "your", topic)
+            state["last_topic"] = topic
+            reply = f"Why do you say you are worried about {topic}?"
+        elif "i am" in lowered:
+            reply = "How long have you felt that way?"
+        else:
+            reply = "Please go on."
+        if state["turns"] > 1 and state.get("last_topic"):
+            reply += f" Earlier you mentioned {state['last_topic']}."
+        return reply, state
+
+
+sys.modules["cis_eliza"] = FakeElizaEngine("cis_eliza")
+
+import compuserve  # noqa: E402
+import cis_cb  # noqa: E402
+from compuserve import eliza_cb_reply, personality_line, get_channel_personality  # noqa: E402
+
+
+class Pack7CbFakeApp:
+    def __init__(self):
+        self.scrolled = []
+
+    def ansi_scroll(self, text, delay):
+        self.scrolled.append((text, delay))
+
+
+# Every line in the random one-liner pools; an engine reply must never be one.
+ONE_LINER_POOL = {
+    "Nice to see everyone here tonight.",
+    "Hope your connections are solid!",
+    "Good crowd on this channel.",
+    "Always good vibes in here.",
+    "What is even happening in here?",
+    "This channel is pure chaos.",
+    "Messages flying faster than 2400 baud.",
+    "Someone lost control of their keyboard.",
+    "Anyone debugging IRQ conflicts?",
+    "Let\u2019s talk BIOS settings.",
+    "Who\u2019s tweaking their CONFIG.SYS tonight?",
+    "Channel 3: where the tech nerds live.",
+    "Eliza really listens, you know.",
+    "I told Eliza my troubles last night. Felt better after.",
+}
+
+
+class CbElizaTests(unittest.TestCase):
+    def setUp(self):
+        self.app = Pack7CbFakeApp()
+        compuserve._ELIZA_STATES.clear()
+
+    def test_channel4_registered(self):
+        self.assertIn("Eliza", cis_cb.CHANNELS["4"])
+        self.assertEqual(get_channel_personality("4"), "eliza")
+
+    def test_engine_reply_reflects_and_not_pool(self):
+        reply = eliza_cb_reply(self.app, "70000,0001", "I am worried about my job")
+        # Reflection of the user's words, from the engine:
+        self.assertIn("your job", reply.lower())
+        # Never a random one-liner:
+        self.assertNotIn(reply, ONE_LINER_POOL)
+        # Posted through the app's ansi_scroll as ELIZA:
+        self.assertTrue(self.app.scrolled)
+        self.assertTrue(self.app.scrolled[-1][0].startswith("<ELIZA> "))
+        self.assertIn(reply, self.app.scrolled[-1][0])
+
+    def test_state_persists_across_turns(self):
+        first = eliza_cb_reply(self.app, "70000,0001", "I am worried about my job")
+        second = eliza_cb_reply(self.app, "70000,0001", "It keeps me up at night")
+        # Engine remembers the earlier topic -> replies differ meaningfully:
+        self.assertNotEqual(first, second)
+        self.assertIn("job", second.lower())
+        self.assertEqual(compuserve._ELIZA_STATES["70000,0001"]["turns"], 2)
+
+    def test_state_keyed_per_user(self):
+        eliza_cb_reply(self.app, "70000,0001", "I am worried about my job")
+        eliza_cb_reply(self.app, "70001,0002", "Hello there")
+        self.assertEqual(set(compuserve._ELIZA_STATES), {"70000,0001", "70001,0002"})
+        self.assertEqual(compuserve._ELIZA_STATES["70001,0002"]["turns"], 1)
+
+    def test_quit_yields_goodbye_and_clears_state(self):
+        eliza_cb_reply(self.app, "70000,0001", "I am worried about my job")
+        reply = eliza_cb_reply(self.app, "70000,0001", "goodbye")
+        self.assertIn("goodbye", reply.lower())
+        self.assertNotIn("70000,0001", compuserve._ELIZA_STATES)
+        # Next visit starts fresh:
+        fresh = eliza_cb_reply(self.app, "70000,0001", "hello again")
+        self.assertNotIn("job", fresh.lower())
+
+    def test_engine_missing_degrades_gracefully(self):
+        # sys.modules entry None makes "import cis_eliza" raise ImportError,
+        # simulating a genuinely absent engine (deleting the entry would just
+        # re-import the module from disk).
+        with mock.patch.dict(sys.modules, {"cis_eliza": None}):
+            reply = eliza_cb_reply(self.app, "70000,0001", "hello")
+            self.assertIn("away", reply.lower())
+            self.assertTrue(self.app.scrolled[-1][0].startswith("<ELIZA> "))
+
+    def test_eliza_ambient_line_is_acknowledgement(self):
+        seen = {personality_line("eliza") for _ in range(50)}
+        self.assertTrue(seen <= {
+            "Eliza really listens, you know.",
+            "I told Eliza my troubles last night. Felt better after.",
+        })
+
+    def test_channels_1_to_3_unchanged(self):
+        self.assertEqual(cis_cb.CHANNELS["1"], "The Lobby - general conversation")
+        self.assertEqual(cis_cb.CHANNELS["2"], "The Lounge - friendly social chat")
+        self.assertEqual(cis_cb.CHANNELS["3"], "Technical Exchange - computers and communications")
+        self.assertEqual(get_channel_personality("1"), "friendly")
+        self.assertEqual(get_channel_personality("2"), "chaotic")
+        self.assertEqual(get_channel_personality("3"), "technical")
+
+# ---------------------------------------------------------------------------
+# Content pack 7: pack7_test_pets
+# ---------------------------------------------------------------------------
+"""Standalone tests for the Pets & Animals Forum content module (cis_pets)."""
+
+
+
+import cis_pets
+
+REQUIRED_KEYS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
+VALID_SECTIONS = {"pets_dogs", "pets_cats", "pets_birds", "pets_fish", "pets_small", "pets_vet"}
+PACK7_PETS_EXPECTED_SECTIONS = {
+    "1": ("pets_dogs", "Dogs"),
+    "2": ("pets_cats", "Cats"),
+    "3": ("pets_birds", "Birds"),
+    "4": ("pets_fish", "Fish & Aquariums"),
+    "5": ("pets_small", "Small Pets"),
+    "6": ("pets_vet", "Ask the Vet"),
+}
+
+
+class PetsForumTests(unittest.TestCase):
+    def test_section_spec_has_six_sections_with_exact_keys(self):
+        spec = cis_pets.section_spec()
+        self.assertEqual(len(spec), 6)
+        self.assertEqual(spec, PACK7_PETS_EXPECTED_SECTIONS)
+
+    def test_seed_posts_count_and_keys(self):
+        posts = cis_pets.SEED_POSTS
+        self.assertEqual(len(posts), 16)
+        for post in posts:
+            self.assertEqual(set(post.keys()), REQUIRED_KEYS)
+
+    def test_seed_post_content_ids_unique_and_numbered(self):
+        ids = [p["content_id"] for p in cis_pets.SEED_POSTS]
+        self.assertEqual(len(set(ids)), 16)
+        expected = {"pets-1988-%03d" % n for n in range(1, 17)}
+        self.assertEqual(set(ids), expected)
+
+    def test_seed_post_sections_valid(self):
+        for post in cis_pets.SEED_POSTS:
+            self.assertIn(post["section"], VALID_SECTIONS)
+
+    def test_seed_post_dates_december_1988(self):
+        for post in cis_pets.SEED_POSTS:
+            self.assertRegex(post["date"], r"^12/\d{2}/88$")
+
+    def test_seed_post_parents_none(self):
+        for post in cis_pets.SEED_POSTS:
+            self.assertIsNone(post["parent"])
+
+    def test_seed_posts_returns_copies(self):
+        posts = cis_pets.seed_posts()
+        self.assertEqual(len(posts), 16)
+        posts[0]["subject"] = "MUTATED"
+        posts[0]["content_id"] = "MUTATED"
+        self.assertNotEqual(cis_pets.SEED_POSTS[0]["subject"], "MUTATED")
+        self.assertNotEqual(cis_pets.SEED_POSTS[0]["content_id"], "MUTATED")
+
+# ---------------------------------------------------------------------------
+# Content pack 7: pack7_test_trains
+# ---------------------------------------------------------------------------
+"""Standalone tests for content pack 7 worker E: cis_photo + cis_trains.
+
+Run: cd ~/workspace/compuserve-simulator && PYTHONPATH=. python3 /tmp/pack7_test_trains.py -v
+"""
+
+
+
+import cis_photo
+import cis_trains
+
+
+EXPECTED_KEYS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
+
+PHOTO_SECTIONS = {
+    "1": ("photography_general", "General"),
+    "2": ("photo_cameras", "Cameras & Lenses"),
+    "3": ("photo_darkroom", "Darkroom"),
+    "4": ("photo_composition", "Composition & Technique"),
+    "5": ("photo_film", "Film & Processing"),
+}
+
+TRAINS_SECTIONS = {
+    "1": ("trains_layout", "Layout Design"),
+    "2": ("trains_dcc", "DCC & Wiring"),
+    "3": ("trains_locos", "Locomotives"),
+    "4": ("trains_scenery", "Scenery"),
+    "5": ("trains_prototype", "Prototype Research"),
+    "6": ("trains_trade", "Buy/Sell/Trade"),
+}
+
+
+class TrainsPhotoTests(unittest.TestCase):
+    def check_module(self, mod, expected_sections, id_prefix, min_posts, max_posts):
+        # section keys exact
+        self.assertEqual(mod.section_spec(), expected_sections)
+        self.assertEqual(mod.SECTIONS, expected_sections)
+        slugs = {slug for slug, _title in expected_sections.values()}
+
+        posts = mod.seed_posts()
+        self.assertTrue(min_posts <= len(posts) <= max_posts,
+                        f"{mod.FORUM_ID}: {len(posts)} posts out of range")
+
+        seen_ids = set()
+        for post in posts:
+            # exactly the 7 keys
+            self.assertEqual(set(post.keys()), EXPECTED_KEYS, post.get("content_id"))
+            # valid section slug
+            self.assertIn(post["section"], slugs, post["content_id"])
+            # unique content ids with right prefix
+            cid = post["content_id"]
+            self.assertTrue(cid.startswith(id_prefix), cid)
+            self.assertNotIn(cid, seen_ids, f"duplicate {cid}")
+            seen_ids.add(cid)
+            # December 1988 date, MM/DD/88 shape
+            month, day, year = post["date"].split("/")
+            self.assertEqual((month, year), ("12", "88"), cid)
+            self.assertTrue(1 <= int(day) <= 31, cid)
+            # non-empty strings
+            for field in ("author", "subject", "body"):
+                self.assertTrue(post[field] and isinstance(post[field], str), cid)
+            self.assertIsNone(post["parent"], cid)
+
+        # seed_posts() returns copies: mutating must not affect the module
+        posts[0]["subject"] = "MUTATED"
+        posts[0]["body"] = "MUTATED"
+        fresh = mod.seed_posts()
+        self.assertNotEqual(fresh[0]["subject"], "MUTATED")
+        self.assertNotEqual(fresh[0]["body"], "MUTATED")
+        self.assertEqual(mod.SEED_POSTS[0]["subject"], fresh[0]["subject"])
+
+        # repo root rule: no hardcoded absolute paths in module
+        self.assertTrue(str(mod.REPO_ROOT).startswith("/"))
+
+    def test_photo_module(self):
+        self.assertEqual(cis_photo.FORUM_ID, "photo")
+        self.assertEqual(cis_photo.FORUM_TITLE, "Photography Forum")
+        # existing section key preserved for wiring compatibility
+        self.assertEqual(cis_photo.SECTIONS["1"], ("photography_general", "General"))
+        self.check_module(cis_photo, PHOTO_SECTIONS, "photo-1988-", 12, 16)
+
+    def test_trains_module(self):
+        self.assertEqual(cis_trains.FORUM_ID, "trains")
+        self.assertEqual(cis_trains.FORUM_TITLE, "Model Railroading Forum")
+        self.check_module(cis_trains, TRAINS_SECTIONS, "trains-1988-", 16, 16)
+        # exactly 16 with sequential ids
+        ids = sorted(p["content_id"] for p in cis_trains.seed_posts())
+        self.assertEqual(ids, [f"trains-1988-{i:03d}" for i in range(1, 17)])
+
+    def test_photo_ids_sequential(self):
+        ids = sorted(p["content_id"] for p in cis_photo.seed_posts())
+        self.assertEqual(ids, [f"photo-1988-{i:03d}" for i in range(1, len(ids) + 1)])
+
+# ---------------------------------------------------------------------------
+# Content pack 7: pack7_test_hamnet
+# ---------------------------------------------------------------------------
+"""Standalone tests for the content-pack-7 Broadcast Listening workstream.
+
+Tests the pure broadcast helper, schedule data integrity, and the new
+hamnet board menu option -- in cis_hamnet.py only. Run with:
+
+    cd ~/workspace/compuserve-simulator && PYTHONPATH=. python3 /tmp/pack7_test_hamnet.py -v
+"""
+
+
+from datetime import datetime, timezone  # already imported above
+
+import cis_hamnet
+from cis_hamnet import (
+    BROADCAST_SERVICES,
+    broadcasts_on_now,
+    render_broadcast_schedule,
+    run_hamnet_board,
+    section_spec,
+    seed_posts,
+)
+
+# ITU broadcast bands in use in 1988 (from a contemporary SWL band chart).
+BROADCAST_BANDS_KHZ = [
+    (2300, 2495), (3200, 3400), (3900, 4000), (4750, 5060),
+    (5850, 6200), (7100, 7350), (9400, 9900), (11600, 12050),
+    (13570, 13800), (15100, 15800), (17480, 17900), (18900, 19020),
+    (21450, 21850), (25600, 26100),
+]
+
+
+def in_broadcast_band(freq_khz):
+    return any(lo <= freq_khz <= hi for lo, hi in BROADCAST_BANDS_KHZ)
+
+
+class HamnetFakeApp:
+    """Fake app capturing ansi_scroll output (mirrors ArcadeFakeApp)."""
+
+    def __init__(self):
+        self.scrolled = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.scrolled.append(str(text))
+        return True
+
+
+class HamnetBroadcastTests(unittest.TestCase):
+    # -- pure helper: broadcasts_on_now -----------------------------------
+
+    def test_voa_on_in_early_utc_evening(self):
+        # VOA English to the Caribbean/Latin America: 00:00-02:00 UTC.
+        on = broadcasts_on_now(datetime(1988, 12, 15, 1, 0))
+        services = [b["service"] for b in on]
+        self.assertIn("Voice of America", services)
+        voa = next(b for b in on if b["service"] == "Voice of America")
+        self.assertEqual(voa["freqs_khz"], [5995, 6130, 9455, 9775, 11695])
+
+    def test_dead_air_time_returns_empty(self):
+        # 04:30 UTC: after the DW 03:00 block, before the 05:00 block.
+        self.assertEqual(broadcasts_on_now(datetime(1988, 12, 15, 4, 30)), [])
+        # Midday UTC: nothing in the evening-oriented schedule.
+        self.assertEqual(broadcasts_on_now(datetime(1988, 12, 15, 12, 0)), [])
+
+    def test_window_edge_boundary(self):
+        # BBC evening service is [23:00, 03:30): on just before, off at.
+        bbc = lambda dt: [
+            b for b in broadcasts_on_now(dt)
+            if b["service"] == "BBC World Service"
+        ]
+        self.assertTrue(bbc(datetime(1988, 12, 15, 23, 0)))
+        self.assertTrue(bbc(datetime(1988, 12, 16, 3, 29)))
+        self.assertFalse(bbc(datetime(1988, 12, 16, 3, 30)))
+        # DW 03:00-03:50 block is still on at 03:30 (independent check).
+        dw = [
+            b for b in broadcasts_on_now(datetime(1988, 12, 16, 3, 30))
+            if b["service"] == "Deutsche Welle"
+        ]
+        self.assertTrue(dw)
+
+    def test_overnight_wrap(self):
+        # 23:00-03:30 window spans midnight; both sides are on air.
+        self.assertTrue(
+            any(b["service"] == "BBC World Service"
+                for b in broadcasts_on_now(datetime(1988, 12, 15, 23, 30)))
+        )
+        self.assertTrue(
+            any(b["service"] == "BBC World Service"
+                for b in broadcasts_on_now(datetime(1988, 12, 16, 0, 30)))
+        )
+
+    def test_helper_is_pure(self):
+        before = [dict(e) for s in BROADCAST_SERVICES for e in s["entries"]]
+        on = broadcasts_on_now(datetime(1988, 12, 15, 1, 0))
+        self.assertTrue(on)
+        for item in on:
+            self.assertIn("service", item)
+            self.assertIn("freqs_khz", item)
+        after = [dict(e) for s in BROADCAST_SERVICES for e in s["entries"]]
+        self.assertEqual(before, after)  # no mutation of module data
+
+    def test_timezone_aware_datetime_accepted(self):
+        on = broadcasts_on_now(
+            datetime(1988, 12, 15, 1, 0, tzinfo=timezone.utc)
+        )
+        self.assertTrue(any(b["service"] == "BBC World Service" for b in on))
+
+    # -- schedule data integrity -------------------------------------------
+
+    def test_three_services_present(self):
+        names = [s["service"] for s in BROADCAST_SERVICES]
+        self.assertEqual(
+            names, ["BBC World Service", "Voice of America", "Deutsche Welle"]
+        )
+
+    def test_frequencies_are_plausible_shortwave_bands(self):
+        for service in BROADCAST_SERVICES:
+            for entry in service["entries"]:
+                self.assertTrue(entry["freqs_khz"], entry["label"])
+                for freq in entry["freqs_khz"]:
+                    self.assertTrue(
+                        in_broadcast_band(freq),
+                        f"{freq} kHz not in an ITU broadcast band",
+                    )
+
+    def test_entries_carry_verified_or_estimate_marking(self):
+        for service in BROADCAST_SERVICES:
+            for entry in service["entries"]:
+                self.assertIn("verified", entry)
+                self.assertIsInstance(entry["verified"], bool)
+                self.assertIn("source", entry)
+                self.assertTrue(entry["source"].strip())
+        rendered = render_broadcast_schedule()
+        self.assertIn("(verified)", rendered)
+        self.assertIn("(est.)", rendered)
+
+    def test_windows_parse_and_are_sane(self):
+        for service in BROADCAST_SERVICES:
+            for entry in service["entries"]:
+                for key in ("start_utc", "end_utc"):
+                    hh, mm = entry[key].split(":")
+                    self.assertTrue(0 <= int(hh) < 24, entry[key])
+                    self.assertTrue(0 <= int(mm) < 60, entry[key])
+
+    # -- menu wiring --------------------------------------------------------
+
+    def test_section_spec_includes_broadcast_listening(self):
+        spec = section_spec()
+        self.assertEqual(
+            spec["8"], ("hamnet_broadcast", "Broadcast Listening")
+        )
+
+    def test_menu_option_4_scrolls_schedule(self):
+        app = HamnetFakeApp()
+        choices = iter(["4", "Q"])
+        real_input = cis_hamnet.input
+        cis_hamnet.input = lambda prompt="": next(choices)
+        try:
+            run_hamnet_board(app)
+        finally:
+            cis_hamnet.input = real_input
+        text = "\n".join(app.scrolled)
+        self.assertIn("BBC World Service", text)
+        self.assertIn("6175", text)
+        self.assertIn("Deutsche Welle", text)
+        self.assertIn("VOICE OF AMERICA", text)
+
+    def test_seed_post_announces_broadcast_section(self):
+        posts = seed_posts()
+        ids = [p["content_id"] for p in posts]
+        self.assertEqual(len(ids), len(set(ids)))  # unique ids
+        post = next(p for p in posts if p["section"] == "hamnet_broadcast")
+        self.assertEqual(post["content_id"], "hamnet-1988-017")
+        self.assertEqual(post["date"], "12/17/88")

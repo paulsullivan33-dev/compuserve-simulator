@@ -313,10 +313,12 @@ duplicate the content or restore seeded posts a SysOp has deleted.
 
 ## Community forums
 
-Beyond the computer forums, the directory offers nine interest forums. The
+Beyond the computer forums, the directory offers twelve interest forums. The
 **Amateur Radio Forum** (`GO HAMNET`, choice 5) covers packet radio, HF/VHF rigs,
-antennas and towers, DX and contesting, license study, ARRL bulletins, and swap
-and shop, with December 1988 seed posts and two scheduled on-air nets. The
+antennas and towers, DX and contesting, license study, ARRL bulletins, swap
+and shop, and broadcast listening, with December 1988 seed posts, two scheduled
+on-air nets, and December 1988 shortwave schedules for the BBC World Service,
+Voice of America, and Deutsche Welle. The
 **Veterans Forum** (`GO VETERANS`, choice 11) hosts service stories, reunions and a
 buddy finder, VA benefits discussion, and a Wall remembrance section. **Roots &
 Branches** (`GO ROOTS`, choice 12) is a genealogy forum covering getting started,
@@ -338,8 +340,15 @@ discusses comic books, Star Trek, Doctor Who, movies and TV, science-fiction
 books, and conventions, all era-appropriate to December 1988. The **Health &
 Fitness Forum** (`GO FITNESS`, choice 19) covers aerobics, running, weight
 training, nutrition, sports medicine and injuries, and mind & body, seeded with
-16 December 1988 posts.
-All ten use the standard forum commands for reading,
+16 December 1988 posts. The **Pets & Animals Forum** (`GO PETS`, choice 20)
+covers dogs, cats, birds, fish and aquariums, small pets, and an Ask the Vet
+section, seeded with 16 December 1988 posts. The **Model Railroading Forum**
+(`GO TRAINS`, choice 21) covers layout design, DCC and wiring, locomotives,
+scenery, prototype research, and buy/sell/trade, seeded with 16 December 1988
+posts. The **Photography Forum** (`GO PHOTO`, choice 4) now spans five sections:
+general, cameras & lenses, darkroom, composition & technique, and film &
+processing, seeded with 14 December 1988 posts.
+All twelve use the standard forum commands for reading,
 posting, replying, and watching threads. These forums are original fictional
 simulation content, not recovered historical messages.
 
@@ -448,7 +457,10 @@ CB also includes 34 clearly simulated period members, with 7–12 present in eac
 channel. They remember prior topics, recognize directly addressed handles, and tailor
 technical replies and follow-up questions to the subject and computer mentioned.
 They also hold occasional channel-specific conversations, move between rooms, and
-observe quieter overnight hours. Ambient and direct replies are retained in shared
+observe quieter overnight hours. Channel 4, Eliza's Office (CB option 7), is a
+quiet corner for conversation with ELIZA, the 1966 computer therapist: talk to
+her in plain English and she answers in classic Rogerian style, remembering
+context across turns for each member until goodbye ends the session. Ambient and direct replies are retained in shared
 scrollback without duplicate generation by simultaneous server sessions. Use
 `/INFO handle` to see a simulated member's computer, interests, home forum, and the
 most recent topic you discussed together.
@@ -636,11 +648,14 @@ three-letter down answers crossing exactly one across word. Use `A<num>` to answ
 an across clue, `D<num>` for a down clue, and `GRID` to redisplay the board.
 Progress persists per member until the puzzle is solved.
 
-The **Classic Games Arcade** (Games option 9, `GO ARCADE`) hosts four
-era-appropriate favorites: Hunt the Wumpus, Hamurabi, Super Star Trek, and
-Blackjack. Blackjack is played with fictional arcade chips worth nothing but
-pride. Each game records one entry per member session in Player Records
-(Games option 5).
+The **Classic Games Arcade** (Games option 9, `GO ARCADE`) hosts six
+era-appropriate favorites: Hunt the Wumpus, Hamurabi, Super Star Trek,
+Blackjack, ELIZA, and Lunar Lander. Blackjack is played with fictional arcade
+chips worth nothing but pride. ELIZA is the 1966 computer therapist: tell it
+your troubles in plain English and it answers in classic Rogerian style; say
+goodbye to end the session. Lunar Lander is the 1970s BASIC classic — burn fuel,
+mind gravity, and land soft. Each game records one entry per member session in
+Player Records (Games option 5).
 
 ## Special Desk investigations
 

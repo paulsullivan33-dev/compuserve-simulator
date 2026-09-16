@@ -14,7 +14,7 @@ Period rules enforced by this module:
 
 from cis_session import read_input as input
 
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 FORUM_ID = "hamnet"
 FORUM_TITLE = "Amateur Radio Forum"
@@ -30,6 +30,7 @@ SECTIONS = {
     "5": ("hamnet_license", "License Study"),
     "6": ("hamnet_arrl", "ARRL Bulletins"),
     "7": ("hamnet_swap", "Swap & Shop"),
+    "8": ("hamnet_broadcast", "Broadcast Listening"),
 }
 
 WEEKDAY_NAMES = [
@@ -139,6 +140,199 @@ ARRL_BULLETINS = [
         ),
     },
 ]
+
+# ---------------------------------------------------------------------------
+# Broadcast Listening -- December 1988 shortwave schedules for a North
+# American listener: VOA, BBC World Service, Deutsche Welle.
+#
+# Fact-marking convention (mirrors cis_sports.py's VERIFIED-flag pattern):
+#   verified=True  -- checked against a published contemporary (1980s)
+#                     reference; the reference is named in "source".
+#   verified=False -- estimate, rendered as "(est.)".
+# Windows with window_est=True are representative evening blocks for a
+# North American listener, not precise transmitter logs. Fewer,
+# well-marked entries beat a fabricated grid.
+# ---------------------------------------------------------------------------
+
+BROADCAST_SERVICES = [
+    {
+        "service": "BBC World Service",
+        "target": "North America",
+        "entries": [
+            {
+                "label": "Evening service to North America",
+                "freqs_khz": [5975, 6175],
+                "start_utc": "23:00",
+                "end_utc": "03:30",
+                "verified": True,
+                "window_est": True,
+                "source": (
+                    "RadioWorld retrospective ('the BBC World Service boomed "
+                    "in, especially at night on 6175 kHz'; 5975/6175 'the "
+                    "foundation of the BBC World Service's evening service "
+                    "to North America'); 1983 Christian Science Monitor SWL "
+                    "guide (BBC Sunday evening on 6.175/5.975 MHz for a US "
+                    "listener)"
+                ),
+                "note": (
+                    "9590 kHz was also reported for BBC to the Americas in "
+                    "the mid-1980s (est.)."
+                ),
+            },
+        ],
+    },
+    {
+        "service": "Voice of America",
+        "target": "Caribbean & Latin America (heard across North America)",
+        "entries": [
+            {
+                "label": "English to the Caribbean & Latin America",
+                "freqs_khz": [5995, 6130, 9455, 9775, 11695],
+                "start_utc": "00:00",
+                "end_utc": "02:00",
+                "verified": False,
+                "window_est": True,
+                "source": (
+                    "Published SWL listings of VOA English-to-Caribbean "
+                    "relays (e.g. K4RM); exact December 1988 line-up "
+                    "unverified"
+                ),
+                "note": (
+                    "Relayed from US stations (Greenville, Bethany). VOA did "
+                    "not target domestic listeners, but these relays were "
+                    "easily heard across North America."
+                ),
+            },
+        ],
+    },
+    {
+        "service": "Deutsche Welle",
+        "target": "North America",
+        "entries": [
+            {
+                "label": "English to North America (D-86 season)",
+                "freqs_khz": [6040, 6085, 6145, 9545, 9565, 11785],
+                "start_utc": "01:00",
+                "end_utc": "01:50",
+                "verified": True,
+                "window_est": False,
+                "source": (
+                    "SPEEDX magazine, January 1987 ('STATION SKEDS 2 "
+                    "DEUTSCHE WELLE, D-86 SEASON, BEAMED TO NORTH AMERICA "
+                    "IN ENGLISH LANGUAGE')"
+                ),
+                "note": (
+                    "D-86 season line-up; the December 1988 (D-88) schedule "
+                    "may differ slightly. Relayed via the Deutsche "
+                    "Welle/BBC jointly owned Antigua relay station (shared "
+                    "since 1976)."
+                ),
+            },
+            {
+                "label": "English to North America (D-86 season)",
+                "freqs_khz": [6045, 6155, 5995, 9545, 9565],
+                "start_utc": "03:00",
+                "end_utc": "03:50",
+                "verified": True,
+                "window_est": False,
+                "source": "SPEEDX magazine, January 1987 (D-86 season schedule)",
+                "note": "D-86 season line-up; the December 1988 (D-88) schedule may differ slightly.",
+            },
+            {
+                "label": "English to North America (D-86 season)",
+                "freqs_khz": [5960, 6120, 6130],
+                "start_utc": "05:00",
+                "end_utc": "05:50",
+                "verified": True,
+                "window_est": False,
+                "source": "SPEEDX magazine, January 1987 (D-86 season schedule)",
+                "note": "D-86 season line-up; the December 1988 (D-88) schedule may differ slightly.",
+            },
+        ],
+    },
+]
+
+
+def _utc_minutes(hhmm):
+    """Convert 'HH:MM' to minutes since midnight."""
+    hours, minutes = hhmm.split(":")
+    return int(hours) * 60 + int(minutes)
+
+
+def _entry_on_air(entry, minutes):
+    """True if a schedule entry covers ``minutes`` (0-1439); half-open."""
+    start = _utc_minutes(entry["start_utc"])
+    end = _utc_minutes(entry["end_utc"])
+    if start <= end:
+        return start <= minutes < end
+    # Overnight window wrapping past midnight.
+    return minutes >= start or minutes < end
+
+
+def broadcasts_on_now(utc_dt):
+    """Return the broadcasts on the air at ``utc_dt``.
+
+    ``utc_dt`` is a datetime in UTC (naive datetimes are taken as UTC).
+    Pure: no I/O, no app or session references. Each result is a dict
+    with service, target, label, freqs_khz, verified, and note.
+    """
+    if utc_dt.tzinfo is not None:
+        utc_dt = utc_dt.astimezone(timezone.utc)
+    minutes = utc_dt.hour * 60 + utc_dt.minute
+    on_air = []
+    for service in BROADCAST_SERVICES:
+        for entry in service["entries"]:
+            if _entry_on_air(entry, minutes):
+                on_air.append(
+                    {
+                        "service": service["service"],
+                        "target": service["target"],
+                        "label": entry["label"],
+                        "freqs_khz": list(entry["freqs_khz"]),
+                        "verified": entry["verified"],
+                        "note": entry.get("note", ""),
+                    }
+                )
+    return on_air
+
+
+def render_broadcast_schedule():
+    """Return a printable December 1988 shortwave broadcast schedule."""
+    lines = [
+        "SHORTWAVE BROADCAST LISTENING",
+        "=" * 30,
+        "",
+        "December 1988 schedules for a North American listener.",
+        "All times are UTC. In December, Eastern Standard Time is UTC-5",
+        "(Central UTC-6, Mountain UTC-7, Pacific UTC-8), so 01:00 UTC is",
+        "8:00 PM Eastern the previous evening. Frequencies are in kHz,",
+        "all broadcasts AM unless noted.",
+        "",
+    ]
+    for service in BROADCAST_SERVICES:
+        lines.append(f"{service['service'].upper()} -- {service['target']}")
+        for entry in service["entries"]:
+            freq_mark = "(verified)" if entry["verified"] else "(est.)"
+            lines.append(f"  {entry['label']}")
+            lines.append(
+                "    "
+                + ", ".join(str(f) for f in entry["freqs_khz"])
+                + f" kHz {freq_mark}"
+            )
+            window = f"{entry['start_utc']}-{entry['end_utc']} UTC"
+            if entry.get("window_est"):
+                window += " (est.)"
+            lines.append(f"    {window}")
+            lines.append(f"    Source: {entry['source']}")
+            if entry.get("note"):
+                lines.append(f"    Note: {entry['note']}")
+            lines.append("")
+    lines.append("Listening tips: 49 meters (5900-6200 kHz) is the workhorse")
+    lines.append("band after dark; 31 meters (9400-9900 kHz) takes over around")
+    lines.append("sunrise. A longwire antenna and any general-coverage receiver")
+    lines.append("will get you started -- log what you hear and QSL!")
+    return "\n".join(lines)
+
 
 SEED_POSTS = [
     {
@@ -424,6 +618,26 @@ SEED_POSTS = [
         ),
         "parent": None,
     },
+    {
+        "content_id": "hamnet-1988-017",
+        "section": "hamnet_broadcast",
+        "date": "12/17/88",
+        "author": "N5SYS",
+        "subject": "Shortwave broadcast listening -- winter evenings",
+        "body": (
+            "New in this forum: a Broadcast Listening section with December "
+            "1988 shortwave schedules for the BBC World Service, the Voice of "
+            "America, and Deutsche Welle, aimed at us here in North America. "
+            "The BBC evening service booms in on 6175 and 5975 kHz after dark, "
+            "VOA's English relays to the Caribbean carry fine across the Gulf "
+            "states, and Deutsche Welle runs English to North America in the "
+            "wee hours on 49 and 31 meters. Every entry is marked verified or "
+            "estimated, with sources in the schedule listing -- see menu "
+            "option 4 on the forum board. What are you hearing on the "
+            "broadcast bands this week? Post your logs! 73, N5SYS."
+        ),
+        "parent": None,
+    },
 ]
 
 
@@ -497,13 +711,14 @@ def render_bulletins():
 
 
 def run_hamnet_board(app):
-    """Simple interactive viewer for nets and bulletins (for forum wiring)."""
+    """Simple interactive viewer for nets, bulletins, broadcast schedules."""
     while True:
         print()
         print("AMATEUR RADIO FORUM -- Nets & Bulletins")
         print("1. Net schedule")
         print("2. Next net")
         print("3. ARRL bulletins")
+        print("4. Broadcast listening (shortwave schedules)")
         print("Q. Back")
         choice = input("Choice: ").strip().upper()
         if choice == "1":
@@ -515,7 +730,9 @@ def run_hamnet_board(app):
         elif choice == "3":
             print()
             print(render_bulletins())
+        elif choice == "4":
+            app.ansi_scroll(render_broadcast_schedule(), 0.01)
         elif choice == "Q":
             return
         else:
-            print("Please choose 1, 2, 3, or Q.")
+            print("Please choose 1, 2, 3, 4, or Q.")

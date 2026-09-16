@@ -83,6 +83,9 @@ import cis_christmas
 import cis_cooking
 import cis_aviation
 import cis_scifi
+import cis_pets
+import cis_trains
+import cis_photo
 
 try:
     import msvcrt
@@ -185,7 +188,7 @@ FORUM_CATALOG = {
         },
     },
     "macdev": {"title": "Macintosh Developers Forum", "sections": {"1": ("macdev_general", "General")}},
-    "photo": {"title": "Photography Forum", "sections": {"1": ("photography_general", "General")}},
+    "photo": {"title": "Photography Forum", "sections": cis_photo.section_spec()},
     "hamnet": {"title": "Amateur Radio Forum", "sections": {
         "1": ("hamnet_general", "General"),
         **{str(int(k) + 1): tuple(v) for k, v in cis_hamnet.section_spec().items()},
@@ -199,15 +202,18 @@ FORUM_CATALOG = {
     "aviation": {"title": "Aviation Forum", "sections": cis_aviation.section_spec()},
     "scifi": {"title": "Comics & Sci-Fi Forum", "sections": cis_scifi.section_spec()},
     "fitness": {"title": "Health & Fitness Forum", "sections": cis_fitness.section_spec()},
+    "pets": {"title": "Pets & Animals Forum", "sections": cis_pets.section_spec()},
+    "trains": {"title": "Model Railroading Forum", "sections": cis_trains.section_spec()},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
 FORUM_CATALOG.update(cis_communities.FORUMS)
-FORUM_CHOICES = dict(zip((str(i) for i in range(1, 20)),
+FORUM_CHOICES = dict(zip((str(i) for i in range(1, 22)),
                         ('ibmhw', 'gamers', 'macdev', 'photo', 'hamnet', 'science',
                          'commodore', 'appleii', 'atarist', 'dos',
                          'veterans', 'roots', 'guitar', 'tech', 'space',
-                         'cooking', 'aviation', 'scifi', 'fitness')))
+                         'cooking', 'aviation', 'scifi', 'fitness',
+                         'pets', 'trains')))
 
 def cis_prompt(context="command"):
     prompts = {
@@ -2846,7 +2852,55 @@ def personality_line(personality):
             "Who’s tweaking their CONFIG.SYS tonight?",
             "Channel 3: where the tech nerds live."
         ])
+    if personality == "eliza":
+        # Rare ambient acknowledgement of Eliza from another participant;
+        # Eliza's DIRECT replies to the user always come from the engine.
+        return random.choice([
+            "Eliza really listens, you know.",
+            "I told Eliza my troubles last night. Felt better after.",
+        ])
     return ""
+
+# Per-user ELIZA conversation state for CB channel 4, keyed by user id.
+_ELIZA_STATES = {}
+
+
+def _eliza_engine():
+    """Return the cis_eliza engine module, or None if Worker A's module is absent."""
+    engine = sys.modules.get("cis_eliza")
+    if engine is not None:
+        return engine
+    try:
+        import cis_eliza
+    except ImportError:
+        return None
+    return cis_eliza
+
+
+def eliza_cb_reply(app, user_id, text):
+    """Post ELIZA's reply to `text` and return the reply string.
+
+    Uses the cis_eliza engine (never the random one-liner pool). State is kept
+    per user id so ELIZA remembers context across turns; a goodbye clears the
+    state so the next visit starts a fresh conversation.
+    """
+    key = str(user_id) if user_id else "GUEST"
+    engine = _eliza_engine()
+    if engine is None:
+        reply = "ELIZA is away from her desk. Please try again later."
+        app.ansi_scroll(f"<ELIZA> {reply}", 0.01)
+        return reply
+    state = _ELIZA_STATES.get(key)
+    if state is None:
+        state = engine.new_state()
+    quitting = bool(engine.is_quit(text))
+    reply, state = engine.respond(text, state)
+    if quitting:
+        _ELIZA_STATES.pop(key, None)
+    else:
+        _ELIZA_STATES[key] = state
+    app.ansi_scroll(f"<ELIZA> {reply}", 0.01)
+    return reply
 
 def cb_chat(channel):
     global current_handle, current_profile
@@ -2935,6 +2989,10 @@ def cb_chat(channel):
             elif command == "SAY" and argument:
                 last_message_id = post_live_message(BASE_DIR, room, current_handle, argument)
                 ansi_scroll(f"<{current_handle}> {argument}", 0.01)
+                if channel == "4":
+                    exchange += 1
+                    eliza_cb_reply(sys.modules[__name__], current_user_id or current_handle, argument)
+                    continue
                 response = cis_dynamic.cb_response(channel, argument, exchange, sys.modules[__name__])
                 exchange += 1
                 if response:
@@ -3538,6 +3596,10 @@ def _navigate(initial_go=None):
 
             if current == "cb" and choice == "4":
                 cb_private_messages()
+                continue
+
+            if current == "cb" and choice == "7":
+                cb_chat("4")
                 continue
 
             if current == "news" and choice in ("1", "2", "3", "4"):
