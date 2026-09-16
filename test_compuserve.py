@@ -5959,3 +5959,45 @@ class SportsMenuWiringTests(unittest.TestCase):
     def test_service_returns_sections(self):
         sections = cis_sports.sports_service(object())
         self.assertEqual(len(sections), 7)
+
+
+# --- Content-pack reinstall: bumping the pack id must re-run the merge ---
+
+import copy
+import cis_communities
+import cis_storage
+
+
+class CommunityPackInstallTests(unittest.TestCase):
+    def _message_count(self, base_dir):
+        data = cis_storage.load_json(base_dir, "forums.json", default={})
+        return sum(len(messages) for messages in data.values())
+
+    def test_pack_id_bump_remerges_new_messages_without_duplicates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base_dir = Path(tmp)
+            self.assertTrue(cis_communities.install(base_dir))
+            # Same pack id installs only once.
+            self.assertFalse(cis_communities.install(base_dir))
+            before = self._message_count(base_dir)
+            self.assertGreater(before, 0)
+            # Simulate a pack update: new id plus one new seed message.
+            new_pack = copy.deepcopy(cis_communities.PACK)
+            new_pack["id"] = "computer-communities-1988-v2-test"
+            new_pack["messages"] = list(new_pack["messages"]) + [{
+                "content_id": "test-forum-1988-999",
+                "section": "cooking_recipes",
+                "date": "1988-12-01",
+                "author": "Test Cook",
+                "subject": "regression test post",
+                "body": "This post verifies pack updates merge.",
+                "parent": None,
+            }]
+            with patch.object(cis_communities, "PACK", new_pack):
+                self.assertTrue(cis_communities.install(base_dir))
+                # Reinstalling the bumped pack is a no-op again.
+                self.assertFalse(cis_communities.install(base_dir))
+            data = cis_storage.load_json(base_dir, "forums.json", default={})
+            self.assertEqual(self._message_count(base_dir), before + 1)
+            subjects = [m["subject"] for m in data.get("cooking_recipes", [])]
+            self.assertIn("regression test post", subjects)
