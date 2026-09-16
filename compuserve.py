@@ -77,6 +77,9 @@ import cis_books
 import cis_arcade
 import cis_space
 import cis_yearend
+import cis_giftguide
+import cis_fitness
+import cis_christmas
 import cis_cooking
 import cis_aviation
 import cis_scifi
@@ -195,15 +198,16 @@ FORUM_CATALOG = {
     "cooking": {"title": "Cooking Forum", "sections": cis_cooking.section_spec()},
     "aviation": {"title": "Aviation Forum", "sections": cis_aviation.section_spec()},
     "scifi": {"title": "Comics & Sci-Fi Forum", "sections": cis_scifi.section_spec()},
+    "fitness": {"title": "Health & Fitness Forum", "sections": cis_fitness.section_spec()},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
 FORUM_CATALOG.update(cis_communities.FORUMS)
-FORUM_CHOICES = dict(zip((str(i) for i in range(1, 19)),
+FORUM_CHOICES = dict(zip((str(i) for i in range(1, 20)),
                         ('ibmhw', 'gamers', 'macdev', 'photo', 'hamnet', 'science',
                          'commodore', 'appleii', 'atarist', 'dos',
                          'veterans', 'roots', 'guitar', 'tech', 'space',
-                         'cooking', 'aviation', 'scifi')))
+                         'cooking', 'aviation', 'scifi', 'fitness')))
 
 def cis_prompt(context="command"):
     prompts = {
@@ -1416,6 +1420,16 @@ def entertainment_menu():
 def yearend_menu():
     """1988 Year in Review news special (session-date aware)."""
     cis_yearend.yearend_menu(sys.modules[__name__])
+
+
+def giftguide_menu():
+    """1988 Holiday Shopping Guide news special (session-date aware)."""
+    cis_giftguide.giftguide_menu(sys.modules[__name__])
+
+
+def christmas_menu():
+    """Christmas in the Sim news special (session-date aware)."""
+    cis_christmas.christmas_menu(sys.modules[__name__])
 
 
 def forum_announcements(forum_id):
@@ -3557,6 +3571,12 @@ def _navigate(initial_go=None):
                 continue
             if current == "news" and choice == "12":
                 yearend_menu()
+                continue
+            if current == "news" and choice == "13":
+                giftguide_menu()
+                continue
+            if current == "news" and choice == "14":
+                christmas_menu()
                 continue
 
             if current == "support" and choice in screens["support"]["options"]:

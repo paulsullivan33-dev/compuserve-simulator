@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+- Added the 1988 Holiday Shopping Guide news special (News option 13,
+  `GO GIFTGUIDE`): hottest gifts of Christmas 1988, a catalog-vs.-mall price
+  comparison, a toy shortage and shelf-watch report, and gift trends for '88,
+  all written from a December 1988 perspective, plus an interactive gift picker
+  that recommends a present from the catalog by recipient and budget.
+
+- Added the Christmas in the Sim news special (News option 14, `GO CHRISTMAS`):
+  a 25-day advent calendar with one treat unlocked each day December 1-25,
+  browsable holiday CB topics, and a Christmas music section of 1988-or-earlier
+  albums and songs (albums and songs also wired into Entertainment as a new
+  "Christmas Music" section).
+
+- Added the Health & Fitness Forum (`GO FITNESS`, forum choice 19) with six
+  sections (aerobics, running, weight training, nutrition, sports
+  medicine/injuries, mind & body) and 16 December 1988 seed posts, merged from
+  computer_communities.json (pack id bumped to
+  `computer-communities-1988-v3` so existing databases pick up the new posts).
+
+- Added a "1988 Weather Retrospective" section to the Weather Wire (News option
+  10): a December 1988 look back at Hurricane Gilbert and the summer drought
+  and heat wave, written three months after the fact.
+
+- Added seasonal holiday topics to the CB simulator: during December, keyword
+  mentions of Christmas topics are answered by established CB handles, on top
+  of the regular topic set.
+
+- Verified and covered the December 1988 movie review set (Rain Man, Twins,
+  Scrooged, The Naked Gun, Working Girl) with regression tests; the five
+  reviews pre-existed from content pack 2 and remain in Entertainment's Movies
+  section.
+
 - Added the 1988 Year in Review news special (News option 12, `GO YEARINREVIEW`):
   Election '88 results, top news stories, the Armenia earthquake wire, science
   and technology highlights, and a best-of roundup spanning movies, music,

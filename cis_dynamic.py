@@ -8,6 +8,12 @@ from datetime import date, datetime, time, timedelta
 
 from cis_session import session_simulation_date
 from cis_timecapsule import pack_for as _timecapsule_pack_for, cb_conversation as _pack_cb_conversation
+import cis_christmas
+
+
+def _all_cb_topics():
+    """CB_TOPICS plus seasonal Christmas topics (self-gating to December)."""
+    return {**CB_TOPICS, **cis_christmas.christmas_cb_topics()}
 
 
 HANDLES = [
@@ -566,13 +572,13 @@ def cb_response(channel, message, counter=0, app=None):
         contextual = [(handle, memory) for handle, memory in memories.items() if memory.get("topic_key") and (not addressed or handle == addressed) and mentions(("why", "how", "what", "which", "still", "tried that"))]
         if contextual:
             handle, memory = contextual[-1]
-            topic = CB_TOPICS.get(memory["topic_key"])
+            topic = _all_cb_topics().get(memory["topic_key"])
             if topic:
                 response = rng(f"cb-followup-{channel}-{counter}", app.current_user_id).choice(topic["followups"])
                 acknowledgement = "I remember the earlier details. " if memory.get("interactions", 0) > 1 else ""
                 remember_member_for_user(app, app.current_user_id, handle, memory.get("topic", memory["topic_key"]), message, topic_key=memory["topic_key"], last_response=response)
                 return handle, acknowledgement + response
-    for topic_key, topic in CB_TOPICS.items():
+    for topic_key, topic in _all_cb_topics().items():
         if mentions(topic["keywords"]):
             return choose(topic_key, topic, addressed if addressed in topic["handles"] else None)
     if addressed or "?" in message:

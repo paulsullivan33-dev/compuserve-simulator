@@ -17,6 +17,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Dict, List, Optional, Tuple
 
+import cis_christmas
+
 
 # ---------------------------------------------------------------------------
 # Billboard Hot 100 -- December 1988
@@ -290,6 +292,7 @@ def entertainment_menu_lines(day: Optional[date] = None) -> List[Tuple[str, List
         ("Billboard Hot 100", chart_lines(day)),
         ("Movies", movies_lines(day)),
         ("Bowl Previews", bowls_lines(day)),
+        ("Christmas Music", cis_christmas.christmas_music_lines(day)),
     ]
 
 

@@ -335,8 +335,11 @@ and restaurant recommendations. The **Aviation Forum** (`GO AVIATION`, choice 17
 covers private flying, IFR training, aircraft ownership, flight simulators, trip
 reports, and hangar talk. The **Comics & Sci-Fi Forum** (`GO SCIFI`, choice 18)
 discusses comic books, Star Trek, Doctor Who, movies and TV, science-fiction
-books, and conventions, all era-appropriate to December 1988.
-All nine use the standard forum commands for reading,
+books, and conventions, all era-appropriate to December 1988. The **Health &
+Fitness Forum** (`GO FITNESS`, choice 19) covers aerobics, running, weight
+training, nutrition, sports medicine and injuries, and mind & body, seeded with
+16 December 1988 posts.
+All ten use the standard forum commands for reading,
 posting, replying, and watching threads. These forums are original fictional
 simulation content, not recovered historical messages.
 
@@ -480,7 +483,9 @@ a date-aware number one ("Look Away" by Chicago early in the month, "Every Rose 
 Its Thorn" by Poison at Christmas), reviews of films in theaters that month, and
 previews (never results) of the January 2, 1989 college bowl games. The **Weather
 Wire** (News option 10) publishes December 1988 city forecasts and ski-resort
-conditions with three date-aware variants; `GO WEATHER` continues to open the live
+conditions with three date-aware variants, plus a "1988 Weather Retrospective"
+looking back at Hurricane Gilbert and the summer drought and heat wave from a
+December 1988 perspective; `GO WEATHER` continues to open the live
 Open-Meteo weather service described in Travel. **Books & Magazines** (News option
 11, `GO BOOKS`) lists December 1988 hardcover bestseller lists, December magazine
 issues with cover-story blurbs, staff reviews of 1988 books, and back-issue files
@@ -490,7 +495,17 @@ the year's top news stories, the Armenia earthquake wire, science and
 technology highlights, and a best-of roundup spanning movies, music, sports,
 and technology. Date gating applies: the Armenia earthquake coverage appears
 from December 7 onward and the Pan Am Flight 103 developing story appears from
-December 21 onward, following the session's simulated date. All News content stays dated no later than December
+December 21 onward, following the session's simulated date. The **1988 Holiday
+Shopping Guide** (News option 13, `GO GIFTGUIDE`) is the season's buying desk:
+hottest gifts of Christmas 1988, a catalog-vs.-mall price comparison, a toy
+shortage and shelf-watch report, and gift trends for '88, plus an interactive
+gift picker that recommends a present from the catalog by recipient and budget.
+**Christmas in the Sim** (News option 14, `GO CHRISTMAS`) is the December
+special: a 25-day advent calendar of daily treats (one unlocked each day
+through Christmas), browsable holiday CB topics, and a Christmas music section
+of 1988-or-earlier albums and songs. The Entertainment section also carries the
+Christmas Music listings, and CB picks up seasonal holiday topics during
+December. All News content stays dated no later than December
 1988; these are authored simulation contents, not archived period publications.
 
 CB recognizes a broad set of period topics including modems, DOS memory, disks, display

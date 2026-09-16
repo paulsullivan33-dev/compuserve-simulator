@@ -252,12 +252,116 @@ def wire_note_lines(day: _Optional[_date] = None) -> _List[str]:
 
 
 def weather_menu_lines(day: _Optional[_date] = None) -> _List[_Tuple[str, _List[str]]]:
-    """All three sections as (title, lines) pairs for the menu wire-up."""
+    """All sections as (title, lines) pairs for the menu wire-up."""
     return [
         ("U.S. City Forecasts", city_forecast_lines(day)),
         ("Ski Reports", ski_report_lines(day)),
         ("Weather Wire Notes", wire_note_lines(day)),
+        ("1988 Weather Retrospective", retrospective_lines(day)),
     ]
+
+
+# ===========================================================================
+# CONTENT PACK 6: 1988 Weather Retrospective (period feature content)
+# ===========================================================================
+# A December 1988 look back at Hurricane Gilbert and the summer drought
+# and heat wave. Written from a December 1988 perspective ("three months
+# ago"); nothing here references anything after 1988.
+#
+# Fact-marking convention (mirrors cis_sports.py's VERIFIED-flag pattern):
+#   VERIFIED = checked against published 1988 records (NHC Gilbert review,
+#              NPS/NASA Yellowstone fire figures, NOAA/Illinois State
+#              Climatologist drought assessments).
+#   (est.)    = rounded or approximate figures, labeled in the output.
+# Dramatized color is feature-writing only; all factual claims below are
+# either verified or explicitly marked (est.).
+
+_RETRO_EST = " (est.)"
+
+
+def gilbert_retrospective_lines() -> _List[str]:
+    """Hurricane Gilbert retrospective: the season's record storm (VERIFIED).
+
+    Verified facts: formed Sep 8, 1988; Jamaica landfall Sep 12 (~125 mph);
+    reached Cat 5 Sep 13; peak 185 mph / 888 mb; Yucatan landfall Sep 14
+    as Cat 5 (~160 mph); final landfall near La Pesca, Tamaulipas, Sep 16;
+    dissipated Sep 19; 888 mb = lowest Atlantic pressure then on record.
+    """
+    return [
+        "STORM OF THE SEASON: HURRICANE GILBERT",
+        "",
+        "Three months ago, the Atlantic produced the most intense",
+        "hurricane ever recorded: Hurricane Gilbert.",
+        "",
+        "SEPT  8 -- Tropical depression forms east of the Lesser Antilles.",
+        "SEPT 11 -- Gilbert becomes a hurricane, tracking due west.",
+        "SEPT 12 -- Landfall in Jamaica, sustained winds near 125 mph.",
+        "SEPT 13 -- Central pressure falls to 888 mb -- the lowest ever",
+        "             measured in an Atlantic hurricane. Peak sustained",
+        "             winds reach 185 mph; Gilbert is a Category 5 storm.",
+        "SEPT 14 -- Landfall on the Yucatan Peninsula near Cozumel as a",
+        "             Category 5 hurricane, winds near 160 mph.",
+        "SEPT 16 -- Final landfall near La Pesca, Tamaulipas, in northeast",
+        "             Mexico, as a Category 3 hurricane.",
+        "SEPT 19 -- Gilbert dissipates over Texas.",
+        "",
+        "At 888 millibars, Gilbert stands as the most intense Atlantic",
+        f"hurricane on record. It claimed roughly 300 lives{_RETRO_EST},",
+        f"and damage estimates run into the billions{_RETRO_EST}.",
+    ]
+
+
+def drought_retrospective_lines() -> _List[str]:
+    """Summer 1988 drought, heat wave, and Yellowstone fires (VERIFIED).
+
+    Verified facts: drought rated among the nation's worst of the past
+    100 years; record-low river flows stopped lower-Mississippi barge
+    traffic in June-July 1988; James Hansen testified to the Senate on
+    Jun 23, 1988; Yellowstone fires burned ~800,000 acres (~36% of the
+    park); 25,000+ firefighters cycled through; September snow ended them.
+    """
+    return [
+        "THE LONG HOT SUMMER: DROUGHT OF 1988",
+        "",
+        "The drought of 1988 ranks among the worst in the nation in the",
+        "past 100 years.",
+        "",
+        "Through June and July, record-low river flows stopped barge",
+        "traffic on the lower Mississippi; shoals and grounded tows",
+        "snarled the waterways that carry the heartland's grain. Towns",
+        "across the Midwest rationed water. Crops withered across the",
+        "Plains and the Corn Belt, and losses are estimated in the tens",
+        f"of billions of dollars{_RETRO_EST}.",
+        "",
+        "The heat built with it. On June 23, NASA climatologist James",
+        'Hansen told a Senate committee that the "greenhouse effect" had',
+        "been detected -- and the greenhouse debate hit the front page.",
+        "",
+        "In Yellowstone, the worst drought in the park's recorded history",
+        "left the forests tinder-dry. Lightning set fires that grew into",
+        "the largest firefighting effort the nation had yet seen: more",
+        "than 25,000 firefighters cycled through the park. By September,",
+        "about 800,000 acres -- more than a third of the park -- had",
+        "burned. Snow on September 11 finally stopped the flames' advance.",
+    ]
+
+
+def retrospective_lines(day: _Optional[_date] = None) -> _List[str]:
+    """Full December 1988 weather retrospective: Gilbert + summer drought."""
+    lines = [
+        "WEATHER WIRE SPECIAL -- 1988 WEATHER RETROSPECTIVE",
+        "A DECEMBER 1988 LOOK BACK AT THE YEAR'S EXTREMES",
+        "",
+        "Meteorological facts below are verified against 1988 published",
+        f"records; rounded figures are marked{_RETRO_EST}.",
+        "",
+    ]
+    lines.extend(gilbert_retrospective_lines())
+    lines.append("")
+    lines.extend(drought_retrospective_lines())
+    lines.append("")
+    lines.append("Feature content: verified facts plus marked estimates.")
+    return lines
 
 
 def weather_service(app) -> _List[_Tuple[str, _List[str]]]:

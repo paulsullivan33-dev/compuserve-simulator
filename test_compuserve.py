@@ -5,7 +5,7 @@ import re
 import importlib.util
 import subprocess
 import sqlite3
-from contextlib import closing
+from contextlib import closing, redirect_stdout
 import sys
 import tempfile
 import unittest
@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
+from unittest import mock
 
 import compuserve
 import cis_hamnet
@@ -45,6 +46,11 @@ import cis_yearend
 import cis_cooking
 import cis_aviation
 import cis_scifi
+import cis_giftguide
+import cis_fitness
+import cis_christmas
+from cis_giftguide import (GIFT_CATALOG, _parse_recipient, catalog_vs_mall_lines, cheapest_for, gift_picker, giftguide_menu, giftguide_menu_lines, giftguide_service, hottest_lines, pick_gifts, shortages_lines, trends_lines)
+from cis_christmas import (ADVENT_TREATS, CHRISTMAS_ALBUMS, CHRISTMAS_CB_LINES, CHRISTMAS_CB_TOPICS, CHRISTMAS_SONGS, christmas_cb_lines, christmas_cb_topics, christmas_menu, christmas_menu_lines, christmas_music_lines, christmas_service, christmas_treat)
 import cis_travel
 import cis_experience
 import cis_drafts
@@ -3496,7 +3502,8 @@ class EntertainmentTests(unittest.TestCase):
     def test_service_sections(self):
         sections = cis_entertainment.entertainment_service(None)
         self.assertEqual([title for title, _ in sections],
-                         ["Billboard Hot 100", "Movies", "Bowl Previews"])
+                         ["Billboard Hot 100", "Movies", "Bowl Previews",
+                          "Christmas Music"])
         for _title, lines in sections:
             self.assertTrue(lines)
 
@@ -3732,7 +3739,7 @@ from unittest.mock import patch
 import cis_weather
 
 
-EXPECTED_TITLES = ("U.S. City Forecasts", "Ski Reports", "Weather Wire Notes")
+EXPECTED_TITLES = ("U.S. City Forecasts", "Ski Reports", "Weather Wire Notes", "1988 Weather Retrospective")
 
 BANNED_TERMS = (
     "1989", "1990", "2000s", "internet", "global warming", "climate change",
@@ -3747,7 +3754,7 @@ class WeatherServiceSectionsTest(unittest.TestCase):
 
     def test_returns_expected_sections(self):
         sections = self._sections("1988-12-15")
-        self.assertEqual(len(sections), 3)
+        self.assertEqual(len(sections), 4)
         titles = [title for title, _lines in sections]
         self.assertEqual(tuple(titles), EXPECTED_TITLES)
 
@@ -6001,3 +6008,883 @@ class CommunityPackInstallTests(unittest.TestCase):
             self.assertEqual(self._message_count(base_dir), before + 1)
             subjects = [m["subject"] for m in data.get("cooking_recipes", [])]
             self.assertIn("regression test post", subjects)
+
+
+# =======================================================================
+# Content pack 6: giftguide (merged from test_pack6_*.py)
+# =======================================================================
+
+
+
+class GiftGuideFakeApp:
+    """Minimal stand-in for the compuserve app object."""
+
+    def __init__(self):
+        self.output_lines = []
+        self.pages = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.output_lines.append(str(text))
+        return True
+
+    def clear(self):
+        return True
+
+    def header_bar(self, service):
+        self.output_lines.append(f"[header:{service}]")
+        return True
+
+    def text_page(self, service, title, lines):
+        self.pages.append((service, title, list(lines)))
+        return True
+
+    @property
+    def output(self):
+        return "\n".join(self.output_lines)
+
+
+# ---------------------------------------------------------------------------
+# Catalog integrity
+# ---------------------------------------------------------------------------
+class TestCatalogIntegrity(unittest.TestCase):
+    def test_every_gift_has_price_flag(self):
+        for gift in GIFT_CATALOG:
+            note = gift.price_note
+            self.assertTrue(
+                "VERIFIED" in note
+                or "by most accounts" in note
+                or "est." in note,
+                f"{gift.name}: price_note missing flag: {note!r}",
+            )
+
+    def test_every_gift_has_valid_recipients(self):
+        for gift in GIFT_CATALOG:
+            self.assertTrue(gift.recipients, gift.name)
+            for recipient in gift.recipients:
+                self.assertIn(recipient, ("kid", "teen", "adult"), gift.name)
+
+    def test_prices_positive(self):
+        for gift in GIFT_CATALOG:
+            self.assertGreater(gift.price, 0, gift.name)
+
+    def test_catalog_covers_all_recipients(self):
+        for recipient in ("kid", "teen", "adult"):
+            self.assertTrue(
+                any(recipient in g.recipients for g in GIFT_CATALOG),
+                recipient,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Pure picker logic
+# ---------------------------------------------------------------------------
+class TestPickGifts(unittest.TestCase):
+    def test_kid_budget_50(self):
+        picks = pick_gifts(50, "kid")
+        self.assertTrue(picks)
+        for gift in picks:
+            self.assertIn("kid", gift.recipients)
+            self.assertLessEqual(gift.price, 50)
+
+    def test_sorted_priciest_first(self):
+        picks = pick_gifts(200, "adult")
+        prices = [g.price for g in picks]
+        self.assertEqual(prices, sorted(prices, reverse=True))
+
+    def test_max_five_results(self):
+        self.assertLessEqual(len(pick_gifts(10000, "kid")), 5)
+
+    def test_adult_big_budget_includes_camcorder(self):
+        picks = pick_gifts(1000, "adult")
+        self.assertTrue(any("Camcorder" in g.name for g in picks))
+
+    def test_tiny_budget_returns_nothing(self):
+        self.assertEqual(pick_gifts(0.50, "kid"), [])
+
+    def test_unknown_recipient_returns_nothing(self):
+        self.assertEqual(pick_gifts(500, "grandparent"), [])
+
+    def test_nonpositive_budget_returns_nothing(self):
+        self.assertEqual(pick_gifts(0, "teen"), [])
+        self.assertEqual(pick_gifts(-10, "teen"), [])
+
+    def test_recipient_case_insensitive(self):
+        self.assertEqual(pick_gifts(50, "Kid"), pick_gifts(50, "kid"))
+
+    def test_teen_budget_100_gets_nes_or_games(self):
+        picks = pick_gifts(100, "teen")
+        names = " ".join(g.name for g in picks)
+        self.assertTrue(
+            "Nintendo" in names or "Mario" in names or "Zelda" in names,
+            names,
+        )
+
+    def test_cheapest_for_sorted_ascending(self):
+        cheapest = cheapest_for("kid")
+        self.assertEqual(len(cheapest), 3)
+        prices = [g.price for g in cheapest]
+        self.assertEqual(prices, sorted(prices))
+        self.assertTrue(all("kid" in g.recipients for g in cheapest))
+
+    def test_parse_recipient(self):
+        self.assertEqual(_parse_recipient("1"), "kid")
+        self.assertEqual(_parse_recipient("kid"), "kid")
+        self.assertEqual(_parse_recipient("2"), "teen")
+        self.assertEqual(_parse_recipient("Teenager"), "teen")
+        self.assertEqual(_parse_recipient("3"), "adult")
+        self.assertIsNone(_parse_recipient("bogus"))
+        self.assertIsNone(_parse_recipient(""))
+
+
+# ---------------------------------------------------------------------------
+# Content sections
+# ---------------------------------------------------------------------------
+class TestContentSections(unittest.TestCase):
+    def _all_lines(self, day=None):
+        lines = []
+        for title, section in giftguide_menu_lines(day):
+            lines.extend(section)
+        return lines, [t for t, _ in giftguide_menu_lines(day)]
+
+    def test_four_sections(self):
+        sections = giftguide_menu_lines()
+        self.assertEqual(len(sections), 4)
+
+    def test_no_post_1988_references(self):
+        lines, _ = self._all_lines()
+        text = "\n".join(lines)
+        for banned in ("1989", "1990", "Game Boy", "Super Nintendo"):
+            self.assertNotIn(banned, text, f"post-1988 leak: {banned}")
+
+    def test_hottest_mentions_verified_items(self):
+        text = "\n".join(hottest_lines())
+        self.assertIn("NINTENDO ENTERTAINMENT SYSTEM", text)
+        self.assertIn("CABBAGE PATCH KIDS", text)
+        self.assertIn("TEENAGE MUTANT NINJA TURTLES", text)
+        self.assertIn("VERIFIED", text)
+
+    def test_catalog_section_mentions_wish_book(self):
+        text = "\n".join(catalog_vs_mall_lines())
+        self.assertIn("WISH BOOK", text)
+        self.assertIn("Service Merchandise", text)
+
+    def test_trends_has_turtle_power(self):
+        text = "\n".join(trends_lines())
+        self.assertIn("TURTLE POWER", text)
+
+    def test_shortages_countdown_before_christmas(self):
+        text = "\n".join(shortages_lines(date(1988, 12, 20)))
+        self.assertIn("5 shopping days until Christmas", text)
+
+    def test_shortages_countdown_christmas_eve(self):
+        text = "\n".join(shortages_lines(date(1988, 12, 24)))
+        self.assertIn("1 shopping day until Christmas", text)
+
+    def test_shortages_countdown_christmas_day(self):
+        text = "\n".join(shortages_lines(date(1988, 12, 25)))
+        self.assertIn("Christmas Day is here", text)
+
+    def test_shortages_after_christmas(self):
+        text = "\n".join(shortages_lines(date(1988, 12, 26)))
+        self.assertIn("clearance season", text)
+
+    def test_service_entry_matches_menu_lines(self):
+        app = GiftGuideFakeApp()
+        sections = giftguide_service(app)
+        self.assertEqual(
+            [t for t, _ in sections],
+            [t for t, _ in giftguide_menu_lines()],
+        )
+
+    def test_day_param_accepted_everywhere(self):
+        day = date(1988, 12, 10)
+        hottest_lines(day)
+        catalog_vs_mall_lines(day)
+        shortages_lines(day)
+        trends_lines(day)
+        giftguide_menu_lines(day)
+        pick_gifts(50, "kid", day)
+
+
+# ---------------------------------------------------------------------------
+# Interactive gift picker
+# ---------------------------------------------------------------------------
+class TestGiftPickerInteractive(unittest.TestCase):
+    def run_picker(self, app, inputs, day=None):
+        with patch("builtins.input", side_effect=inputs):
+            with redirect_stdout(io.StringIO()) as captured:
+                gift_picker(app, day)
+        return captured.getvalue()
+
+    def test_happy_path_kid(self):
+        app = GiftGuideFakeApp()
+        leftover = self.run_picker(app, ["50", "1", ""])
+        self.assertEqual(leftover, "", "interactive output must not use print()")
+        self.assertIn("GIFT PICKER", app.output)
+        self.assertIn("Kid (ages 5-8)", app.output)
+
+    def test_happy_path_teen_budget_100(self):
+        app = GiftGuideFakeApp()
+        self.run_picker(app, ["100", "2", ""])
+        self.assertIn("Teen", app.output)
+        # A $100 teen budget should surface Nintendo-flavored picks.
+        self.assertTrue(
+            "Nintendo" in app.output
+            or "Mario" in app.output
+            or "Zelda" in app.output,
+            app.output,
+        )
+
+    def test_invalid_budget_reprompts(self):
+        app = GiftGuideFakeApp()
+        self.run_picker(app, ["abc", "25", "3", ""])
+        self.assertIn("Enter a dollar amount", app.output)
+        self.assertIn("Adult", app.output)
+
+    def test_zero_budget_reprompts(self):
+        app = GiftGuideFakeApp()
+        self.run_picker(app, ["0", "30", "1", ""])
+        self.assertIn("more than zero", app.output)
+
+    def test_blank_budget_cancels(self):
+        app = GiftGuideFakeApp()
+        self.run_picker(app, [""])
+        self.assertIn("cancelled", app.output.lower())
+        self.assertNotIn("GIFT PICKER --", app.output)
+
+    def test_invalid_recipient_reprompts(self):
+        app = GiftGuideFakeApp()
+        self.run_picker(app, ["60", "9", "2", ""])
+        self.assertIn("Pick 1, 2, or 3.", app.output)
+        self.assertIn("Teen", app.output)
+
+    def test_too_small_budget_shows_stretch_picks(self):
+        app = GiftGuideFakeApp()
+        self.run_picker(app, ["2", "1", ""])
+        self.assertIn("come closest", app.output)
+
+    def test_no_bare_print_in_picker(self):
+        app = GiftGuideFakeApp()
+        leftover = self.run_picker(app, ["75", "3", ""])
+        self.assertEqual(leftover, "")
+
+
+# ---------------------------------------------------------------------------
+# Guide menu
+# ---------------------------------------------------------------------------
+class TestGiftGuideMenu(unittest.TestCase):
+    def run_menu(self, app, inputs, day=None):
+        with patch("builtins.input", side_effect=inputs):
+            with redirect_stdout(io.StringIO()) as captured:
+                giftguide_menu(app, day)
+        return captured.getvalue()
+
+    def test_menu_lists_sections_and_exits(self):
+        app = GiftGuideFakeApp()
+        leftover = self.run_menu(app, ["M"])
+        self.assertEqual(leftover, "")
+        self.assertIn("1988 HOLIDAY SHOPPING GUIDE", app.output)
+        self.assertIn("Gift Picker (interactive)", app.output)
+
+    def test_menu_opens_reading_section(self):
+        app = GiftGuideFakeApp()
+        self.run_menu(app, ["1", "M"])
+        self.assertEqual(len(app.pages), 1)
+        service, title, lines = app.pages[0]
+        self.assertEqual(service, "news")
+        self.assertIn("HOTTEST GIFTS", title)
+        self.assertTrue(lines)
+
+    def test_menu_invalid_choice_then_exit(self):
+        app = GiftGuideFakeApp()
+        self.run_menu(app, ["99", "M"])
+        self.assertIn("Enter a number from the list", app.output)
+
+    def test_menu_runs_gift_picker(self):
+        app = GiftGuideFakeApp()
+        # 5 = Gift Picker; blank budget cancels; M exits menu.
+        self.run_menu(app, ["5", "", "M"])
+        self.assertIn("THE 1988 GIFT PICKER", app.output)
+
+    def test_menu_date_sensitive_shortages(self):
+        app = GiftGuideFakeApp()
+        self.run_menu(app, ["3", "M"], day=date(1988, 12, 20))
+        service, title, lines = app.pages[0]
+        self.assertIn("5 shopping days until Christmas", "\n".join(lines))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+# =======================================================================
+# Content pack 6: fitness (merged from test_pack6_*.py)
+# =======================================================================
+
+PACK6_REPO_ROOT = Path(__file__).resolve().parent
+PACK6_COMMUNITIES_PATH = PACK6_REPO_ROOT / "computer_communities.json"
+
+FITNESS_EXPECTED_SECTIONS = {
+    "1": ("fitness_aerobics", "Aerobics"),
+    "2": ("fitness_running", "Running"),
+    "3": ("fitness_weights", "Weight Training"),
+    "4": ("fitness_nutrition", "Nutrition"),
+    "5": ("fitness_injuries", "Sports Medicine/Injuries"),
+    "6": ("fitness_mindbody", "Mind & Body"),
+}
+
+FITNESS_EXPECTED_IDS = [f"fitness-1988-{n:03d}" for n in range(1, 17)]
+
+FITNESS_DATE_RE = re.compile(r"^12/(0[1-9]|[12][0-9]|3[01])/88$")
+
+
+def load_messages():
+    with open(PACK6_COMMUNITIES_PATH, encoding="ascii") as f:
+        return json.load(f)["messages"]
+
+
+class TestSectionSpec(unittest.TestCase):
+    def test_six_sections_with_right_keys(self):
+        spec = cis_fitness.section_spec()
+        self.assertEqual(spec, FITNESS_EXPECTED_SECTIONS)
+
+    def test_section_keys_prefixed(self):
+        for _num, (key, _name) in cis_fitness.section_spec().items():
+            self.assertTrue(key.startswith("fitness_"), key)
+
+    def test_module_identity(self):
+        self.assertEqual(cis_fitness.FORUM_ID, "fitness")
+        self.assertEqual(cis_fitness.FORUM_TITLE, "Health & Fitness Forum")
+
+
+class TestFitnessSeedPosts(unittest.TestCase):
+    def test_sixteen_seed_posts(self):
+        self.assertEqual(len(cis_fitness.SEED_POSTS), 16)
+
+    def test_content_ids_sequential(self):
+        ids = [p["content_id"] for p in cis_fitness.SEED_POSTS]
+        self.assertEqual(ids, FITNESS_EXPECTED_IDS)
+
+    def test_post_shape(self):
+        required = {"content_id", "section", "date", "author",
+                    "subject", "body", "parent"}
+        valid_sections = {key for key, _ in cis_fitness.SECTIONS.values()}
+        for post in cis_fitness.SEED_POSTS:
+            self.assertEqual(set(post.keys()), required, post["content_id"])
+            self.assertIsNone(post["parent"], post["content_id"])
+            self.assertIn(post["section"], valid_sections, post["content_id"])
+            self.assertTrue(post["author"].strip(), post["content_id"])
+            self.assertTrue(post["subject"].strip(), post["content_id"])
+            self.assertGreater(len(post["body"]), 80, post["content_id"])
+
+    def test_dates_in_december_1988(self):
+        for post in cis_fitness.SEED_POSTS:
+            self.assertRegex(post["date"], FITNESS_DATE_RE, post["content_id"])
+
+    def test_no_post_1988_references(self):
+        for post in cis_fitness.SEED_POSTS:
+            text = (post["subject"] + " " + post["body"]).lower()
+            self.assertNotIn("1990", text, post["content_id"])
+            self.assertNotIn("internet", text, post["content_id"])
+            self.assertNotIn("website", text, post["content_id"])
+
+    def test_seed_posts_returns_copies(self):
+        first = cis_fitness.seed_posts()
+        first[0]["subject"] = "MUTATED"
+        self.assertNotEqual(cis_fitness.SEED_POSTS[0]["subject"], "MUTATED")
+
+
+class TestJsonSeeding(unittest.TestCase):
+    def test_all_seed_ids_in_communities_json(self):
+        ids = {m["content_id"] for m in load_messages()}
+        for content_id in FITNESS_EXPECTED_IDS:
+            self.assertIn(content_id, ids, f"{content_id} missing")
+
+    def test_json_entries_match_module(self):
+        by_id = {m["content_id"]: m for m in load_messages()}
+        for post in cis_fitness.seed_posts():
+            entry = by_id[post["content_id"]]
+            for field in ("section", "date", "author", "subject", "body"):
+                self.assertEqual(entry[field], post[field],
+                                 f"{post['content_id']}.{field} mismatch")
+            self.assertIsNone(entry["parent"])
+
+    def test_no_duplicate_content_ids(self):
+        ids = [m["content_id"] for m in load_messages()]
+        self.assertEqual(len(ids), len(set(ids)))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+# =======================================================================
+# Content pack 6: movies (merged from test_pack6_*.py)
+# =======================================================================
+
+MOVIES_EXPECTED = {
+    "RAIN MAN": "Released Dec 16, 1988",
+    "TWINS": "Released Dec 9, 1988",
+    "SCROOGED": "Released Nov 23, 1988",
+    "THE NAKED GUN": "Released Dec 2, 1988",
+    "WORKING GIRL": "Released Dec 21, 1988",
+}
+
+MOVIES_VALID_RATINGS = {"****1/2", "****", "***1/2", "***", "**1/2", "**", "*1/2", "*"}
+
+
+class MenuFakeApp:
+    """Minimal fake app capturing ansi_scroll output, like ArcadeFakeApp."""
+
+    def __init__(self):
+        self.output_lines = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.output_lines.append(str(text))
+        return True
+
+
+def review_by_title(title):
+    for entry in cis_entertainment.MOVIE_REVIEWS:
+        if entry[0] == title:
+            return entry
+    return None
+
+
+class TestMovieReviewsPresent(unittest.TestCase):
+    def test_all_five_films_present(self):
+        titles = [entry[0] for entry in cis_entertainment.MOVIE_REVIEWS]
+        for title in MOVIES_EXPECTED:
+            self.assertIn(title, titles, f"{title} missing from MOVIE_REVIEWS")
+
+    def test_release_dates_correct(self):
+        for title, expected_date in MOVIES_EXPECTED.items():
+            entry = review_by_title(title)
+            self.assertIsNotNone(entry, f"{title} not found")
+            self.assertEqual(entry[1], expected_date, f"{title} release date")
+
+    def test_review_tuple_structure(self):
+        for title in MOVIES_EXPECTED:
+            entry = review_by_title(title)
+            self.assertIsNotNone(entry)
+            self.assertEqual(len(entry), 4, f"{title} tuple shape")
+            t, released, stars, blurb = entry
+            self.assertTrue(t.strip(), f"{title} title empty")
+            self.assertTrue(released.strip(), f"{title} release line empty")
+            self.assertTrue(blurb.strip(), f"{title} review text empty")
+            self.assertGreater(len(blurb), 80, f"{title} review text too short")
+            self.assertIn(stars, MOVIES_VALID_RATINGS, f"{title} bad star rating")
+
+    def test_no_post_december_1988_releases(self):
+        # Scrooged (Nov 1988, in theaters through December) is the only
+        # permitted pre-December entry; nothing may be dated after Dec 1988.
+        for t, released, _stars, _blurb in cis_entertainment.MOVIE_REVIEWS:
+            self.assertNotIn("1989", released, t)
+            self.assertNotIn("1990", released, t)
+
+
+class TestMoviesLines(unittest.TestCase):
+    def test_movies_lines_lists_all_five(self):
+        lines = cis_entertainment.movies_lines(date(1988, 12, 15))
+        text = "\n".join(lines)
+        for title in MOVIES_EXPECTED:
+            self.assertIn(title, text, f"{title} missing from movies_lines")
+            self.assertIn(MOVIES_EXPECTED[title], text, f"{title} date missing")
+        # each review's blurb makes it into the rendered lines
+        for title in MOVIES_EXPECTED:
+            entry = review_by_title(title)
+            self.assertIn(entry[3], text, f"{title} blurb missing")
+
+    def test_movies_lines_date_aware_rotation(self):
+        # rotation by week changes lead review but keeps all five present
+        early = cis_entertainment.movies_lines(date(1988, 12, 2))
+        late = cis_entertainment.movies_lines(date(1988, 12, 28))
+        for lines in (early, late):
+            text = "\n".join(lines)
+            for title in MOVIES_EXPECTED:
+                self.assertIn(title, text)
+
+
+class TestMenuWiring(unittest.TestCase):
+    def test_entertainment_menu_sections_include_movies(self):
+        sections = cis_entertainment.entertainment_menu_lines(date(1988, 12, 15))
+        names = [name for name, _lines in sections]
+        self.assertIn("Movies", names)
+
+    def test_menu_rendered_via_fake_app(self):
+        # Mirror compuserve.py's entertainment_menu: list sections via
+        # ansi_scroll, then render the Movies section the same way.
+        app = MenuFakeApp()
+        sections = cis_entertainment.entertainment_menu_lines(date(1988, 12, 15))
+        app.ansi_scroll("ENTERTAINMENT", 0.01)
+        for index, (title, _lines) in enumerate(sections, 1):
+            app.ansi_scroll(f"{index}  {title}", 0.01)
+        menu_text = "\n".join(app.output_lines)
+        self.assertIn("ENTERTAINMENT", menu_text)
+        self.assertIn("Movies", menu_text)
+
+        movies_lines = dict(sections)["Movies"]
+        app2 = MenuFakeApp()
+        for line in movies_lines:
+            app2.ansi_scroll(line, 0.01)
+        rendered = "\n".join(app2.output_lines)
+        for title, released in MOVIES_EXPECTED.items():
+            self.assertIn(title, rendered, f"{title} not rendered")
+            self.assertIn(released, rendered, f"{title} date not rendered")
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+# =======================================================================
+# Content pack 6: christmas (merged from test_pack6_*.py)
+# =======================================================================
+
+
+
+class ChristmasFakeApp:
+    """Minimal fake app: captures ansi_scroll, records other calls."""
+
+    def __init__(self):
+        self.output_lines = []
+        self.cleared = 0
+        self.headers = []
+        self.pages = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.output_lines.append(str(text))
+        return True
+
+    def clear(self):
+        self.cleared += 1
+
+    def header_bar(self, screen_key):
+        self.headers.append(screen_key)
+
+    def text_page(self, screen_key, title, lines):
+        self.pages.append((screen_key, title, list(lines)))
+
+
+class TestAdventCalendar(unittest.TestCase):
+    def test_twenty_five_treats_defined(self):
+        self.assertEqual(len(ADVENT_TREATS), 25)
+
+    def test_december_days_each_yield_a_treat(self):
+        for day in range(1, 26):
+            lines = christmas_treat(date(1988, 12, day))
+            self.assertTrue(lines, f"Dec {day} returned no treat")
+            text = "\n".join(lines)
+            self.assertIn(f"DECEMBER {day}", text)
+            title, kind, body = ADVENT_TREATS[day - 1]
+            self.assertIn(title, text)
+            self.assertIn(kind, text)
+
+    def test_december_treats_are_distinct(self):
+        treats = [tuple(christmas_treat(date(1988, 12, d)))
+                  for d in range(1, 26)]
+        self.assertEqual(len(set(treats)), 25,
+                         "advent treats must all be distinct")
+
+    def test_treat_kinds_cover_trivia_fiction_tips(self):
+        kinds = {kind for _t, kind, _b in ADVENT_TREATS}
+        self.assertIn("TRIVIA", kinds)
+        self.assertIn("TINY FICTION", kinds)
+        self.assertIn("HOLIDAY TIP", kinds)
+
+    def test_november_yields_offseason_message(self):
+        lines = christmas_treat(date(1988, 11, 15))
+        text = "\n".join(lines).lower()
+        self.assertIn("hasn't arrived yet", text)
+        self.assertIn("december 1", text)
+
+    def test_january_yields_offseason_message(self):
+        lines = christmas_treat(date(1989, 1, 5))
+        text = "\n".join(lines).lower()
+        self.assertIn("hasn't arrived yet", text)
+
+    def test_december_26_notes_calendar_closed(self):
+        lines = christmas_treat(date(1988, 12, 26))
+        text = "\n".join(lines).lower()
+        self.assertIn("closed for the year", text)
+
+    def test_default_day_resolves(self):
+        lines = christmas_treat()
+        self.assertTrue(lines)
+
+
+class TestHolidayCBTopics(unittest.TestCase):
+    def test_topics_nonempty_in_december(self):
+        topics = christmas_cb_topics(date(1988, 12, 15))
+        self.assertTrue(topics)
+        self.assertEqual(topics, CHRISTMAS_CB_TOPICS)
+
+    def test_topics_empty_outside_december(self):
+        self.assertEqual(christmas_cb_topics(date(1988, 11, 15)), {})
+        self.assertEqual(christmas_cb_topics(date(1989, 1, 5)), {})
+
+    def test_topic_shape_matches_cb_topics(self):
+        for key, topic in CHRISTMAS_CB_TOPICS.items():
+            self.assertEqual(set(topic.keys()),
+                             {"keywords", "handles", "responses", "followups"},
+                             key)
+            for field in ("keywords", "handles", "responses", "followups"):
+                self.assertTrue(topic[field], f"{key}.{field} empty")
+                for value in topic[field]:
+                    self.assertIsInstance(value, str)
+
+    def test_topic_handles_are_known_cb_handles(self):
+        from cis_dynamic import HANDLES
+        for key, topic in CHRISTMAS_CB_TOPICS.items():
+            for handle in topic["handles"]:
+                self.assertIn(handle, HANDLES, f"{key}: {handle}")
+
+    def test_ambient_lines_present(self):
+        self.assertTrue(CHRISTMAS_CB_LINES)
+        for line in CHRISTMAS_CB_LINES:
+            self.assertIsInstance(line, str)
+
+    def test_cb_lines_browsable(self):
+        lines = christmas_cb_lines(date(1988, 12, 15))
+        text = "\n".join(lines)
+        for key in CHRISTMAS_CB_TOPICS:
+            self.assertIn(key.upper(), text)
+
+
+class TestChristmasMusic(unittest.TestCase):
+    def test_albums_present_with_verified_items(self):
+        self.assertTrue(CHRISTMAS_ALBUMS)
+        by_title = {a["title"]: a for a in CHRISTMAS_ALBUMS}
+        very_special = by_title["A Very Special Christmas"]
+        self.assertEqual(very_special["year"], 1987)
+        self.assertIn("VERIFIED", very_special["note"])
+        fresh_aire = by_title["A Fresh Aire Christmas"]
+        self.assertEqual(fresh_aire["year"], 1988)
+        self.assertIn("VERIFIED", fresh_aire["note"])
+
+    def test_songs_present_with_verified_items(self):
+        self.assertTrue(CHRISTMAS_SONGS)
+        by_title = {s["title"]: s for s in CHRISTMAS_SONGS}
+        hollis = by_title["Christmas in Hollis"]
+        self.assertEqual(hollis["artist"], "Run-D.M.C.")
+        self.assertEqual(hollis["year"], 1987)
+        self.assertIn("VERIFIED", hollis["note"])
+
+    def test_nothing_after_december_1988(self):
+        for album in CHRISTMAS_ALBUMS:
+            self.assertLessEqual(album["year"], 1988, album["title"])
+        for song in CHRISTMAS_SONGS:
+            self.assertLessEqual(song["year"], 1988, song["title"])
+
+    def test_music_lines_render(self):
+        lines = christmas_music_lines(date(1988, 12, 15))
+        text = "\n".join(lines)
+        self.assertIn("A Very Special Christmas", text)
+        self.assertIn("A Fresh Aire Christmas", text)
+        self.assertIn("Christmas in Hollis", text)
+
+
+class TestMenuAndService(unittest.TestCase):
+    def test_menu_lines_three_sections(self):
+        sections = christmas_menu_lines(date(1988, 12, 15))
+        self.assertEqual(len(sections), 3)
+        titles = [title for title, _lines in sections]
+        self.assertEqual(titles,
+                         ["Advent Calendar", "Holiday CB Topics",
+                          "Christmas Music"])
+        for _title, lines in sections:
+            self.assertTrue(lines)
+
+    def test_service_returns_sections(self):
+        app = ChristmasFakeApp()
+        sections = christmas_service(app)
+        self.assertEqual(len(sections), 3)
+
+    def _run_menu(self, inputs):
+        app = ChristmasFakeApp()
+        buf = io.StringIO()
+        with mock.patch("builtins.input", side_effect=inputs):
+            with redirect_stdout(buf):
+                christmas_menu(app, date(1988, 12, 15))
+        return app, buf.getvalue()
+
+    def test_menu_advent_browse_and_exit(self):
+        app, printed = self._run_menu(["1", "M", "M"])
+        self.assertEqual(printed, "", "menu must not use bare print()")
+        self.assertTrue(app.output_lines)
+        self.assertTrue(app.pages, "advent browse should show a text page")
+        self.assertIn("ADVENT", app.pages[0][1])
+
+    def test_menu_topics_and_music_sections(self):
+        app, printed = self._run_menu(["2", "3", "M"])
+        self.assertEqual(printed, "")
+        titles = [title for _key, title, _lines in app.pages]
+        self.assertIn("HOLIDAY CB TOPICS", titles)
+        self.assertIn("CHRISTMAS MUSIC", titles)
+
+    def test_menu_rejects_bad_choice(self):
+        app, _printed = self._run_menu(["9", "M"])
+        self.assertIn("Enter 1-3, or M.", app.output_lines)
+
+    def test_menu_uses_header_and_clear(self):
+        app, _printed = self._run_menu(["M"])
+        self.assertTrue(app.cleared)
+        self.assertIn("news", app.headers)
+
+
+class TestModuleHygiene(unittest.TestCase):
+    def test_no_hardcoded_absolute_paths(self):
+        import inspect
+        source = inspect.getsource(cis_christmas)
+        self.assertNotIn("/home/", source)
+        self.assertNotIn("/root/", source)
+
+    def test_repo_root_derived_from_file(self):
+        from pathlib import Path
+        self.assertEqual(
+            cis_christmas.REPO_ROOT,
+            Path(cis_christmas.__file__).resolve().parent)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+# =======================================================================
+# Content pack 6: weather (merged from test_pack6_*.py)
+# =======================================================================
+
+class Pack6FakeApp:
+    """Minimal stand-in for the app: captures ansi_scroll output."""
+
+    def __init__(self):
+        self.output_lines = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.output_lines.append(str(text))
+        return True
+
+
+class TestRetrospectiveExists(unittest.TestCase):
+    def test_weather_menu_lists_retrospective_section(self):
+        titles = [title for title, _ in cis_weather.weather_menu_lines()]
+        self.assertIn("1988 Weather Retrospective", titles)
+
+    def test_weather_service_exposes_retrospective(self):
+        sections = cis_weather.weather_service(Pack6FakeApp())
+        titles = [title for title, _ in sections]
+        self.assertIn("1988 Weather Retrospective", titles)
+
+    def test_menu_rendering_shows_new_section(self):
+        # Mimics weather_menu(): numbered sections scrolled via the app.
+        app = Pack6FakeApp()
+        sections = cis_weather.weather_service(app)
+        app.ansi_scroll("WEATHER WIRE", 0.01)
+        for index, (title, _lines) in enumerate(sections, 1):
+            app.ansi_scroll(f"{index}  {title}", 0.01)
+        shown = "\n".join(app.output_lines)
+        self.assertIn("4  1988 Weather Retrospective", shown)
+
+
+class TestGilbertVerifiedFacts(unittest.TestCase):
+    def setUp(self):
+        self.text = "\n".join(cis_weather.retrospective_lines()).upper()
+
+    def test_minimum_pressure_888mb(self):
+        self.assertIn("888 MB", self.text)
+
+    def test_peak_winds_185mph(self):
+        self.assertIn("185 MPH", self.text)
+
+    def test_category_5(self):
+        self.assertIn("CATEGORY 5", self.text)
+
+    def test_formed_september_8(self):
+        self.assertIn("SEPT  8", self.text)
+
+    def test_jamaica_landfall_september_12(self):
+        self.assertIn("SEPT 12", self.text)
+        self.assertIn("JAMAICA", self.text)
+
+    def test_yucatan_landfall_september_14(self):
+        self.assertIn("SEPT 14", self.text)
+        self.assertIn("YUCATAN", self.text)
+
+    def test_northeast_mexico_landfall_september_16(self):
+        self.assertIn("SEPT 16", self.text)
+        self.assertIn("LA PESCA", self.text)
+
+    def test_most_intense_on_record(self):
+        self.assertIn("MOST INTENSE", self.text)
+
+    def test_estimated_figures_marked(self):
+        lines = cis_weather.retrospective_lines()
+        gilbert = lines[lines.index("STORM OF THE SEASON: HURRICANE GILBERT"):]
+        tail = "\n".join(gilbert)
+        self.assertIn("(est.)", tail)
+
+
+class TestDroughtVerifiedFacts(unittest.TestCase):
+    def setUp(self):
+        self.text = "\n".join(cis_weather.retrospective_lines()).upper()
+
+    def test_drought_section_present(self):
+        self.assertIn("DROUGHT OF 1988", self.text)
+
+    def test_mississippi_barge_traffic(self):
+        self.assertIn("MISSISSIPPI", self.text)
+        self.assertIn("BARGE", self.text)
+
+    def test_hansen_june_23_testimony(self):
+        self.assertIn("JUNE 23", self.text)
+        self.assertIn("HANSEN", self.text)
+
+    def test_yellowstone_acreage(self):
+        self.assertIn("800,000 ACRES", self.text)
+
+    def test_yellowstone_firefighters(self):
+        self.assertIn("25,000 FIREFIGHTERS", self.text)
+
+    def test_yellowstone_snow_end(self):
+        self.assertIn("SEPTEMBER 11", self.text)
+
+    def test_losses_marked_estimated(self):
+        lines = cis_weather.retrospective_lines()
+        drought = lines[lines.index("THE LONG HOT SUMMER: DROUGHT OF 1988"):]
+        self.assertIn("(est.)", "\n".join(drought))
+
+
+class TestNoFutureDates(unittest.TestCase):
+    def test_no_dates_after_december_1988(self):
+        text = "\n".join(cis_weather.retrospective_lines())
+        for year in range(1989, 2001):
+            self.assertNotIn(str(year), text, f"post-1988 year leaked: {year}")
+
+    def test_no_anachronistic_decades(self):
+        text = "\n".join(cis_weather.retrospective_lines()).upper()
+        self.assertNotIn("WILMA", text)  # 2005 storm, unknowable in 1988
+
+
+class TestRetrospectiveShape(unittest.TestCase):
+    def test_lines_are_non_empty_strings(self):
+        lines = cis_weather.retrospective_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(line, str) for line in lines))
+
+    def test_terminal_line_width(self):
+        # Wire terminal pages wrap badly past 80 columns.
+        for line in cis_weather.retrospective_lines():
+            self.assertLessEqual(len(line), 76, f"line too long: {line!r}")
+
+    def test_sub_article_functions_return_lines(self):
+        self.assertTrue(cis_weather.gilbert_retrospective_lines())
+        self.assertTrue(cis_weather.drought_retrospective_lines())
+
+    def test_retrospective_accepts_explicit_day(self):
+        from datetime import date
+        lines = cis_weather.retrospective_lines(date(1988, 12, 15))
+        self.assertIn("WEATHER WIRE SPECIAL -- 1988 WEATHER RETROSPECTIVE", lines)
+
+
+if __name__ == "__main__":
+    unittest.main()
