@@ -1610,7 +1610,8 @@ class NavigationTests(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, "-c", "import compuserve"],
                 cwd=directory,
-                env={"PYTHONPATH": str(compuserve.BASE_DIR)},
+                # Windows Python needs SystemRoot for OS initialization.
+                env={**os.environ, "PYTHONPATH": str(compuserve.BASE_DIR)},
                 capture_output=True,
                 text=True,
                 timeout=10,
