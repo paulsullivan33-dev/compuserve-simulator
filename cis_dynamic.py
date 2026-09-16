@@ -6,6 +6,9 @@ import random
 import re
 from datetime import date, datetime, time, timedelta
 
+from cis_session import session_simulation_date
+from cis_timecapsule import pack_for as _timecapsule_pack_for, cb_conversation as _pack_cb_conversation
+
 
 HANDLES = [
     "ByteBender", "NightOwl", "SilverFox", "ModemMan", "DataDave", "LadyLogic",
@@ -117,6 +120,12 @@ TRIVIA = [
 
 
 def simulation_day():
+    # A logged-in session may carry its own time-capsule date (chosen at the
+    # temporal destination screen). It takes precedence; otherwise the global
+    # CIS_SIMULATION_DATE override and the standard calendar apply as before.
+    chosen = session_simulation_date()
+    if chosen is not None:
+        return chosen
     configured = os.environ.get("CIS_SIMULATION_DATE")
     if configured:
         return datetime.strptime(configured, "%Y-%m-%d").date()
@@ -354,6 +363,12 @@ def cb_ambient_events(channel, bucket, recent_text=(), hour=None):
     chance = 0.20 if 1 <= hour < 7 else 0.45 if 7 <= hour < 17 else 0.80
     if randomizer.random() > chance:
         return []
+    # Featured-date packs contribute ambient chatter about their own events.
+    pack = _timecapsule_pack_for(simulation_day())
+    if pack and randomizer.random() < 0.35:
+        conversation = _pack_cb_conversation(pack, randomizer, HANDLES)
+        if conversation:
+            return list(conversation)
     recent = " ".join(str(item).casefold() for item in recent_text[-30:])
     conversations = CB_CONVERSATIONS.get(channel, CB_CONVERSATIONS["1"])
     available = [conversation for conversation in conversations if not any(line.casefold() in recent for _, line in conversation)]

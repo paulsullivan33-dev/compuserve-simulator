@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import builtins
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 
@@ -12,6 +13,7 @@ class SessionState:
     profile: dict[str, Any] = field(default_factory=dict)
     handle: str | None = None
     started_at: float | None = None
+    simulation_date: date | None = None
     top_announcements_shown: bool = False
     navigation_stack: list[str] = field(default_factory=lambda: ["main"])
     last_choices: dict[str, str] = field(default_factory=dict)
@@ -52,6 +54,39 @@ class SessionState:
 # Active only while a signed-in member is navigating services.
 
 _prompt_app = ContextVar("compuserve_prompt_app", default=None)
+
+# The SessionState of the currently running session. Each OS process serves a
+# single session (local console, Flask web terminal, and telnet gateway all
+# spawn one compuserve.py per session), so this is session-scoped in practice.
+# Date-aware modules read it via current_session_state() / session_simulation_date()
+# instead of consulting module-level globals.
+_session_state = ContextVar("compuserve_session_state", default=None)
+
+
+@contextmanager
+def active_session(state):
+    """Mark ``state`` as the session of record for the enclosed block."""
+    token = _session_state.set(state)
+    try:
+        yield
+    finally:
+        _session_state.reset(token)
+
+
+def current_session_state():
+    """Return the SessionState for the running session, or None outside one."""
+    return _session_state.get()
+
+
+def session_simulation_date():
+    """Return the active session's chosen simulation date, or None.
+
+    None means "present day": callers should fall back to their default
+    behavior (the CIS_SIMULATION_DATE override, then the service's
+    standard simulated calendar).
+    """
+    state = _session_state.get()
+    return state.simulation_date if state is not None else None
 
 
 class GoNavigation(Exception):
