@@ -23,14 +23,18 @@ MAX_DATE = date(1998, 12, 31)
 # and everything date-driven (briefing, period news, CB ambience, markets)
 # responds to it, but there is no hand-written archival content per date yet.
 FEATURED_DATES = (
+    (date(1981, 4, 12), "Columbia's first flight"),
     (date(1981, 8, 12), "IBM PC announced"),
     (date(1984, 1, 24), "Apple Macintosh debuts"),
     (date(1985, 7, 13), "Live Aid"),
     (date(1986, 1, 28), "Challenger"),
     (date(1986, 4, 26), "Chernobyl"),
     (date(1987, 10, 19), "Black Monday market crash"),
+    (date(1987, 12, 8), "INF Treaty signed"),
     (date(1989, 3, 24), "Exxon Valdez"),
+    (date(1989, 10, 17), "Loma Prieta earthquake"),
     (date(1989, 11, 9), "Berlin Wall falls"),
+    (date(1990, 4, 24), "Hubble launched"),
     (date(1991, 1, 17), "Desert Storm begins"),
     (date(1991, 8, 6), "First website goes live at CERN"),
 )

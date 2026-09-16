@@ -231,12 +231,13 @@ adds notes to simulated-member profiles.
 
 Connection setup includes a Temporal Destination step: experience CompuServe as of
 the date you choose. Pick **Present Day** (the service's current date), choose from
-ten featured dates, enter any date from 1979 through 1998 as `MM/DD/YYYY`, or let
-**Surprise me** choose a session-scoped deterministic date that stays fixed for that
-call. Featured dates include the IBM PC announcement (1981), the Macintosh debut
-(1984), Live Aid (1985), Challenger and Chernobyl (1986), the Black Monday crash
-(1987), Exxon Valdez and the Berlin Wall's fall (1989), and Desert Storm and the
-first website (1991).
+fourteen featured dates, enter any date from 1979 through 1998 as `MM/DD/YYYY`, or
+let **Surprise me** choose a session-scoped deterministic date that stays fixed for that
+call. Featured dates include Columbia's first flight (1981), the IBM PC
+announcement (1981), the Macintosh debut (1984), Live Aid (1985), Challenger and
+Chernobyl (1986), the Black Monday crash and the INF Treaty signing (1987),
+Exxon Valdez, the Loma Prieta earthquake, and the Berlin Wall's fall (1989), the
+Hubble launch (1990), and Desert Storm and the first website (1991).
 
 Featured dates carry curated archival content packs: period headlines, sysop
 announcements, CB conversation topics, and market notes written for that moment.
@@ -258,9 +259,12 @@ on December 15 the latest issue is *Small Programs, Real Evenings*. Earlier issu
 remain available as back issues. This is authored simulation content, not an
 archived CompuServe publication or a live news subscription.
 
-Each issue has ten articles (50 total), each at least 400 words. All 25 original
+Each issue has thirteen articles (65 total), each at least 400 words. All 25 original
 articles have more than doubled in length. Departments include editorials, hardware comparisons,
-workshops, game reviews, reader letters, and club projects. The issue list shows
+workshops, game reviews, reader letters, and club projects, plus three departments that
+appear in every issue: News Briefs (short December 1988 items), SysOp Q&A (member
+questions answered by the sysop), and Letters to the Editor (member letters about
+computing life). The issue list shows
 how many articles you have read. Choose an issue number or ID, `L` for the latest
 issue, or `S words` to search published articles. Global `FIND words` also indexes
 the magazine, and `GO NEW` highlights the latest issue.
@@ -309,7 +313,7 @@ duplicate the content or restore seeded posts a SysOp has deleted.
 
 ## Community forums
 
-Beyond the computer forums, the directory offers five interest forums. The
+Beyond the computer forums, the directory offers six interest forums. The
 **Amateur Radio Forum** (`GO HAMNET`, choice 5) covers packet radio, HF/VHF rigs,
 antennas and towers, DX and contesting, license study, ARRL bulletins, and swap
 and shop, with December 1988 seed posts and two scheduled on-air nets. The
@@ -322,7 +326,10 @@ electrics, acoustics, amps and effects, a tablature exchange, MIDI and home
 recording, and what's spinning; gear and music discussion stay era-appropriate to
 December 1988. **Tech Talk** (`GO TECH`, choice 14) debates IBM PC and clones,
 Macintosh, Amiga vs Atari ST, OS/2 and operating systems, modems and telecom,
-and CD-ROM and new tech. All five use the standard forum commands for reading,
+and CD-ROM and new tech. The **Space & Astronomy Forum** (`GO SPACE`, choice 15)
+covers shuttle and spaceflight, deep-sky observing, planets and probes, amateur
+telescopes, NASA and space news, and star parties, with December 1988 seed posts.
+All six use the standard forum commands for reading,
 posting, replying, and watching threads. These forums are original fictional
 simulation content, not recovered historical messages.
 
@@ -597,6 +604,12 @@ variety. Rows 1, 4, and 7 are seven-letter across answers; each column holds two
 three-letter down answers crossing exactly one across word. Use `A<num>` to answer
 an across clue, `D<num>` for a down clue, and `GRID` to redisplay the board.
 Progress persists per member until the puzzle is solved.
+
+The **Classic Games Arcade** (Games option 9, `GO ARCADE`) hosts four
+era-appropriate favorites: Hunt the Wumpus, Hamurabi, Super Star Trek, and
+Blackjack. Blackjack is played with fictional arcade chips worth nothing but
+pride. Each game records one entry per member session in Player Records
+(Games option 5).
 
 ## Special Desk investigations
 

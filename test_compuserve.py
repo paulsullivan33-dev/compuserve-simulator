@@ -141,7 +141,7 @@ class MagazineTests(unittest.TestCase):
         self.assertEqual(len(cis_magazine.ISSUES), 5)
         identifiers = []
         for issue in cis_magazine.ISSUES:
-            self.assertEqual(len(issue['articles']), 10)
+            self.assertEqual(len(issue['articles']), 13)
             for article in issue['articles']:
                 identifiers.append(article['id'])
                 self.assertGreaterEqual(len(' '.join(article['paragraphs']).split()), 400)
@@ -2372,7 +2372,7 @@ class ConnectionSetupTimeCapsuleTests(unittest.TestCase):
             patch.object(compuserve, "header_bar"),
         ):
             compuserve.startup_configuration()
-        self.assertEqual(compuserve.pending_simulation_date, date(1989, 11, 9))
+        self.assertEqual(compuserve.pending_simulation_date, date(1987, 12, 8))
 
     def test_temporal_menu_in_connection_setup_accepts_typed_date(self):
         from datetime import date
@@ -2626,9 +2626,9 @@ NEW_DATES = [
 
 
 class NewFeaturedDatesTests(unittest.TestCase):
-    def test_ten_featured_dates_in_chronological_order(self):
+    def test_fourteen_featured_dates_in_chronological_order(self):
         featured = cis_timecapsule.FEATURED_DATES
-        self.assertEqual(len(featured), 10)
+        self.assertEqual(len(featured), 14)
         dates = [when for when, _ in featured]
         self.assertEqual(dates, sorted(dates))
         for when, label in NEW_DATES:
@@ -2636,7 +2636,7 @@ class NewFeaturedDatesTests(unittest.TestCase):
 
     def test_every_featured_date_has_valid_pack(self):
         # cis_timecapsule validates every pack at import; reaching this line
-        # means the validator accepted all 10. Double-check coverage anyway.
+        # means the validator accepted all 14. Double-check coverage anyway.
         for when, _label in cis_timecapsule.FEATURED_DATES:
             pack = cis_timecapsule.pack_for(when)
             self.assertIsNotNone(pack, f"no pack for {when}")
@@ -2696,17 +2696,17 @@ class FeaturedDateMenuTests(unittest.TestCase):
         lines = [str(call.args[0]) for call in scroll.call_args_list]
         return result, lines
 
-    def test_menu_renders_ten_items_and_parses_ten(self):
-        result, lines = self._run_menu(["10"])
+    def test_menu_renders_fourteen_items_and_parses_fourteen(self):
+        result, lines = self._run_menu(["14"])
         numbered = [ln for ln in lines if re.match(r"^\d+  \d\d/\d\d/\d\d\d\d  ", ln)]
-        self.assertEqual(len(numbered), 10)
-        self.assertTrue(numbered[0].startswith("1  08/12/1981"))
-        self.assertTrue(numbered[9].startswith("10  08/06/1991"))
+        self.assertEqual(len(numbered), 14)
+        self.assertTrue(numbered[0].startswith("1  04/12/1981"))
+        self.assertTrue(numbered[13].startswith("14  08/06/1991"))
         self.assertIn("Live Aid", "".join(lines))
         self.assertEqual(result, date(1991, 8, 6))
 
     def test_menu_rejects_out_of_range_choices(self):
-        for bad in ("11", "0"):
+        for bad in ("15", "0"):
             result, lines = self._run_menu([bad, "M"])
             self.assertIsNone(result, f"menu accepted {bad!r}")
             self.assertTrue(
@@ -4288,3 +4288,902 @@ class ContentPack3WiringTests(unittest.TestCase):
         with patch.object(cis_crossword, 'play') as play:
             compuserve.games_service("8")
         play.assert_called_once_with(compuserve)
+
+
+
+# --- Content pack 4: Classic Games Arcade (cis_arcade) ---
+
+"""Unit tests for cis_arcade (Classic Games Arcade).
+
+Core game logic is tested through the engine classes with seeded RNGs;
+no interactive I/O or real runtime files are touched.
+"""
+import random
+import unittest
+from unittest.mock import patch
+
+import cis_arcade
+from cis_arcade import (
+    ARCADE_MENU, RECORDS_KEY, TUNNELS,
+    WumpusGame, HamurabiGame, StarTrekGame, BlackjackGame,
+    hand_value, is_blackjack, make_shoe, dealer_play, settle,
+    arcade_records_lines, record_play,
+)
+
+
+class ArcadeFakeDynamic:
+    """In-memory stand-in for app.cis_dynamic."""
+
+    def __init__(self):
+        self.state = {}
+
+    def load_state(self, app):
+        return self.state
+
+    def save_state(self, app, state):
+        self.state = state
+
+
+class ArcadeFakeApp:
+    def __init__(self, user_id="T100"):
+        self.current_user_id = user_id
+        self.cis_dynamic = ArcadeFakeDynamic()
+
+
+# ---------------------------------------------------------------------------
+# Wumpus
+# ---------------------------------------------------------------------------
+
+class TestWumpusGraph(unittest.TestCase):
+    def test_twenty_rooms_three_tunnels_each(self):
+        self.assertEqual(len(TUNNELS), 20)
+        for room, links in TUNNELS.items():
+            self.assertEqual(len(links), 3, room)
+
+    def test_tunnels_are_symmetric(self):
+        for room, links in TUNNELS.items():
+            for link in links:
+                self.assertIn(room, TUNNELS[link])
+
+
+class TestWumpusGame(unittest.TestCase):
+    def setUp(self):
+        self.game = WumpusGame(rng=random.Random(0))
+        self.game.reset()
+
+    def test_reset_places_hazards_away_from_start(self):
+        self.assertNotIn(1, self.game.pits | self.game.bats)
+        self.assertNotEqual(self.game.wumpus, 1)
+        self.assertNotIn(self.game.wumpus, set(TUNNELS[1]))
+        all_hazards = {self.game.wumpus} | self.game.pits | self.game.bats
+        self.assertEqual(len(all_hazards), 5)  # wumpus + 2 pits + 2 bats, distinct
+        self.assertEqual(self.game.arrows, 5)
+        self.assertEqual(self.game.player, 1)
+
+    def test_warnings_detect_adjacent_hazards(self):
+        self.game.wumpus = 2
+        self.game.pits = {5}
+        self.game.bats = {8}
+        warns = self.game.warnings(1)
+        self.assertIn("I SMELL A WUMPUS!", warns)
+        self.assertIn("I FEEL A DRAFT!", warns)
+        self.assertIn("BATS NEARBY!", warns)
+
+    def test_warnings_quiet_in_safe_room(self):
+        self.game.wumpus = 20
+        self.game.pits = {19, 18}
+        self.game.bats = {17, 16}
+        self.assertEqual(self.game.warnings(1), [])
+
+    def test_move_to_neighbor(self):
+        self.game.wumpus = 20
+        self.game.pits = set()
+        self.game.bats = set()
+        result = self.game.move_to(2)
+        self.assertEqual(result, "MOVED")
+        self.assertEqual(self.game.player, 2)
+        self.assertEqual(self.game.moves, 1)
+
+    def test_move_to_non_neighbor_rejected(self):
+        self.assertEqual(self.game.move_to(20), "NO_TUNNEL")
+        self.assertEqual(self.game.player, 1)
+
+    def test_entering_wumpus_room_kills(self):
+        self.game.wumpus = 2
+        self.game.pits = set()
+        self.game.bats = set()
+        self.assertEqual(self.game.move_to(2), "EATEN")
+        self.assertFalse(self.game.alive)
+
+    def test_entering_pit_kills(self):
+        self.game.pits = {2}
+        self.game.bats = set()
+        self.game.wumpus = 20
+        self.assertEqual(self.game.move_to(2), "PIT")
+        self.assertFalse(self.game.alive)
+
+    def test_bats_carry_player_away(self):
+        self.game.bats = {2}
+        self.game.pits = set()
+        self.game.wumpus = 20
+        result = self.game.move_to(2)
+        self.assertIn(result, ("BATS", "EATEN", "PIT"))
+        self.assertNotEqual(self.game.player, 2)
+
+    def test_shooting_wumpus_wins(self):
+        self.game.wumpus = 2
+        self.game.pits = set()
+        self.game.bats = set()
+        self.assertEqual(self.game.fire([2]), "KILL")
+        self.assertTrue(self.game.won)
+        self.assertEqual(self.game.arrows, 4)
+
+    def test_arrow_that_returns_kills_player(self):
+        self.game.wumpus = 8  # not on the path
+        self.game.pits = set()
+        self.game.bats = set()
+        self.assertEqual(self.game.fire([2, 1]), "SUICIDE")
+        self.assertFalse(self.game.alive)
+
+    def test_miss_consumes_arrow_and_wakes_wumpus(self):
+        self.game.wumpus = 20
+        self.game.pits = set()
+        self.game.bats = set()
+        result = self.game.fire([2, 3])
+        self.assertIn(result, ("MISS", "MISS_MOVED", "EATEN"))
+        self.assertEqual(self.game.arrows, 4)
+        self.assertTrue(self.game.wumpus_awake)
+
+    def test_no_arrows_no_shot(self):
+        self.game.arrows = 0
+        self.assertEqual(self.game.fire([2]), "NO_ARROWS")
+
+
+# ---------------------------------------------------------------------------
+# Hamurabi
+# ---------------------------------------------------------------------------
+
+class TestHamurabi(unittest.TestCase):
+    def setUp(self):
+        self.game = HamurabiGame(rng=random.Random(42))
+
+    def test_starting_position(self):
+        self.assertEqual(self.game.population, 100)
+        self.assertEqual(self.game.grain, 2800)
+        self.assertEqual(self.game.land, 1000)
+        self.assertEqual(self.game.year, 0)
+
+    def test_validate_rejects_impossible_orders(self):
+        self.assertIsNotNone(self.game.validate(buy=100000, sell=0, feed=0, plant=0))
+        self.assertIsNotNone(self.game.validate(buy=0, sell=2000, feed=0, plant=0))
+        self.assertIsNotNone(self.game.validate(buy=0, sell=0, feed=999999, plant=0))
+        self.assertIsNotNone(self.game.validate(buy=0, sell=0, feed=0, plant=2000))
+        self.assertIsNotNone(self.game.validate(buy=-1, sell=0, feed=0, plant=0))
+        self.assertIsNotNone(self.game.validate(buy=1, sell=1, feed=0, plant=0))
+
+    def test_validate_accepts_sane_orders(self):
+        self.assertIsNone(self.game.validate(buy=10, sell=0, feed=2000, plant=100))
+
+    def test_year_resolution_feeds_and_harvests(self):
+        report = self.game.play_year(buy=0, sell=0, feed=2000, plant=100)
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["year"], 1)
+        self.assertEqual(report["starved"], 0)
+        # grain: 2800 - 2000 feed - 50 seed + harvest(100 * yield 1..6)
+        self.assertEqual(self.game.grain, 800 - 50 + report["harvest"])
+        self.assertGreater(self.game.population, 0)
+
+    def test_total_starvation_impeaches(self):
+        report = self.game.play_year(buy=0, sell=0, feed=0, plant=0)
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["starved"], 100)
+        self.assertTrue(report["impeached"])
+        self.assertTrue(report["over"])
+
+    def test_ten_years_ends_reign(self):
+        game = HamurabiGame(rng=random.Random(0))
+        for _ in range(40):
+            if game.over:
+                break
+            # Conservative governor: sell land to cover any feeding shortfall,
+            # keep a food reserve, plant the surplus, feed everyone.
+            price = game.price
+            need = 20 * game.population
+            sell = 0
+            if game.grain < need:
+                sell = min(game.land, (need - game.grain + price - 1) // price)
+            avail = game.grain + sell * price
+            surplus = avail - need - int(0.75 * need)
+            plant = min(10 * game.population, game.land - sell, max(0, surplus) * 2)
+            feed = min(need, avail - plant // 2)
+            report = game.play_year(buy=0, sell=sell, feed=feed, plant=plant)
+            self.assertTrue(report["ok"])
+        self.assertTrue(game.over)
+        self.assertEqual(game.year, 10)
+        self.assertFalse(game.impeached)
+
+    def test_final_score_bounded(self):
+        score = self.game.final_score()
+        self.assertGreaterEqual(score, 0)
+        self.assertLessEqual(score, 100)
+
+    def test_impeachment_epitaph(self):
+        self.game.impeached = True
+        self.assertIn("impeached", self.game.epitaph().lower())
+
+
+# ---------------------------------------------------------------------------
+# Star Trek
+# ---------------------------------------------------------------------------
+
+class TestStarTrek(unittest.TestCase):
+    def setUp(self):
+        self.game = StarTrekGame(rng=random.Random(7))
+        self.game.new_mission(klingons=4)
+
+    def test_mission_setup(self):
+        self.assertEqual(self.game.klingons_total, 4)
+        self.assertEqual(self.game.klingons_left(), 4)
+        self.assertEqual(len(self.game.galaxy), 64)
+        self.assertEqual(self.game.energy, 3000)
+        self.assertEqual(self.game.torpedoes, 10)
+        self.assertGreater(self.game.deadline, self.game.stardate)
+
+    def test_nav_costs_energy_and_time(self):
+        self.game.enterprise = (0, 0)
+        for q in self.game.galaxy.values():
+            q["klingons"] = []
+        self.game.galaxy[(1, 1)]["klingons"] = []
+        log = self.game.nav(1, 1)
+        self.assertEqual(self.game.enterprise, (1, 1))
+        self.assertEqual(self.game.energy, 3000 - 2 * 40)
+        self.assertTrue(any("Warp" in line for line in log))
+
+    def test_nav_rejects_bad_coordinates(self):
+        log = self.game.nav(9, 9)
+        self.assertTrue(any("out of range" in line for line in log))
+        self.assertEqual(self.game.enterprise, self.game.enterprise)
+
+    def test_phasers_destroy_klingon(self):
+        self.game.enterprise = (0, 0)
+        here = self.game.galaxy[(0, 0)]
+        here["klingons"] = [50]
+        here["starbase"] = False
+        self.game.shields = 3000
+        log = self.game.phasers(3000)
+        self.assertEqual(here["klingons"], [])
+        self.assertTrue(any("destroyed" in line.lower() for line in log))
+
+    def test_phasers_need_target(self):
+        self.game.enterprise = (0, 0)
+        self.game.galaxy[(0, 0)]["klingons"] = []
+        log = self.game.phasers(100)
+        self.assertTrue(any("No Klingons" in line for line in log))
+
+    def test_torpedo_out_of_range_fizzles(self):
+        self.game.enterprise = (0, 0)
+        before = self.game.torpedoes
+        log = self.game.torpedo(7, 7)
+        self.assertEqual(self.game.torpedoes, before - 1)
+        self.assertTrue(any("fizzles" in line for line in log))
+
+    def test_torpedo_kills_adjacent_klingon(self):
+        game = StarTrekGame(rng=random.Random(1))
+        game.new_mission(klingons=1)
+        for q in game.galaxy.values():
+            q["klingons"] = []
+        game.enterprise = (3, 3)
+        game.galaxy[(3, 4)]["klingons"] = [200]
+        game.klingons_total = 1
+        for _ in range(9):
+            if game.won:
+                break
+            game.torpedo(3, 4)
+        self.assertEqual(game.galaxy[(3, 4)]["klingons"], [])
+        self.assertTrue(game.won)
+
+    def test_shields_transfer(self):
+        self.assertEqual(self.game.shields_cmd(500), ["Shields now 500; energy 2500."])
+        self.assertEqual(self.game.shields_cmd(-200), ["Shields now 300; energy 2700."])
+
+    def test_shields_reject_overdraft(self):
+        self.assertTrue(any("Insufficient" in line for line in self.game.shields_cmd(99999)))
+        self.assertTrue(any("Only" in line for line in self.game.shields_cmd(-1)))
+
+    def test_dock_repairs_and_refuels(self):
+        self.game.enterprise = (0, 0)
+        self.game.galaxy[(0, 0)]["starbase"] = True
+        self.game.galaxy[(0, 0)]["klingons"] = []
+        self.game.energy = 100
+        self.game.shields = 5
+        self.game.torpedoes = 1
+        self.game.damaged = {"PHA": 2}
+        log = self.game.dock()
+        self.assertEqual(self.game.energy, 3000)
+        self.assertEqual(self.game.torpedoes, 10)
+        self.assertEqual(self.game.damaged, {})
+        self.assertTrue(any("Docked" in line for line in log))
+
+    def test_klingon_attack_hurts(self):
+        self.game.enterprise = (0, 0)
+        here = self.game.galaxy[(0, 0)]
+        here["klingons"] = [300]
+        self.game.shields = 0
+        energy_before = self.game.energy
+        log = self.game._klingon_attack()
+        self.assertLess(self.game.energy, energy_before)
+        self.assertTrue(any("Klingon fires" in line for line in log))
+
+    def test_victory_when_all_klingons_gone(self):
+        for q in self.game.galaxy.values():
+            q["klingons"] = []
+        log = []
+        self.game._check_victory(log)
+        self.assertTrue(self.game.won)
+        self.assertTrue(self.game.over)
+        self.assertTrue(any("MISSION ACCOMPLISHED" in line for line in log))
+
+    def test_scans_return_lines(self):
+        srs = self.game.srs()
+        lrs = self.game.lrs()
+        self.assertTrue(srs[0].startswith("--- SHORT RANGE SCAN ---"))
+        self.assertTrue(lrs[0].startswith("--- LONG RANGE SCAN ---"))
+        self.assertEqual(len(lrs), 5)
+
+
+# ---------------------------------------------------------------------------
+# Blackjack
+# ---------------------------------------------------------------------------
+
+class TestBlackjackMath(unittest.TestCase):
+    def test_hand_values(self):
+        self.assertEqual(hand_value(["AS", "KD"]), (21, True))
+        self.assertEqual(hand_value(["AS", "9H"]), (20, True))
+        self.assertEqual(hand_value(["AS", "9H", "AD"]), (21, True))
+        self.assertEqual(hand_value(["9H", "7D"]), (16, False))
+        self.assertEqual(hand_value(["10H", "6D", "7C"]), (23, False))
+        self.assertEqual(hand_value(["AC", "AC", "9H"]), (21, True))
+
+    def test_blackjack_detection(self):
+        self.assertTrue(is_blackjack(["AS", "KD"]))
+        self.assertFalse(is_blackjack(["AS", "9H", "AD"]))
+        self.assertFalse(is_blackjack(["10H", "7D"]))
+
+    def test_shoe_size(self):
+        self.assertEqual(len(make_shoe(4, random.Random(0))), 208)
+        self.assertEqual(len(make_shoe(1, random.Random(0))), 52)
+
+    def test_dealer_hits_to_17(self):
+        shoe = ["2H", "5C"]  # pop() takes from the end
+        final = dealer_play(shoe, ["10H", "6D"])
+        self.assertEqual(hand_value(final)[0], 21)
+
+    def test_dealer_stands_on_17(self):
+        shoe = ["5C"]
+        final = dealer_play(shoe, ["10H", "7D"])
+        self.assertEqual(len(final), 2)
+        self.assertEqual(shoe, ["5C"])  # untouched
+
+    def test_settle_outcomes(self):
+        self.assertEqual(settle(["AS", "KD"], ["10H", "7D"], 100), ("blackjack", 150))
+        self.assertEqual(settle(["10H", "7D"], ["10H", "7D"], 100), ("push", 0))
+        self.assertEqual(settle(["10H", "9D"], ["10H", "6D"], 100), ("win", 100))
+        self.assertEqual(settle(["10H", "6D"], ["10H", "9D"], 100), ("lose", -100))
+        self.assertEqual(settle(["10H", "6D", "9C"], ["10H", "7D"], 100), ("bust", -100))
+        self.assertEqual(settle(["10H", "7D"], ["10H", "6D", "9C"], 100), ("dealer_bust", 100))
+        self.assertEqual(settle(["AS", "KD"], ["AC", "QH"], 100), ("push", 0))
+
+
+class TestBlackjackGame(unittest.TestCase):
+    def test_play_hand_stand(self):
+        game = BlackjackGame(rng=random.Random(1))
+        player, dealer, outcome, delta = game.play_hand(100, ["S"])
+        self.assertEqual(game.hands, 1)
+        self.assertIn(outcome, ("win", "lose", "push", "blackjack", "bust", "dealer_bust"))
+        self.assertEqual(game.chips, 500 + delta)
+
+    def test_chips_run_out_records_session(self):
+        app = ArcadeFakeApp()
+        game = BlackjackGame(rng=random.Random(1), app=app, chips=10)
+        game.chips = 0
+        game._finish_session()
+        rec = app.cis_dynamic.state[RECORDS_KEY]["T100"]["blackjack"]
+        self.assertEqual(rec["plays"], 1)
+        self.assertTrue(game._recorded)
+
+
+# ---------------------------------------------------------------------------
+# Records
+# ---------------------------------------------------------------------------
+
+class TestRecords(unittest.TestCase):
+    def test_record_play_persists_and_reports(self):
+        app = ArcadeFakeApp()
+        line = record_play(app, "T100", "wumpus", True, best=4, best_note="arrows left")
+        self.assertIn("1 wins in 1 games", line)
+        entry = app.cis_dynamic.state[RECORDS_KEY]["T100"]["wumpus"]
+        self.assertEqual(entry, {"plays": 1, "wins": 1, "best": 4, "best_note": "arrows left"})
+
+    def test_record_play_offline_without_app(self):
+        self.assertIn("offline", record_play(None, "GUEST", "wumpus", True))
+
+    def test_wumpus_win_records_once(self):
+        app = ArcadeFakeApp()
+        game = WumpusGame(rng=random.Random(0), app=app, user_id="T100")
+        game.wumpus = 2
+        game.pits = set()
+        game.bats = set()
+        self.assertEqual(game.fire([2]), "KILL")
+        entry = app.cis_dynamic.state[RECORDS_KEY]["T100"]["wumpus"]
+        self.assertEqual(entry["plays"], 1)
+        self.assertEqual(entry["wins"], 1)
+        self.assertEqual(entry["best"], 4)
+        # further actions do not double-record
+        game.fire([2])
+        self.assertEqual(app.cis_dynamic.state[RECORDS_KEY]["T100"]["wumpus"]["plays"], 1)
+
+    def test_arcade_records_lines_format(self):
+        state = {RECORDS_KEY: {"T100": {
+            "wumpus": {"plays": 3, "wins": 1, "best": 4, "best_note": "arrows left"},
+            "hamurabi": {"plays": 2, "wins": 2, "best": 87, "best_note": "score"},
+            "startrek": {"plays": 1, "wins": 0, "best": 0, "best_note": ""},
+            "blackjack": {"plays": 10, "wins": 6, "best": 900, "best_note": "chips"},
+        }}}
+        lines = arcade_records_lines(state, "T100")
+        self.assertEqual(len(lines), 4)
+        self.assertTrue(lines[0].startswith("ARCADE WUMPUS"))
+        self.assertIn("WINS 1", lines[0])
+        self.assertIn("4 best arrows left", lines[0])
+        self.assertTrue(lines[3].startswith("ARCADE BLACKJACK"))
+        self.assertIn("HANDS 10", lines[3])
+
+    def test_arcade_records_lines_empty_state(self):
+        lines = arcade_records_lines({}, "NOBODY")
+        self.assertEqual(len(lines), 4)
+        self.assertIn("---", lines[0])
+
+
+# ---------------------------------------------------------------------------
+# Submenu wiring
+# ---------------------------------------------------------------------------
+
+class TestArcadeMenu(unittest.TestCase):
+    def test_menu_lists_four_games(self):
+        keys = [key for key, _, _ in ARCADE_MENU]
+        self.assertEqual(keys, ["1", "2", "3", "4"])
+        names = [name for _, name, _ in ARCADE_MENU]
+        self.assertEqual(names, ["HUNT THE WUMPUS", "HAMURABI", "SUPER STAR TREK", "BLACKJACK"])
+
+    def test_menu_text_mentions_all_games(self):
+        text = "\n".join(cis_arcade.arcade_menu_text())
+        for name in ("HUNT THE WUMPUS", "HAMURABI", "SUPER STAR TREK", "BLACKJACK"):
+            self.assertIn(name, text)
+
+    def test_play_quits_on_m(self):
+        app = ArcadeFakeApp()
+        with patch.object(cis_arcade, "input", return_value="M"):
+            cis_arcade.play(app)  # returns without error
+
+    def test_play_rejects_bad_choice_then_quits(self):
+        app = ArcadeFakeApp()
+        with patch.object(cis_arcade, "input", side_effect=["9", "M"]):
+            cis_arcade.play(app)
+
+
+# --- Content pack 4: Space & Astronomy forum (cis_space) ---
+
+"""Tests for the Space & Astronomy forum content module (cis_space).
+
+Verifies section spec shape, seed post fields, content_id prefix,
+December 1988 dates, section/spec consistency, and that
+computer_communities.json parses and contains the 16 space posts.
+These tests are read-only: they never modify real runtime files.
+"""
+
+import json
+import os
+import re
+import unittest
+
+import cis_space
+
+SPACE_REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+COMMUNITIES_PATH = os.path.join(SPACE_REPO_DIR, "computer_communities.json")
+
+SPACE_EXPECTED_SECTIONS = {
+    "1": ("space_shuttle", "Shuttle & Spaceflight"),
+    "2": ("space_deepsky", "Deep Sky Observing"),
+    "3": ("space_planets", "Planets & Probes"),
+    "4": ("space_scopes", "Amateur Telescopes"),
+    "5": ("space_nasa", "NASA & Space News"),
+    "6": ("space_starparty", "Star Parties"),
+}
+
+SPACE_REQUIRED_FIELDS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
+
+
+class TestSpaceSectionSpec(unittest.TestCase):
+    def test_forum_id_and_title(self):
+        self.assertEqual(cis_space.FORUM_ID, "space")
+        self.assertEqual(cis_space.FORUM_TITLE, "Space & Astronomy Forum")
+
+    def test_section_spec_shape(self):
+        spec = cis_space.section_spec()
+        self.assertEqual(len(spec), 6)
+        self.assertEqual(spec, SPACE_EXPECTED_SECTIONS)
+        for key, (section_id, title) in spec.items():
+            self.assertIsInstance(key, str)
+            self.assertIsInstance(section_id, str)
+            self.assertTrue(section_id.startswith("space_"))
+            self.assertIsInstance(title, str)
+            self.assertTrue(title)
+
+    def test_sections_constant_matches_spec(self):
+        self.assertEqual(cis_space.section_spec(), dict(cis_space.SECTIONS))
+
+
+class TestSpaceSeedPosts(unittest.TestCase):
+    def test_sixteen_seed_posts(self):
+        self.assertEqual(len(cis_space.SEED_POSTS), 16)
+        self.assertEqual(len(cis_space.seed_posts()), 16)
+
+    def test_valid_fields(self):
+        for post in cis_space.SEED_POSTS:
+            self.assertEqual(set(post.keys()), SPACE_REQUIRED_FIELDS)
+            for field in ("content_id", "section", "date", "author", "subject", "body"):
+                self.assertIsInstance(post[field], str)
+                self.assertTrue(post[field], msg=post["content_id"])
+            self.assertIsNone(post["parent"])
+
+    def test_content_id_prefix_and_sequence(self):
+        ids = [p["content_id"] for p in cis_space.SEED_POSTS]
+        self.assertEqual(len(set(ids)), 16)
+        for i, cid in enumerate(ids, start=1):
+            self.assertEqual(cid, "space-1988-%03d" % i)
+
+    def test_dates_within_december_1988(self):
+        for post in cis_space.SEED_POSTS:
+            self.assertRegex(post["date"], r"^12/\d{2}/88$", msg=post["content_id"])
+            day = int(post["date"].split("/")[1])
+            self.assertGreaterEqual(day, 1)
+            self.assertLessEqual(day, 31)
+
+    def test_sections_match_spec(self):
+        valid = {sid for sid, _ in cis_space.section_spec().values()}
+        for post in cis_space.SEED_POSTS:
+            self.assertIn(post["section"], valid, msg=post["content_id"])
+
+    def test_all_sections_have_posts(self):
+        used = {p["section"] for p in cis_space.SEED_POSTS}
+        valid = {sid for sid, _ in cis_space.section_spec().values()}
+        self.assertEqual(used, valid)
+
+    def test_seed_posts_returns_copies(self):
+        first = cis_space.seed_posts()
+        first[0]["subject"] = "mutated"
+        self.assertNotEqual(cis_space.SEED_POSTS[0]["subject"], "mutated")
+
+    def test_varied_authors(self):
+        authors = {p["author"] for p in cis_space.SEED_POSTS}
+        self.assertGreaterEqual(len(authors), 8)
+
+    def test_no_post_1988_content(self):
+        banned = ["Hubble", "1990", "1991", "1992", "internet", "World Wide Web",
+                  "digital camera", "digital astro", "CCD camera"]
+        for post in cis_space.SEED_POSTS:
+            text = post["subject"] + " " + post["body"]
+            for word in banned:
+                self.assertNotIn(word, text, msg=post["content_id"])
+
+
+class TestSpaceInCommunitiesJson(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with open(COMMUNITIES_PATH, encoding="utf-8") as fh:
+            cls.data = json.load(fh)
+
+    def test_top_level_shape(self):
+        for key in ("id", "provenance", "forums", "messages", "files"):
+            self.assertIn(key, self.data)
+
+    def test_contains_sixteen_space_posts(self):
+        msgs = [m for m in self.data["messages"]
+                if m["content_id"].startswith("space-")]
+        self.assertEqual(len(msgs), 16)
+
+    def test_space_messages_mirror_seed_posts(self):
+        by_id = {m["content_id"]: m for m in self.data["messages"]}
+        for post in cis_space.SEED_POSTS:
+            stored = by_id[post["content_id"]]
+            for field in SPACE_REQUIRED_FIELDS:
+                self.assertEqual(stored[field], post[field],
+                                 msg=(post["content_id"], field))
+
+
+# --- Content pack 4: Space & Astronomy forum wiring (from WIRING-space.md) ---
+class TestSpaceForumContentPack4(unittest.TestCase):
+    def test_forum_catalog_wiring(self):
+        entry = compuserve.FORUM_CATALOG["space"]
+        self.assertEqual(entry["title"], "Space & Astronomy Forum")
+        self.assertEqual(entry["sections"], cis_space.section_spec())
+
+    def test_forum_choice_number(self):
+        self.assertEqual(compuserve.FORUM_CHOICES["15"], "space")
+
+    def test_go_space(self):
+        self.assertEqual(compuserve.resolve_go_destination("SPACE"), "space")
+
+    def test_seed_messages_in_computer_communities(self):
+        pack = json.loads((REPO_ROOT / "computer_communities.json").read_text(encoding="utf-8"))
+        space_posts = [m for m in pack["messages"]
+                       if m["content_id"].startswith("space-1988-")]
+        self.assertEqual(len(space_posts), len(cis_space.SEED_POSTS))
+        valid = {sec_id for sec_id, _ in cis_space.SECTIONS.values()}
+        for message in space_posts:
+            self.assertIn(message["section"], valid, message["content_id"])
+
+    def test_all_space_sections_reachable(self):
+        for key, (section_id, _title) in cis_space.section_spec().items():
+            self.assertIn(key, compuserve.FORUM_CATALOG["space"]["sections"])
+
+
+# --- Content pack 4: four new time-capsule dates (cis_timecapsule) ---
+
+"""Tests for content pack 4 of the time capsule (four new featured dates).
+
+Run: python3 -m unittest test_timecapsule4
+The finisher merges these tests into test_compuserve.py (see
+WIRING-timecapsule.md).
+"""
+import json
+import re
+import unittest
+from datetime import date
+
+import cis_timecapsule
+
+# The four new packs delivered by content pack 4: ISO date -> expected label.
+NEW_PACKS = {
+    "1981-04-12": "Columbia's first flight",
+    "1987-12-08": "INF Treaty signed",
+    "1989-10-17": "Loma Prieta earthquake",
+    "1990-04-24": "Hubble launched",
+}
+
+
+def pack_text(pack):
+    """Every user-visible string in a pack, lowercased, for content scans."""
+    return json.dumps(pack).lower()
+
+
+class TimeCapsulePack4Tests(unittest.TestCase):
+    def test_fourteen_featured_dates_in_chronological_order(self):
+        featured = cis_timecapsule.FEATURED_DATES
+        self.assertEqual(len(featured), 14)
+        dates = [when for when, _label in featured]
+        self.assertEqual(dates, sorted(dates))
+        self.assertEqual(len(set(dates)), 14)
+        for when in dates:
+            self.assertTrue(cis_timecapsule.MIN_DATE <= when <= cis_timecapsule.MAX_DATE)
+        # The four new dates are present with their labels.
+        lookup = {when.isoformat(): label for when, label in featured}
+        for iso, label in NEW_PACKS.items():
+            self.assertEqual(lookup.get(iso), label)
+
+    def test_all_fourteen_packs_pass_strict_validation(self):
+        # Re-run the loader so the file on disk is validated exactly the way
+        # the import-time check validates it.
+        packs = cis_timecapsule._load_packs()
+        self.assertEqual(len(packs), 14)
+        featured_keys = {when.isoformat() for when, _ in cis_timecapsule.FEATURED_DATES}
+        self.assertEqual(set(packs), featured_keys)
+        required = {"date", "label", "headlines", "announcements", "cb_topics",
+                    "market_notes", "on_this_day"}
+        story_fields = {"id", "category", "title", "summary", "published", "source"}
+        for key, pack in packs.items():
+            with self.subTest(pack=key):
+                self.assertTrue(required.issubset(pack))
+                self.assertEqual(pack["date"], key)
+                # The four new packs carry their menu labels verbatim.
+                if key in NEW_PACKS:
+                    self.assertEqual(pack["label"], NEW_PACKS[key])
+                self.assertTrue(8 <= len(pack["headlines"]) <= 12)
+                self.assertTrue(2 <= len(pack["announcements"]) <= 4)
+                self.assertTrue(4 <= len(pack["cb_topics"]) <= 6)
+                self.assertTrue(0 <= len(pack["market_notes"]) <= 4)
+                self.assertTrue(2 <= len(pack["on_this_day"]) <= 3)
+                for story in pack["headlines"]:
+                    self.assertTrue(story_fields.issubset(story))
+                    for field in story_fields:
+                        self.assertTrue(story[field], f"empty {field} in {story.get('id')}")
+
+    def test_new_pack_labels_and_dates(self):
+        for iso, label in NEW_PACKS.items():
+            with self.subTest(pack=iso):
+                pack = cis_timecapsule.pack_for(date.fromisoformat(iso))
+                self.assertIsNotNone(pack)
+                self.assertEqual(pack["date"], iso)
+                self.assertEqual(pack["label"], label)
+                self.assertEqual(pack["label"], NEW_PACKS[pack["date"]])
+
+    def test_1981_pack_has_no_anachronisms(self):
+        # The IBM PC was announced in August 1981; Challenger flew in 1986.
+        pack = cis_timecapsule.pack_for(date(1981, 4, 12))
+        text = pack_text(pack)
+        for term in ("challenger", "ibm pc", "personal computer", "model 5150",
+                     "pc-dos", "ms-dos", "mtv", "endeavour"):
+            with self.subTest(term=term):
+                self.assertNotIn(term, text)
+
+    def test_1987_pack_has_no_berlin_wall_fall_claim(self):
+        # The wall stood in December 1987; its fall (November 1989) must not
+        # be referenced. The pack keeps the wall out entirely, and this test
+        # also rejects any "the wall fell / came down" style claim.
+        pack = cis_timecapsule.pack_for(date(1987, 12, 8))
+        text = pack_text(pack)
+        self.assertNotIn("berlin wall", text)
+        self.assertIsNone(re.search(r"\bwall\b.{0,60}\b(fell|falls|falling|came down|"
+                                    r"torn down|opened|crossed freely)\b", text))
+
+    def test_1989_pack_has_no_hubble(self):
+        # Hubble launched in April 1990, after the October 1989 quake.
+        pack = cis_timecapsule.pack_for(date(1989, 10, 17))
+        text = pack_text(pack)
+        for term in ("hubble", "space telescope"):
+            with self.subTest(term=term):
+                self.assertNotIn(term, text)
+
+    def test_1990_pack_has_no_desert_storm(self):
+        # Desert Storm began in January 1991, after the April 1990 launch.
+        pack = cis_timecapsule.pack_for(date(1990, 4, 24))
+        text = pack_text(pack)
+        for term in ("desert storm", "desert shield", "saddam", "kuwait", "iraq"):
+            with self.subTest(term=term):
+                self.assertNotIn(term, text)
+
+
+# --- Content pack 4: magazine department expansion (cis_magazine) ---
+
+"""Tests for content pack 4: new magazine departments (Worker D).
+
+New recurring departments (News Briefs, SysOp Q&A, Letters to the Editor) are
+merged into cis_magazine.ISSUES at import time from cis_magazine.py only;
+magazine_issues.json must stay byte-identical to git HEAD and all original
+article IDs (suffixes 1-10) must be present and unchanged.
+"""
+import re
+import subprocess
+import tempfile
+import unittest
+from datetime import date
+from pathlib import Path
+from unittest.mock import patch
+
+import cis_magazine
+
+MAG_REPO_DIR = Path(__file__).resolve().parent
+ISSUE_DATES = {
+    'OW881201': '1988-12-01',
+    'OW881208': '1988-12-08',
+    'OW881215': '1988-12-15',
+    'OW881222': '1988-12-22',
+    'OW881229': '1988-12-29',
+}
+NEW_DEPARTMENTS = {'News Briefs', 'SysOp Q&A', 'Letters to the Editor'}
+NEW_SUFFIXES = ('-11', '-12', '-13')
+
+
+def new_articles(issue):
+    return [a for a in issue['articles'] if a['id'].endswith(NEW_SUFFIXES)]
+
+
+class MagazinePack4Tests(unittest.TestCase):
+    def test_issue_dates_unchanged(self):
+        self.assertEqual(len(cis_magazine.ISSUES), 5)
+        for issue in cis_magazine.ISSUES:
+            self.assertEqual(issue['date'], ISSUE_DATES[issue['id']])
+
+    def test_source_json_untouched(self):
+        committed = subprocess.run(
+            ['git', 'show', 'HEAD:magazine_issues.json'],
+            cwd=MAG_REPO_DIR, capture_output=True, check=True).stdout
+        self.assertEqual(
+            (MAG_REPO_DIR / 'magazine_issues.json').read_bytes(), committed,
+            'magazine_issues.json must stay untouched; pack-4 content lives in cis_magazine.py')
+
+    def test_original_article_ids_present_and_unchanged(self):
+        for issue in cis_magazine.ISSUES:
+            originals = issue['articles'][:10]
+            self.assertEqual(
+                [a['id'] for a in originals],
+                [f"{issue['id']}-{n}" for n in range(1, 11)],
+                'original articles keep their positions and IDs')
+            self.assertEqual(len(issue['articles']), 13)
+
+    def test_new_departments_present_in_each_issue(self):
+        for issue in cis_magazine.ISSUES:
+            with self.subTest(issue=issue['id']):
+                added = new_articles(issue)
+                self.assertEqual(len(added), 3)
+                self.assertEqual(
+                    {a['department'] for a in added}, NEW_DEPARTMENTS)
+                self.assertEqual(
+                    sorted(a['id'] for a in added),
+                    [f"{issue['id']}-11", f"{issue['id']}-12", f"{issue['id']}-13"])
+
+    def test_new_article_ids_unique_and_retrievable(self):
+        identifiers = [a['id'] for i in cis_magazine.ISSUES for a in i['articles']]
+        self.assertEqual(len(identifiers), len(set(identifiers)))
+        for issue in cis_magazine.ISSUES:
+            day = date.fromisoformat(issue['date'])
+            found = cis_magazine.find_issue(issue['id'], day)
+            self.assertIsNotNone(found)
+            for article in new_articles(issue):
+                index = next(i for i, a in enumerate(found['articles'])
+                             if a['id'] == article['id'])
+                self.assertEqual(found['articles'][index]['title'], article['title'])
+
+    def test_new_articles_meet_editorial_minimums(self):
+        for issue in cis_magazine.ISSUES:
+            for article in new_articles(issue):
+                with self.subTest(article=article['id']):
+                    body = ' '.join(article['paragraphs'])
+                    self.assertGreaterEqual(len(body.split()), 400)
+                    body.encode('ascii')
+                    (article['title'] + article['department'] + article['author']).encode('ascii')
+                    for link in article.get('related', []):
+                        for destination in re.findall(r'GO ([A-Z0-9]+)', link):
+                            import compuserve
+                            self.assertIsNotNone(
+                                compuserve.resolve_go_destination(destination), link)
+
+    def test_publication_gating_still_works(self):
+        self.assertEqual(cis_magazine.available(date(1988, 11, 30)), [])
+        self.assertIsNone(cis_magazine.find_issue('OW881229', date(1988, 12, 15)))
+        self.assertIsNone(cis_magazine.find_issue('OW881222', date(1988, 12, 21)))
+        # New articles are not searchable before their issue's date.
+        self.assertEqual(cis_magazine.search('door trivia game', date(1988, 12, 15)), [])
+        self.assertTrue(cis_magazine.search('door trivia game', date(1988, 12, 22)))
+
+    def test_new_article_text_retrievable_end_to_end(self):
+        issue = cis_magazine.find_issue('OW881208', date(1988, 12, 31))
+        article = next(a for a in issue['articles'] if a['id'] == 'OW881208-12')
+        lines = cis_magazine.article_lines(issue, article)
+        text = '\n'.join(lines)
+        self.assertIn(article['title'], text)
+        self.assertIn('SYSOP Q&A', text)
+        self.assertIn(' '.join(article['paragraphs'][1].split()), ' '.join(text.split()))
+
+    def test_new_article_exported_in_full_issue_download(self):
+        import cis_dynamic
+        import compuserve
+        from cis_terminal import wrap_terminal_text
+        issue = cis_magazine.find_issue('OW881215', date(1988, 12, 31))
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(compuserve, 'BASE_DIR', Path(directory)), \
+                patch.object(cis_dynamic, 'simulation_day', return_value=date(1988, 12, 31)):
+            path = cis_magazine.export_issue(compuserve, issue)
+            raw = path.read_bytes()
+            text = raw.decode('ascii')
+            flattened = ' '.join(text.split())
+            self.assertTrue(all(len(line) <= 72 for line in text.splitlines()))
+            for article in new_articles(issue):
+                self.assertIn(article['title'], text)
+                for paragraph in article['paragraphs']:
+                    self.assertIn(' '.join(paragraph.split()), flattened)
+                for width in (40, 80):
+                    wrapped = [line for line in wrap_terminal_text(paragraph, width)
+                               for paragraph in [article['paragraphs'][0]]]
+                    self.assertTrue(all(len(line) <= width for line in wrapped))
+
+    def test_new_article_selectable_from_issue_menu(self):
+        import compuserve
+        issue = cis_magazine.ISSUES[0]
+        with patch.object(compuserve, 'current_profile', {}), \
+                patch.object(compuserve, 'clear'), \
+                patch.object(compuserve, 'header_bar'), \
+                patch.object(compuserve, 'ansi_scroll'), \
+                patch.object(cis_magazine, 'read_article') as reader, \
+                patch('builtins.input', side_effect=['11', 'M']):
+            cis_magazine.issue_menu(compuserve, issue)
+            reader.assert_called_once_with(compuserve, issue, 10)

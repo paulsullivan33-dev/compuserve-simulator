@@ -74,6 +74,8 @@ import cis_entertainment
 import cis_tech
 import cis_crossword
 import cis_books
+import cis_arcade
+import cis_space
 
 try:
     import msvcrt
@@ -185,14 +187,15 @@ FORUM_CATALOG = {
     "roots": {"title": "Roots & Branches Genealogy Forum", "sections": cis_roots.section_spec()},
     "guitar": {"title": "Guitar & Music Forum", "sections": cis_guitar.section_spec()},
     "tech": {"title": "Tech Talk Forum", "sections": cis_tech.section_spec()},
+    "space": {"title": "Space & Astronomy Forum", "sections": cis_space.section_spec()},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
 FORUM_CATALOG.update(cis_communities.FORUMS)
-FORUM_CHOICES = dict(zip((str(i) for i in range(1, 15)),
+FORUM_CHOICES = dict(zip((str(i) for i in range(1, 16)),
                         ('ibmhw', 'gamers', 'macdev', 'photo', 'hamnet', 'science',
                          'commodore', 'appleii', 'atarist', 'dos',
-                         'veterans', 'roots', 'guitar', 'tech')))
+                         'veterans', 'roots', 'guitar', 'tech', 'space')))
 
 def cis_prompt(context="command"):
     prompts = {
@@ -2374,6 +2377,8 @@ def games_service(choice):
             "Trivia Tournament contains five-question rounds and persistent streak records.",
             "Daily Crossword serves a fresh 1988-themed puzzle every day: A<num>",
             "answers an across clue, D<num> a down clue. GRID redisplays the board.",
+            "Classic Games Arcade (menu 9) hosts Hunt the Wumpus, Hamurabi,",
+            "Super Star Trek, and Blackjack played with fictional arcade chips.",
             "Enter M to return to the previous menu.",
             "$ identifies premium connect-time services.",
         ])
@@ -2385,6 +2390,8 @@ def games_service(choice):
         cis_nightstation.play(sys.modules[__name__])
     elif choice == "8":
         cis_crossword.play(sys.modules[__name__])
+    elif choice == "9":
+        cis_arcade.play(sys.modules[__name__])
 
 
 TRIVIA_BANK = [
@@ -2462,6 +2469,7 @@ def game_records():
         f"LEAGUE LEVEL       {league.get('level', 0)}",
         f"LEAGUE GUILD       {league.get('guild') or '---'}",
     ]
+    lines.extend(cis_arcade.arcade_records_lines(state, user_id))
     text_page("games", "PLAYER RECORDS", lines)
 
 

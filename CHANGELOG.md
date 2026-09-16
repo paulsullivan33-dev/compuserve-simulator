@@ -3,12 +3,19 @@
 ## Unreleased
 
 - Added the time capsule: a Temporal Destination step during connection setup
-  beside the baud-rate prompt, offering Present Day, ten featured dates
+  beside the baud-rate prompt, offering Present Day, fourteen featured dates
   (1981-1991), any date from 1979 through 1998, or session-scoped Surprise Me.
   Featured dates carry curated archival content packs (headlines, sysop
   announcements, CB topics, market notes); each account remembers its last era
   and is offered a post-login "Return to <date>?" shortcut when Present Day is
   chosen. Ambient CB and simulated forum content adapt to the session date.
+
+- Added four new time-capsule featured dates with curated archival content
+  packs: Columbia's first flight (1981-04-12), the INF Treaty signing
+  (1987-12-08), the Loma Prieta earthquake (1989-10-17), and the Hubble launch
+  (1990-04-24). Each pack carries 10 era-written headlines, sysop announcements,
+  CB conversation topics, and market notes; the picker now offers fourteen
+  featured dates in chronological order.
 
 - Added the Amateur Radio Forum (8 sections, 16 seeded December 1988 posts,
   bulletins, two scheduled nets; `GO HAMNET`).
@@ -53,6 +60,23 @@
 - Preserved issue dates and original article IDs for existing reading history.
   Verified tenth-article selection, publication gating, service links, and full
   ASCII exports at terminal-friendly widths.
+
+- Expanded Online Weekly magazine: three new recurring departments in each of
+  the five December 1988 issues — News Briefs, SysOp Q&A, and Letters to the
+  Editor — for 15 new articles (65 total, 13 per issue, each 400+ words).
+  Topics include DOS memory management, modems, backups, a holiday gift guide
+  for computerists, BBS culture, and a 1988 year-in-review. Content is merged
+  from `cis_magazine.py` at load; original article IDs, issue dates, and
+  `magazine_issues.json` are unchanged, so reading history is preserved.
+
+- Added the Classic Games Arcade (Games option 9, `GO ARCADE`): Hunt the Wumpus,
+  Hamurabi, Super Star Trek, and Blackjack played with fictional arcade chips
+  worth nothing but pride, with one entry per game per member session recorded
+  in Player Records.
+
+- Added the Space & Astronomy Forum (6 sections, 16 seeded December 1988 posts;
+  `GO SPACE`): shuttle and spaceflight, deep-sky observing, planets and probes,
+  amateur telescopes, NASA and space news, and star parties.
 
 - GO and G commands now work at nested service prompts, including readers,
   forms, line editing, CB, and the post-login briefing. Navigation exits the

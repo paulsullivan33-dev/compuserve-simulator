@@ -1,23 +1,25 @@
 # Online Weekly editorial notes
 
-The five issues dated December 1, 8, 15, 22, and 29, 1988 now contain ten
+The five issues dated December 1, 8, 15, 22, and 29, 1988 now contain thirteen
 articles each. All 25 original article IDs, titles, bylines, and issue dates are
-retained. New articles use suffixes 6 through 10. Original article bodies were
+retained. Pack-3 articles use suffixes 6 through 10; content pack 4 adds three
+recurring departments (News Briefs, SysOp Q&A, Letters to the Editor) as
+suffixes 11 through 13 in every issue. Original article bodies were
 expanded with concrete examples; none was replaced with repeated filler.
 
 Body-word counts use whitespace-separated words in `paragraphs`, excluding
-titles, navigation links, and bylines. The expanded collection contains 24,072
-body words. The shortest article has 426 words. Each original was checked against
+titles, navigation links, and bylines. The expanded collection contains 30,516
+body words. The shortest article has 401 words. Each original was checked against
 its pre-edit body count and exceeds twice that length. Counts may change with
 later editorial revisions; the content tests enforce a 400-word minimum.
 
 | Issue | Articles | Body words |
 | --- | ---: | ---: |
-| OW881201 | 10 | 4,767 |
-| OW881208 | 10 | 4,753 |
-| OW881215 | 10 | 4,871 |
-| OW881222 | 10 | 4,843 |
-| OW881229 | 10 | 4,838 |
+| OW881201 | 13 | 6,039 |
+| OW881208 | 13 | 6,029 |
+| OW881215 | 13 | 6,150 |
+| OW881222 | 13 | 6,125 |
+| OW881229 | 13 | 6,173 |
 
 ## Historical grounding
 
