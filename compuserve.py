@@ -63,6 +63,9 @@ import cis_disruptions
 import cis_ownership
 import cis_shareware
 import cis_adventure_league
+import cis_hamnet
+import cis_nightstation
+import cis_sports
 
 try:
     import msvcrt
@@ -166,7 +169,10 @@ FORUM_CATALOG = {
     },
     "macdev": {"title": "Macintosh Developers Forum", "sections": {"1": ("macdev_general", "General")}},
     "photo": {"title": "Photography Forum", "sections": {"1": ("photography_general", "General")}},
-    "hamnet": {"title": "Amateur Radio Forum", "sections": {"1": ("hamnet_general", "General")}},
+    "hamnet": {"title": "Amateur Radio Forum", "sections": {
+        "1": ("hamnet_general", "General"),
+        **{str(int(k) + 1): tuple(v) for k, v in cis_hamnet.section_spec().items()},
+    }},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
@@ -1289,6 +1295,27 @@ def forum_conference(forum_id):
             ansi_scroll(line, 0.005)
 
 
+def sports_menu():
+    """Sports & TV submenu (December 1988 setting, session-date aware)."""
+    sections = cis_sports.sports_service(sys.modules[__name__])
+    while True:
+        clear()
+        header_bar("news")
+        ansi_scroll("SPORTS & TV", 0.01)
+        ansi_scroll("-----------", 0.01)
+        for index, (title, _lines) in enumerate(sections, 1):
+            ansi_scroll(f"{index}  {title}", 0.01)
+        ansi_scroll("M  Back", 0.01)
+        choice = input("Choice: ").strip().upper()
+        if choice == "M":
+            return
+        if choice.isdigit() and 1 <= int(choice) <= len(sections):
+            title, lines = sections[int(choice) - 1]
+            text_page("news", title.upper(), lines)
+        else:
+            ansi_scroll("Enter a number from the list, or M.", 0.01)
+
+
 def forum_announcements(forum_id):
     forum = FORUM_CATALOG[forum_id]
     lines = ["SYSOP BULLETIN", f'Welcome to the {forum["title"]}.']
@@ -1296,6 +1323,7 @@ def forum_announcements(forum_id):
         for message in forum_threads.get(section_key, []):
             if "announcement" in section_key or message.get("author") == "SYSOP":
                 lines.extend(["", message["subject"], message["body"]])
+    lines.extend(["", *cis_dynamic.era_forum_bulletins(forum_id)])
     text_page(forum_id, "Forum Announcements", lines)
 
 
@@ -2261,6 +2289,9 @@ def games_service(choice):
         text_page("games", "GAME INSTRUCTIONS", [
             "Most games use short command words or numbered choices.",
             "Adventure supports exploration, optional discoveries, SCORE, MAP, and SAVE.",
+            "Night Shift: Earth Station is a full-length adventure: restore the",
+            "satellite uplink before the 6 AM news feed. Verbs: TAKE, USE, EXAMINE,",
+            "START, FILL, INSTALL, LOAD, TRANSMIT, CLIMB, plus SCORE and TIME.",
             "MegaWars adds missions, shields, missiles, ranks, docking, and a sector map.",
             "Trivia Tournament contains five-question rounds and persistent streak records.",
             "Enter M to return to the previous menu.",
@@ -2270,6 +2301,8 @@ def games_service(choice):
         game_records()
     elif choice == "6":
         cis_adventure_league.service(sys.modules[__name__])
+    elif choice == "7":
+        cis_nightstation.play(sys.modules[__name__])
 
 
 TRIVIA_BANK = [
@@ -2796,7 +2829,7 @@ def cb_channel_directory():
     lines = [f'{key:<12} {counts.get(cis_cb.room(key), 0) + len(cis_dynamic.cb_presence(key)):>2}  {description}' for key, description in cis_cb.CHANNELS.items()]
     custom = sorted({room[3:].upper() for room, _, _, _ in presence if room.startswith("cb:") and room[3:].upper() not in cis_cb.CHANNELS})
     lines.extend(f'{key:<12} {counts.get(cis_cb.room(key), 0):>2}  Member-created channel' for key in custom)
-    text_page("cb", "CB CHANNEL DIRECTORY", ["CHANNEL      ON  DESCRIPTION", *lines, "", "Use /JOIN name from any channel."])
+    text_page("cb", "CB CHANNEL DIRECTORY", ["CHANNEL      ON  DESCRIPTION", *lines, "", "Use /JOIN name from any channel.", "", cis_hamnet.upcoming_net()])
 
 
 def cb_private_messages():
@@ -3396,6 +3429,9 @@ def _navigate(initial_go=None):
                 continue
             if current == 'news' and choice == '7':
                 cis_magazine.service(sys.modules[__name__])
+                continue
+            if current == "news" and choice == "8":
+                sports_menu()
                 continue
 
             if current == "support" and choice in screens["support"]["options"]:

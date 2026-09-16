@@ -286,14 +286,20 @@ def rng(service, user_id=""):
     return random.Random(seed)
 
 
+# SYSOP bulletin pool for the standard December 1988 service. Featured
+# time-capsule dates replace this with their curated pack announcements
+# (see era_forum_bulletins); the present day renders this pool as before.
+FORUM_BULLETINS_1988 = [
+    "IBMHW conference: memory expansion boards at 9 PM Eastern.",
+    "New in Data Library 1: hard-disk diagnostic notes.",
+    "GAMERS high-score exchange remains open through Sunday.",
+    "Reduced connect rates apply during evening hours.",
+    "Please download large files after 11 PM local time.",
+]
+
+
 def announcements(user_id, mail_count=0, app=None):
-    choices = [
-        "IBMHW conference: memory expansion boards at 9 PM Eastern.",
-        "New in Data Library 1: hard-disk diagnostic notes.",
-        "GAMERS high-score exchange remains open through Sunday.",
-        "Reduced connect rates apply during evening hours.",
-        "Please download large files after 11 PM local time.",
-    ]
+    choices = list(FORUM_BULLETINS_1988)
     selected = rng("announcements", user_id).sample(choices, 2)
     state = load_state(app) if app is not None else {}
     sysop_lines = state.get("system_announcements", [])[-2:]
@@ -308,6 +314,28 @@ def announcements(user_id, mail_count=0, app=None):
         if pending:
             member_lines.append(f"PENDING FOLLOW-UPS: {len(pending)}")
     return [f"DATE {simulation_datetime().strftime('%m/%d/%y  %I:%M %p')}", f"EASYPLEX: {mail_count} message(s) waiting", *member_lines, *sysop_lines, *selected]
+
+
+def era_forum_bulletins(forum_id, day=None):
+    """Era-aware bulletin lines for a forum's Announcements screen.
+
+    ``day`` defaults to the calling session's simulation day (the member's
+    chosen time-capsule date, else the CIS_SIMULATION_DATE override, else the
+    December 1988 present-day cycle). Featured dates render the curated
+    archival announcements from the time-capsule pack; the present day
+    renders the standard 1988 SYSOP bulletin pool, exactly as before.
+
+    Returns plain strings (no shared world state is touched). The coordinator
+    wires this into compuserve.forum_announcements, merging these lines with
+    the SYSOP-authored thread messages that screen already shows.
+    """
+    day = day if day is not None else simulation_day()
+    pack = _timecapsule_pack_for(day)
+    if pack:
+        label = pack.get("label", "")
+        return [f"SYSOP BULLETIN  [{pack.get('date', day)}: {label}]",
+                *pack.get("announcements", [])]
+    return list(rng("announcements", forum_id).sample(FORUM_BULLETINS_1988, 2))
 
 
 def market_quotes(base_quotes):

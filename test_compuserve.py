@@ -1,5 +1,8 @@
 import json
 import io
+import os
+import re
+import importlib.util
 import subprocess
 import sqlite3
 from contextlib import closing
@@ -7,11 +10,15 @@ import sys
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import compuserve
+import cis_hamnet
+import cis_nightstation
+import cis_sports
+from cis_nightstation import MAX_MOVES, NightStationGame
 import cis_phones
 import cis_communities
 import cis_magazine
@@ -32,6 +39,8 @@ import cis_announcements
 import cis_weather
 import cis_timeline
 import cis_features
+import cis_timecapsule
+from cis_timecapsule import pack_for
 import cis_cb
 import cis_adventure_league
 import smoke_test
@@ -39,7 +48,7 @@ import fake2
 import feed_utils
 import telnet_app
 from cis_terminal import wrap_terminal_text
-from cis_session import SessionState
+from cis_session import SessionState, active_session
 
 
 class FirstCallContentTests(unittest.TestCase):
@@ -235,7 +244,7 @@ class ComputerCommunityTests(unittest.TestCase):
                 results = list(pool.map(cis_communities.install, [directory] * 3))
             self.assertEqual(results.count(True), 1)
             forums = cis_storage.load_json(directory, 'forums.json')
-            self.assertEqual(sum(map(len, forums.values())), 36)
+            self.assertEqual(sum(map(len, forums.values())), 52)
 
     def test_downloads_contain_complete_content_and_exact_byte_counts(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(compuserve, 'current_user_id', None):
@@ -2436,3 +2445,818 @@ class ConnectionSetupTimeCapsuleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- Feature 1: ham radio forum (cis_hamnet) ---
+JSON_PATH = Path("/home/hatch/workspace/compuserve-simulator/computer_communities.json")
+
+REQUIRED_FIELDS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
+
+# Anything that did not exist by December 1988 is banned from module content.
+ANACHRONISMS = [
+    "no-code", "no code", "FT-1000", "IC-706", "FT-817", "FT-897",
+    "PSK31", "APRS", "D-STAR", "FT8", "DSTAR", "DMR ", "internet",
+    "website", "web site", "WWW", "1991", "1992", "1995", "Windows 95",
+    "cell phone", "smartphone", "EchoLink", "Winlink",
+]
+
+
+class TestSections(unittest.TestCase):
+    def test_sections_shape(self):
+        secs = cis_hamnet.SECTIONS
+        self.assertIsInstance(secs, dict)
+        self.assertEqual(set(secs.keys()), {"1", "2", "3", "4", "5", "6", "7"})
+        ids = []
+        for key, spec in secs.items():
+            self.assertIsInstance(spec, (tuple, list), f"section {key}")
+            self.assertEqual(len(spec), 2, f"section {key}")
+            sec_id, title = spec
+            self.assertTrue(sec_id.startswith("hamnet_"), sec_id)
+            self.assertTrue(title.strip(), sec_id)
+            ids.append(sec_id)
+        self.assertEqual(len(set(ids)), len(ids), "section ids must be unique")
+
+    def test_section_spec_helper(self):
+        spec = cis_hamnet.section_spec()
+        self.assertEqual(spec, cis_hamnet.SECTIONS)
+
+
+class TestSeedPosts(unittest.TestCase):
+    def test_count(self):
+        posts = cis_hamnet.SEED_POSTS
+        self.assertGreaterEqual(len(posts), 12)
+        self.assertLessEqual(len(posts), 18)
+
+    def test_required_fields(self):
+        for post in cis_hamnet.SEED_POSTS:
+            self.assertEqual(set(post.keys()), REQUIRED_FIELDS,
+                             f"field mismatch in {post.get('content_id')}")
+            for field in ("content_id", "section", "date", "author", "subject", "body"):
+                self.assertTrue(str(post[field]).strip(), f"{field} empty in {post['content_id']}")
+            self.assertIsNone(post["parent"], f"parent must be null in {post['content_id']}")
+
+    def test_unique_content_ids(self):
+        ids = [p["content_id"] for p in cis_hamnet.SEED_POSTS]
+        self.assertEqual(len(set(ids)), len(ids))
+        for cid in ids:
+            self.assertRegex(cid, r"^hamnet-1988-\d{3}$", cid)
+
+    def test_sections_valid(self):
+        valid = {sec_id for sec_id, _ in cis_hamnet.SECTIONS.values()} | {"hamnet_general"}
+        for post in cis_hamnet.SEED_POSTS:
+            self.assertIn(post["section"], valid, post["content_id"])
+
+    def test_dates_december_1988(self):
+        for post in cis_hamnet.SEED_POSTS:
+            month, day, year = post["date"].split("/")
+            self.assertEqual((month, year), ("12", "88"), post["content_id"])
+            self.assertTrue(1 <= int(day) <= 31, post["content_id"])
+
+    def test_no_anachronisms(self):
+        for post in cis_hamnet.SEED_POSTS:
+            text = (post["subject"] + "\n" + post["body"]).lower()
+            for bad in ANACHRONISMS:
+                self.assertNotIn(bad.lower(), text,
+                                 f"anachronism {bad!r} in {post['content_id']}")
+
+    def test_nets_announced_in_forum(self):
+        blob = " ".join(p["subject"] + " " + p["body"] for p in cis_hamnet.SEED_POSTS).lower()
+        for net in cis_hamnet.NETS:
+            # Match on the name minus any leading location qualifier,
+            # e.g. "DFW Packet BBS Net" matches "Weekly Packet BBS Net".
+            key = net["name"].split(" ", 1)[-1].lower()
+            self.assertIn(key, blob, f"net {net['name']} not announced in seed posts")
+
+
+class TestBulletinsAndNets(unittest.TestCase):
+    def test_bulletins(self):
+        bulls = cis_hamnet.ARRL_BULLETINS
+        self.assertGreaterEqual(len(bulls), 3)
+        self.assertLessEqual(len(bulls), 4)
+        for b in bulls:
+            for field in ("number", "title", "date", "body"):
+                self.assertTrue(str(b[field]).strip(), f"bulletin {field} empty")
+            text = (b["title"] + "\n" + b["body"]).lower()
+            for bad in ANACHRONISMS:
+                self.assertNotIn(bad.lower(), text, f"anachronism {bad!r} in {b['number']}")
+
+    def test_nets_shape(self):
+        self.assertGreaterEqual(len(cis_hamnet.NETS), 1)
+        for net in cis_hamnet.NETS:
+            for field in ("name", "weekday", "time", "where", "net_control", "description"):
+                self.assertTrue(str(net[field]).strip() or net[field] == 0, f"net {field} empty")
+            self.assertIn(net["weekday"], range(7))
+            text = (net["name"] + net["where"] + net["description"]).lower()
+            for bad in ANACHRONISMS:
+                self.assertNotIn(bad.lower(), text, f"anachronism {bad!r} in {net['name']}")
+
+    def test_upcoming_net(self):
+        # Tuesday 1988-12-13: next net should be Wednesday's Ham Net, in 1 day.
+        s = cis_hamnet.upcoming_net(date(1988, 12, 13))
+        self.assertIsInstance(s, str)
+        self.assertIn("Next net", s)
+        self.assertIn("CompuServe Ham Net", s)
+        self.assertIn("Wednesday", s)
+        self.assertIn("8:00 PM Central", s)
+        # Saturday 1988-12-10: the packet net is tonight.
+        s2 = cis_hamnet.upcoming_net(date(1988, 12, 10))
+        self.assertIn("DFW Packet BBS Net", s2)
+        self.assertIn("tonight", s2)
+        # Default path (simulation day) returns a sane string.
+        os.environ.pop("CIS_SIMULATION_DATE", None)
+        s3 = cis_hamnet.upcoming_net()
+        self.assertIn("Next net", s3)
+        self.assertIn("Net control", s3)
+
+
+class TestJsonMerge(unittest.TestCase):
+    def test_json_parses(self):
+        pack = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+        self.assertIn("messages", pack)
+
+    def test_merge_forums_accepts_hamnet_messages(self):
+        data = {}
+        result = cis_communities.merge_forums(data)
+        hamnet_msgs = [m for m in cis_communities.PACK["messages"]
+                       if m["content_id"].startswith("hamnet-1988-")]
+        self.assertEqual(len(hamnet_msgs), len(cis_hamnet.SEED_POSTS))
+        merged = [m for msgs in result.values() for m in msgs
+                  if m.get("content_id", "").startswith("hamnet-1988-")]
+        self.assertEqual(len(merged), len(hamnet_msgs))
+        by_cid = {m["content_id"]: m for m in merged}
+        for post in cis_hamnet.SEED_POSTS:
+            self.assertIn(post["content_id"], by_cid)
+            rec = by_cid[post["content_id"]]
+            self.assertEqual(rec["author"], post["author"])
+            self.assertEqual(rec["subject"], post["subject"])
+            self.assertEqual(rec["body"], post["body"])
+            self.assertIsNone(rec["parent_id"])
+            self.assertEqual(rec["author_user_id"], "SIMULATED")
+        # Idempotent: merging again must not duplicate.
+        before = sum(len(v) for v in result.values())
+        cis_communities.merge_forums(result)
+        after = sum(len(v) for v in result.values())
+        self.assertEqual(before, after)
+
+
+# --- Feature 2: new time-capsule dates ---
+NEW_DATES = [
+    (date(1985, 7, 13), "Live Aid"),
+    (date(1986, 4, 26), "Chernobyl"),
+    (date(1989, 3, 24), "Exxon Valdez"),
+    (date(1991, 1, 17), "Desert Storm begins"),
+]
+
+
+class NewFeaturedDatesTests(unittest.TestCase):
+    def test_ten_featured_dates_in_chronological_order(self):
+        featured = cis_timecapsule.FEATURED_DATES
+        self.assertEqual(len(featured), 10)
+        dates = [when for when, _ in featured]
+        self.assertEqual(dates, sorted(dates))
+        for when, label in NEW_DATES:
+            self.assertIn((when, label), featured)
+
+    def test_every_featured_date_has_valid_pack(self):
+        # cis_timecapsule validates every pack at import; reaching this line
+        # means the validator accepted all 10. Double-check coverage anyway.
+        for when, _label in cis_timecapsule.FEATURED_DATES:
+            pack = cis_timecapsule.pack_for(when)
+            self.assertIsNotNone(pack, f"no pack for {when}")
+            self.assertEqual(pack["date"], when.isoformat())
+
+    def test_pack_for_resolves_each_new_date(self):
+        for when, label in NEW_DATES:
+            with self.subTest(date=when.isoformat()):
+                pack = cis_timecapsule.pack_for(when)
+                self.assertIsNotNone(pack)
+                self.assertEqual(pack["label"], label)
+                self.assertEqual(pack["date"], when.isoformat())
+                # ISO-string lookup works too
+                self.assertIs(cis_timecapsule.pack_for(when.isoformat()), pack)
+
+    def test_new_packs_meet_section_count_rules(self):
+        for when, _label in NEW_DATES:
+            pack = cis_timecapsule.pack_for(when)
+            with self.subTest(date=when.isoformat()):
+                self.assertTrue(8 <= len(pack["headlines"]) <= 12)
+                self.assertTrue(2 <= len(pack["announcements"]) <= 4)
+                self.assertTrue(4 <= len(pack["cb_topics"]) <= 6)
+                self.assertTrue(0 <= len(pack["market_notes"]) <= 4)
+                self.assertTrue(2 <= len(pack["on_this_day"]) <= 3)
+
+    def test_new_pack_headlines_have_full_shape(self):
+        required = {"id", "category", "title", "summary", "published", "source"}
+        seen_ids = set()
+        for when, _label in NEW_DATES:
+            pack = cis_timecapsule.pack_for(when)
+            for story in pack["headlines"]:
+                with self.subTest(date=when.isoformat(), story=story.get("id")):
+                    self.assertTrue(required.issubset(story))
+                    for field in required:
+                        self.assertTrue(story[field], f"empty {field}")
+                    self.assertNotIn(story["id"], seen_ids, "duplicate story id")
+                    seen_ids.add(story["id"])
+
+    def test_on_this_day_items_predate_pack_date(self):
+        year_re = re.compile(r"\b(1[5-9]\d\d|20\d\d)\b")
+        for when, _label in NEW_DATES:
+            pack = cis_timecapsule.pack_for(when)
+            for item in pack["on_this_day"]:
+                with self.subTest(date=when.isoformat(), item=item["title"]):
+                    for year in year_re.findall(item["title"] + " " + item["summary"]):
+                        self.assertLessEqual(int(year), when.year)
+
+
+class FeaturedDateMenuTests(unittest.TestCase):
+    def _run_menu(self, inputs):
+        import compuserve
+        with patch.object(compuserve, "clear"), \
+             patch.object(compuserve, "header_bar"), \
+             patch.object(compuserve, "ansi_scroll") as scroll, \
+             patch("builtins.input", side_effect=inputs):
+            result = compuserve._featured_date_menu()
+        lines = [str(call.args[0]) for call in scroll.call_args_list]
+        return result, lines
+
+    def test_menu_renders_ten_items_and_parses_ten(self):
+        result, lines = self._run_menu(["10"])
+        numbered = [ln for ln in lines if re.match(r"^\d+  \d\d/\d\d/\d\d\d\d  ", ln)]
+        self.assertEqual(len(numbered), 10)
+        self.assertTrue(numbered[0].startswith("1  08/12/1981"))
+        self.assertTrue(numbered[9].startswith("10  08/06/1991"))
+        self.assertIn("Live Aid", "".join(lines))
+        self.assertEqual(result, date(1991, 8, 6))
+
+    def test_menu_rejects_out_of_range_choices(self):
+        for bad in ("11", "0"):
+            result, lines = self._run_menu([bad, "M"])
+            self.assertIsNone(result, f"menu accepted {bad!r}")
+            self.assertTrue(
+                any("Enter a number from the list" in ln for ln in lines),
+                f"no rejection message for {bad!r}",
+            )
+
+
+class AnachronismScanTests(unittest.TestCase):
+    def _all_text(self, pack):
+        bits = list(pack["announcements"]) + list(pack["cb_topics"]) + list(pack["market_notes"])
+        bits += [item["title"] + " " + item["summary"] for item in pack["on_this_day"]]
+        for story in pack["headlines"]:
+            bits.append(" ".join(str(story[f]) for f in ("id", "category", "title", "summary", "published", "source")))
+        return "\n".join(bits)
+
+    def test_no_internet_as_commonplace_before_1991(self):
+        for when, _label in NEW_DATES:
+            if when.year >= 1991:
+                continue
+            text = self._all_text(cis_timecapsule.pack_for(when))
+            with self.subTest(date=when.isoformat()):
+                self.assertNotIn("internet", text.lower())
+                self.assertNotIn("website", text.lower())
+                self.assertNotIn("e-mail", text.lower())
+
+    def test_no_years_after_pack_date(self):
+        year_re = re.compile(r"\b(19\d\d|20\d\d)\b")
+        for when, _label in NEW_DATES:
+            text = self._all_text(cis_timecapsule.pack_for(when))
+            with self.subTest(date=when.isoformat()):
+                for year in year_re.findall(text):
+                    self.assertLessEqual(
+                        int(year), when.year,
+                        f"post-date year {year} in {when.isoformat()} pack",
+                    )
+
+
+# --- Feature 3: Night Shift Earth Station adventure ---
+class FakeApp:
+    """Minimal stand-in for the compuserve module: JSON files in a temp dir."""
+
+    def __init__(self, tmpdir, user_id="TESTER"):
+        self.tmpdir = Path(tmpdir)
+        self.current_user_id = user_id
+        self.cis_dynamic = cis_dynamic
+
+    def load_json(self, filename, default=None):
+        path = self.tmpdir / filename
+        if not path.exists():
+            return default
+        return json.loads(path.read_text())
+
+    def save_json_atomic(self, filename, data):
+        path = self.tmpdir / filename
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data))
+        os.replace(tmp, path)
+
+
+WIN_SCRIPT = [
+    "TAKE FLASHLIGHT",
+    "SOUTH", "TAKE GAS CAN", "NORTH",
+    "EAST", "TAKE SCREWDRIVER", "TAKE STEEL KEY", "NORTH", "TAKE BRASS KEY",
+    "SOUTH", "WEST",
+    "NORTH", "UNLOCK DOOR", "WEST", "TAKE ALIGN CRANK", "EAST",
+    "EAST", "UNLOCK DOOR", "EAST", "TAKE FEED CARTRIDGE", "WEST",
+    "WEST", "SOUTH", "WEST", "NORTH",
+    "FILL GENERATOR", "START GENERATOR",
+    "SOUTH", "TAKE FUSE", "NORTH",
+    "NORTH", "EAST", "NORTH", "EAST", "SOUTH",
+    "USE SCREWDRIVER", "INSTALL FUSE",
+    "EAST", "NORTH", "USE ALIGN CRANK",
+    "SOUTH", "WEST", "NORTH",
+    "LOAD FEED CARTRIDGE", "TRANSMIT",
+]
+
+
+def run_script(game, script):
+    return [game.command(cmd) for cmd in script]
+
+
+class WinPathTests(unittest.TestCase):
+    def test_scripted_full_win_path_reaches_victory_with_expected_score(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = FakeApp(directory)
+            game = NightStationGame(app)
+            outputs = run_script(game, WIN_SCRIPT)
+            self.assertTrue(game.won, "win script did not reach victory")
+            self.assertTrue(game.over)
+            self.assertIn("TRANSMISSION COMPLETE", outputs[-1])
+            # 14 discoveries x10 + repairs 100 + unlocks 20 + time bonus 36
+            self.assertEqual(game.score, 297, f"unexpected score {game.score}")
+            self.assertEqual(game.moves, 45)
+            state = cis_dynamic.load_state(app)
+            mine = state[cis_nightstation.RECORDS_KEY]["TESTER"]
+            self.assertEqual(mine["wins"], 1)
+            self.assertEqual(mine["plays"], 1)
+            self.assertEqual(mine["best_score"], 297)
+
+    def test_win_shows_high_score_table(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = FakeApp(directory)
+            game = NightStationGame(app)
+            outputs = run_script(game, WIN_SCRIPT)
+            self.assertIn("TOP NIGHT OPERATORS", outputs[-1])
+            self.assertIn("TESTER", outputs[-1])
+
+
+class ParserTests(unittest.TestCase):
+    def test_nonsense_input_rejected_cleanly(self):
+        game = NightStationGame()
+        self.assertEqual(game.command("XYZZY PLUGH"), "I don't understand.")
+        self.assertEqual(game.command("FROBNICATE THE MODEM"), "I don't understand.")
+        self.assertFalse(game.over)
+        self.assertEqual(game.moves, 0, "nonsense input should not cost time")
+
+    def test_movement_boundaries(self):
+        game = NightStationGame()
+        self.assertEqual(game.command("NE"), "You can't go that way.")
+        game.command("WEST")  # parking lot
+        self.assertEqual(game.room, "parking")
+        self.assertEqual(game.command("WEST"), "You can't go that way.")
+        self.assertEqual(game.command("GO UP"), "You can't go that way.")
+
+    def test_direction_abbreviations_and_go(self):
+        game = NightStationGame()
+        game.command("S")  # garage
+        self.assertEqual(game.room, "garage")
+        game.command("GO NORTH")
+        self.assertEqual(game.room, "lobby")
+
+
+class PuzzleChainTests(unittest.TestCase):
+    def test_take_and_inventory(self):
+        game = NightStationGame()
+        self.assertEqual(game.command("TAKE FLASHLIGHT"), "Taken.")
+        self.assertIn("flashlight", game.command("INVENTORY").lower())
+        self.assertEqual(game.command("TAKE FLASHLIGHT"), "You already have the flashlight.")
+        self.assertEqual(game.command("TAKE BANANA"), "You do not see that here.")
+
+    def test_dark_room_needs_flashlight(self):
+        game = NightStationGame()
+        for cmd in ["WEST", "NORTH", "SOUTH"]:  # lobby -> parking -> generator -> storage
+            game.command(cmd)
+        self.assertEqual(game.room, "storage")
+        self.assertIn("pitch dark", game.command("LOOK").lower())
+        self.assertEqual(game.command("TAKE FUSE"), "You can't see a thing in here.")
+        game2 = NightStationGame()
+        game2.command("TAKE FLASHLIGHT")
+        for cmd in ["WEST", "NORTH", "SOUTH"]:
+            game2.command(cmd)
+        self.assertEqual(game2.command("TAKE FUSE"), "Taken.")
+
+    def test_generator_needs_fuel_before_start(self):
+        game = NightStationGame()
+        game.room = "generator"
+        self.assertIn("empty", game.command("START GENERATOR").lower())
+        game.inventory.append("GAS CAN")
+        self.assertIn("+10", game.command("FILL GENERATOR"))
+        self.assertTrue(game.fueled)
+        self.assertIn("+20", game.command("START GENERATOR"))
+        self.assertTrue(game.powered)
+
+    def test_fuse_needs_open_panel(self):
+        game = NightStationGame()
+        game.room = "transmitter"
+        game.inventory.append("FUSE")
+        self.assertIn("screwed shut", game.command("INSTALL FUSE"))
+        game.inventory.append("SCREWDRIVER")
+        game.command("USE SCREWDRIVER")
+        self.assertTrue(game.panel_open)
+        game.command("INSTALL FUSE")
+        self.assertTrue(game.fuse_installed)
+
+    def test_dish_crank_needs_power(self):
+        game = NightStationGame()
+        game.room = "tower"
+        game.inventory.append("ALIGN CRANK")
+        self.assertIn("no main power", game.command("USE ALIGN CRANK").lower())
+        self.assertFalse(game.dish_aligned)
+        game.powered = True
+        out = game.command("USE ALIGN CRANK")
+        self.assertIn("locks onto the satellite", out)
+        self.assertTrue(game.dish_aligned)
+
+    def test_locked_doors_need_keys(self):
+        game = NightStationGame()
+        game.room = "operations"
+        self.assertEqual(game.command("WEST"), "Locked: the maintenance shop door. (Brass Key required.)")
+        self.assertEqual(game.command("UNLOCK DOOR"), "You need the brass key.")
+        game.inventory.append("BRASS KEY")
+        self.assertIn("swings open", game.command("UNLOCK DOOR"))
+        game.command("WEST")
+        self.assertEqual(game.room, "maintenance")
+
+    def test_transmit_reports_missing_pieces(self):
+        game = NightStationGame()
+        game.room = "control"
+        out = game.command("TRANSMIT")
+        self.assertIn("refuses", out)
+        for piece in ("main power", "exciter fuse", "off-azimuth", "cartridge"):
+            self.assertIn(piece, out)
+        self.assertFalse(game.won)
+
+    def test_drop_and_retake(self):
+        game = NightStationGame()
+        game.command("TAKE FLASHLIGHT")
+        self.assertEqual(game.command("DROP FLASHLIGHT"), "Dropped.")
+        self.assertIn("nothing", game.command("INVENTORY"))
+        self.assertEqual(game.command("TAKE FLASHLIGHT"), "Taken.")
+
+
+class ClockAndQuitTests(unittest.TestCase):
+    def test_score_and_time_commands(self):
+        game = NightStationGame()
+        out = game.command("SCORE")
+        self.assertIn("SCORE:", out)
+        self.assertIn("23:15", out)
+        self.assertIn("405 minutes left", out)
+        game.command("LOOK")
+        self.assertIn("23:25", game.command("TIME"))
+
+    def test_quit_exits_cleanly_and_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = FakeApp(directory)
+            game = NightStationGame(app)
+            out = game.command("QUIT")
+            self.assertTrue(game.over)
+            self.assertTrue(game.quit)
+            self.assertFalse(game.won)
+            self.assertIn("SHIFT INCOMPLETE", out)
+            state = cis_dynamic.load_state(app)
+            mine = state[cis_nightstation.RECORDS_KEY]["TESTER"]
+            self.assertEqual(mine["plays"], 1)
+            self.assertEqual(mine["wins"], 0)
+
+    def test_clock_runs_out_loses_game(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = FakeApp(directory)
+            game = NightStationGame(app)
+            game.moves = MAX_MOVES - 1
+            out = game.command("LOOK")
+            self.assertTrue(game.lost)
+            self.assertTrue(game.over)
+            self.assertIn("FEED WINDOW HAS PASSED", out)
+
+    def test_help_lists_verbs(self):
+        out = NightStationGame().command("HELP")
+        for verb in ("LOOK", "TAKE", "INVENTORY", "EXAMINE", "USE", "TRANSMIT", "QUIT"):
+            self.assertIn(verb, out)
+
+
+class HighScorePersistenceTests(unittest.TestCase):
+    def test_high_score_persists_across_instances(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = FakeApp(directory)
+            first = NightStationGame(app)
+            run_script(first, WIN_SCRIPT)
+            self.assertTrue(first.won)
+            second = NightStationGame(app)
+            table = "\n".join(second.records_table())
+            self.assertIn("TOP NIGHT OPERATORS", table)
+            self.assertIn("TESTER", table)
+            self.assertIn("297", table)
+            state = cis_dynamic.load_state(app)
+            self.assertEqual(len(state[cis_nightstation.HISCORE_KEY]), 1)
+
+    def test_board_keeps_top_five_across_users(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for user in ("OP1", "OP2", "OP3", "OP4", "OP5", "OP6"):
+                app = FakeApp(directory, user_id=user)
+                game = NightStationGame(app)
+                game.score = 100
+                game.won = True
+                game.record_result()
+            app = FakeApp(directory, user_id="OP7")
+            table = "\n".join(NightStationGame(app).records_table())
+            self.assertNotIn("OP6", table)
+            self.assertIn("OP1", table)
+            state = cis_dynamic.load_state(app)
+            self.assertEqual(len(state[cis_nightstation.HISCORE_KEY]), 5)
+
+    def test_offline_game_still_runs(self):
+        game = NightStationGame()  # no app: in-memory, no persistence
+        outputs = run_script(game, WIN_SCRIPT)
+        self.assertTrue(game.won)
+        self.assertIn("TRANSMISSION COMPLETE", outputs[-1])
+
+
+class PlayEntryTests(unittest.TestCase):
+    def test_play_quits_from_scripted_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = FakeApp(directory)
+            with patch.object(cis_nightstation, "input", side_effect=["HELP", "QUIT"]):
+                cis_nightstation.play(app)  # should return without raising
+            state = cis_dynamic.load_state(app)
+            self.assertEqual(state[cis_nightstation.RECORDS_KEY]["TESTER"]["plays"], 1)
+
+
+# --- Feature 4: Sports & TV (cis_sports) ---
+ANACHRONISMS = [
+    "Friends", "Seinfeld", "CSI", "Survivor", "American Idol",
+    "Texans", "Jaguars", "Panthers", "Ravens", "Titans",
+    "Arizona Cardinals", "St. Louis Rams", "Tennessee Oilers",
+    "Los Angeles Chargers", "2000", "1999", "1995", "1994",
+    "Super Bowl XXIII", "20-16", "iPhone", "internet", "www.",
+]
+
+
+class SportsContentTests(unittest.TestCase):
+    def setUp(self):
+        os.environ["CIS_SIMULATION_DATE"] = "1988-12-15"
+
+    def test_nfl_lines_non_empty(self):
+        lines = cis_sports.nfl_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(l, str) for l in lines))
+        self.assertTrue(any(l.strip() for l in lines))
+
+    def test_tv_lines_non_empty(self):
+        lines = cis_sports.tv_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(l, str) for l in lines))
+        self.assertTrue(any(l.strip() for l in lines))
+
+    def test_mlb_lines_non_empty(self):
+        lines = cis_sports.mlb_lines()
+        self.assertTrue(lines)
+        self.assertTrue(all(isinstance(l, str) for l in lines))
+        self.assertTrue(any(l.strip() for l in lines))
+
+    def test_standings_divisions_and_teams_consistent(self):
+        expected_divisions = {"AFC EAST", "AFC CENTRAL", "AFC WEST",
+                              "NFC EAST", "NFC CENTRAL", "NFC WEST"}
+        self.assertEqual(set(cis_sports.NFL_STANDINGS), expected_divisions)
+        seen = {}
+        for division, teams in cis_sports.NFL_STANDINGS.items():
+            for team, wins, losses, ties, _verified in teams:
+                self.assertTrue(team)
+                self.assertGreaterEqual(wins, 0)
+                self.assertEqual(wins + losses + ties, 16,
+                                 f"{team} must have 16 games")
+                self.assertNotIn(team, seen,
+                                 f"{team} appears in two divisions")
+                seen[team] = division
+
+    def test_standings_division_winners(self):
+        winners = {div: rows[0][0] for div, rows in cis_sports.NFL_STANDINGS.items()}
+        self.assertEqual(winners["AFC EAST"], "Buffalo Bills")
+        self.assertEqual(winners["AFC CENTRAL"], "Cincinnati Bengals")
+        self.assertEqual(winners["AFC WEST"], "Seattle Seahawks")
+        self.assertEqual(winners["NFC EAST"], "Philadelphia Eagles")
+        self.assertEqual(winners["NFC CENTRAL"], "Chicago Bears")
+        self.assertEqual(winners["NFC WEST"], "San Francisco 49ers")
+
+    def test_standings_sorted_by_wins(self):
+        for division, teams in cis_sports.NFL_STANDINGS.items():
+            wins = [t[1] for t in teams]
+            self.assertEqual(wins, sorted(wins, reverse=True),
+                             f"{division} not sorted by wins")
+
+    def test_highlight_varies_by_day_deterministically(self):
+        dec1 = cis_sports.nfl_lines(date(1988, 12, 1))
+        dec2 = cis_sports.nfl_lines(date(1988, 12, 2))
+        highlight1 = [l for l in dec1 if l.startswith("THIS WEEK:")]
+        highlight2 = [l for l in dec2 if l.startswith("THIS WEEK:")]
+        self.assertEqual(len(highlight1), 1)
+        self.assertNotEqual(highlight1, highlight2,
+                            "highlight should rotate by day")
+        again = cis_sports.nfl_lines(date(1988, 12, 1))
+        self.assertEqual([l for l in again if l.startswith("THIS WEEK:")],
+                         highlight1, "same day must give same highlight")
+
+    def test_default_day_uses_simulation_day(self):
+        # With env pinned to 1988-12-15, default day must match explicit day.
+        self.assertEqual(cis_sports.nfl_lines(),
+                         cis_sports.nfl_lines(date(1988, 12, 15)))
+
+    def test_tv_grid_covers_all_nights_and_networks(self):
+        for night in ("SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY",
+                      "THURSDAY", "FRIDAY", "SATURDAY"):
+            self.assertIn(night, cis_sports.TV_GRID)
+            for net in ("ABC", "CBS", "FOX", "NBC"):
+                self.assertIn(net, cis_sports.TV_GRID[night])
+                self.assertTrue(cis_sports.TV_GRID[night][net])
+
+    def test_tv_grid_key_placements(self):
+        thursday = cis_sports.TV_GRID["THURSDAY"]["NBC"]
+        self.assertIn("The Cosby Show", thursday)
+        self.assertIn("Cheers", thursday)
+        tuesday = cis_sports.TV_GRID["TUESDAY"]["ABC"]
+        self.assertIn("Roseanne", tuesday)
+        self.assertIn("Who's the Boss?", tuesday)
+        sunday = cis_sports.TV_GRID["SUNDAY"]["CBS"]
+        self.assertIn("60 Minutes", sunday)
+        saturday = cis_sports.TV_GRID["SATURDAY"]["NBC"]
+        self.assertIn("The Golden Girls", saturday)
+        wednesday = cis_sports.TV_GRID["WEDNESDAY"]["NBC"]
+        self.assertIn("Night Court", wednesday)
+
+    def test_no_anachronisms(self):
+        sections = (cis_sports.nfl_lines(date(1988, 12, 20))
+                    + cis_sports.tv_lines(date(1988, 12, 20))
+                    + cis_sports.mlb_lines(date(1988, 12, 20)))
+        blob = "\n".join(sections)
+        for word in ANACHRONISMS:
+            self.assertNotIn(word, blob, f"anachronism: {word}")
+
+    def test_sports_service_returns_sections(self):
+        sections = cis_sports.sports_service(app=None)
+        self.assertEqual([t for t, _ in sections], ["NFL", "TV", "MLB"])
+        for title, lines in sections:
+            self.assertTrue(lines, f"{title} section empty")
+
+
+# --- Feature 5: era-aware world ---
+REPO = "/home/hatch/workspace/compuserve-simulator"
+sys.path.insert(0, REPO)
+
+import cis_dynamic
+from cis_session import SessionState, active_session
+from cis_timecapsule import pack_for
+
+
+def _head_module():
+    """Load cis_dynamic.py as committed at HEAD for pre/post-change comparison."""
+    blob = subprocess.run(
+        ["git", "-C", REPO, "show", "HEAD:cis_dynamic.py"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    path = os.path.join(tempfile.gettempdir(), "cis_dynamic_head_f5.py")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(blob)
+    spec = importlib.util.spec_from_file_location("cis_dynamic_head_f5", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _all_pack_topics():
+    topics = set()
+    for when, _label in (
+        (date(1981, 8, 12), ""), (date(1984, 1, 24), ""),
+        (date(1986, 1, 28), ""), (date(1987, 10, 19), ""),
+        (date(1989, 11, 9), ""), (date(1991, 8, 6), ""),
+    ):
+        topics.update(pack_for(when)["cb_topics"])
+    return topics
+
+
+def _all_pack_announcements():
+    lines = set()
+    for when in (date(1981, 8, 12), date(1984, 1, 24), date(1986, 1, 28),
+                 date(1987, 10, 19), date(1989, 11, 9), date(1991, 8, 6)):
+        lines.update(pack_for(when)["announcements"])
+    return lines
+
+
+def _find_pack_batch(session_date, pack, hour=20, buckets=3000):
+    """Scan deterministic buckets until cb_ambient_events emits pack content."""
+    state = SessionState(simulation_date=session_date)
+    with active_session(state):
+        for bucket in range(buckets):
+            batch = cis_dynamic.cb_ambient_events("1", bucket, (), hour=hour)
+            if batch and any(line in pack["cb_topics"] for _sender, line in batch):
+                return batch
+    return None
+
+
+class TestCbEraAwareness(unittest.TestCase):
+    def test_featured_date_session_emits_pack_cb_topics(self):
+        pack = pack_for(date(1986, 1, 28))
+        batch = _find_pack_batch(date(1986, 1, 28), pack)
+        self.assertIsNotNone(batch, "expected a pack-derived CB batch within the scan window")
+        lines = [line for _sender, line in batch]
+        self.assertTrue(any(line in pack["cb_topics"] for line in lines))
+        self.assertTrue(all(sender in cis_dynamic.HANDLES for sender, _line in batch))
+
+    def test_featured_date_session_cb_is_deterministic(self):
+        pack = pack_for(date(1986, 1, 28))
+        state = SessionState(simulation_date=date(1986, 1, 28))
+        with active_session(state):
+            first = cis_dynamic.cb_ambient_events("1", 42, (), hour=20)
+            second = cis_dynamic.cb_ambient_events("1", 42, (), hour=20)
+        self.assertEqual(first, second)
+
+    def test_present_day_cb_has_no_pack_content(self):
+        topics = _all_pack_topics()
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            for bucket in range(3000):
+                batch = cis_dynamic.cb_ambient_events("1", bucket, (), hour=20)
+                self.assertFalse(any(line in topics for _sender, line in batch))
+
+    def test_present_day_cb_matches_pre_change_corpus(self):
+        corpus = {line for conversations in cis_dynamic.CB_CONVERSATIONS.values()
+                  for conversation in conversations for _sender, line in conversation}
+        mover = re.compile(r"^\*\*\* \S+ left for channel [123] \*\*\*$")
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            for bucket in range(3000):
+                for sender, line in cis_dynamic.cb_ambient_events("1", bucket, (), hour=20):
+                    if sender == "SYSTEM":
+                        self.assertRegex(line, mover)
+                    else:
+                        self.assertIn(line, corpus)
+
+    def test_cb_ambient_path_function_unchanged_vs_head(self):
+        head = _head_module()
+        import inspect
+        self.assertEqual(inspect.getsource(head.cb_ambient_events),
+                         inspect.getsource(cis_dynamic.cb_ambient_events))
+
+    def test_login_announcements_present_day_identical_vs_head(self):
+        head = _head_module()
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            before = head.announcements("70000,0001")
+            after = cis_dynamic.announcements("70000,0001")
+        self.assertEqual(before, after)
+
+
+class TestEraForumBulletins(unittest.TestCase):
+    def test_featured_date_returns_pack_announcements(self):
+        pack = pack_for(date(1986, 1, 28))
+        lines = cis_dynamic.era_forum_bulletins("ibmhw", day=date(1986, 1, 28))
+        self.assertEqual(lines[0], "SYSOP BULLETIN  [1986-01-28: Challenger]")
+        self.assertEqual(lines[1:], pack["announcements"])
+
+    def test_present_day_returns_1988_bulletins(self):
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            lines = cis_dynamic.era_forum_bulletins("gamers")
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(all(line in cis_dynamic.FORUM_BULLETINS_1988 for line in lines))
+        self.assertFalse(any(line in _all_pack_announcements() for line in lines))
+
+    def test_explicit_present_day_date_matches_default(self):
+        with patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-15"}):
+            defaulted = cis_dynamic.era_forum_bulletins("gamers")
+            explicit = cis_dynamic.era_forum_bulletins("gamers", day=date(1988, 12, 15))
+        self.assertEqual(defaulted, explicit)
+
+    def test_featured_date_does_not_leak_1988_bulletins(self):
+        lines = cis_dynamic.era_forum_bulletins("hamnet", day=date(1987, 10, 19))
+        self.assertFalse(any(line in cis_dynamic.FORUM_BULLETINS_1988 for line in lines))
+
+
+class TestSessionIsolation(unittest.TestCase):
+    def test_two_sessions_render_their_own_era(self):
+        pack_a = pack_for(date(1986, 1, 28))
+        pack_b = pack_for(date(1991, 8, 6))
+        with active_session(SessionState(simulation_date=date(1986, 1, 28))):
+            self.assertEqual(cis_dynamic.simulation_day(), date(1986, 1, 28))
+            lines_a = cis_dynamic.era_forum_bulletins("ibmhw")
+            batch_a = _find_pack_batch(date(1986, 1, 28), pack_a)
+        with active_session(SessionState(simulation_date=date(1991, 8, 6))):
+            self.assertEqual(cis_dynamic.simulation_day(), date(1991, 8, 6))
+            lines_b = cis_dynamic.era_forum_bulletins("ibmhw")
+            batch_b = _find_pack_batch(date(1991, 8, 6), pack_b)
+        self.assertEqual(lines_a[1:], pack_a["announcements"])
+        self.assertEqual(lines_b[1:], pack_b["announcements"])
+        self.assertTrue(any(line in pack_a["cb_topics"] for _s, line in batch_a))
+        self.assertTrue(any(line in pack_b["cb_topics"] for _s, line in batch_b))
+        # Neither session sees the other's content.
+        self.assertFalse(any(line in pack_b["cb_topics"] for _s, line in batch_a))
+        self.assertFalse(any(line in pack_a["cb_topics"] for _s, line in batch_b))
+
+    def test_session_exit_restores_no_session_date(self):
+        with active_session(SessionState(simulation_date=date(1986, 1, 28))):
+            self.assertEqual(cis_dynamic.simulation_day(), date(1986, 1, 28))
+        from cis_session import session_simulation_date
+        self.assertIsNone(session_simulation_date())
