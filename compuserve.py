@@ -66,6 +66,11 @@ import cis_adventure_league
 import cis_hamnet
 import cis_nightstation
 import cis_sports
+import cis_veterans
+import cis_roots
+import cis_guitar
+import cis_tradingpost
+import cis_entertainment
 
 try:
     import msvcrt
@@ -173,13 +178,17 @@ FORUM_CATALOG = {
         "1": ("hamnet_general", "General"),
         **{str(int(k) + 1): tuple(v) for k, v in cis_hamnet.section_spec().items()},
     }},
+    "veterans": {"title": "Veterans Forum", "sections": cis_veterans.section_spec()},
+    "roots": {"title": "Roots & Branches Genealogy Forum", "sections": cis_roots.section_spec()},
+    "guitar": {"title": "Guitar & Music Forum", "sections": cis_guitar.section_spec()},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
 FORUM_CATALOG.update(cis_communities.FORUMS)
-FORUM_CHOICES = dict(zip((str(i) for i in range(1, 11)),
+FORUM_CHOICES = dict(zip((str(i) for i in range(1, 14)),
                         ('ibmhw', 'gamers', 'macdev', 'photo', 'hamnet', 'science',
-                         'commodore', 'appleii', 'atarist', 'dos')))
+                         'commodore', 'appleii', 'atarist', 'dos',
+                         'veterans', 'roots', 'guitar')))
 
 def cis_prompt(context="command"):
     prompts = {
@@ -1316,6 +1325,27 @@ def sports_menu():
             ansi_scroll("Enter a number from the list, or M.", 0.01)
 
 
+def entertainment_menu():
+    """Entertainment submenu (December 1988 setting, session-date aware)."""
+    sections = cis_entertainment.entertainment_service(sys.modules[__name__])
+    while True:
+        clear()
+        header_bar("news")
+        ansi_scroll("ENTERTAINMENT", 0.01)
+        ansi_scroll("-------------", 0.01)
+        for index, (title, _lines) in enumerate(sections, 1):
+            ansi_scroll(f"{index}  {title}", 0.01)
+        ansi_scroll("M  Back", 0.01)
+        choice = input("Choice: ").strip().upper()
+        if choice == "M":
+            return
+        if choice.isdigit() and 1 <= int(choice) <= len(sections):
+            title, lines = sections[int(choice) - 1]
+            text_page("news", title.upper(), lines)
+        else:
+            ansi_scroll("Enter a number from the list, or M.", 0.01)
+
+
 def forum_announcements(forum_id):
     forum = FORUM_CATALOG[forum_id]
     lines = ["SYSOP BULLETIN", f'Welcome to the {forum["title"]}.']
@@ -2274,6 +2304,8 @@ def shopping_service(choice):
         ])
     elif choice == "5":
         cis_ownership.service(sys.modules[__name__])
+    elif choice == "6":
+        cis_tradingpost.tradingpost_menu(sys.modules[__name__])
 
 
 def games_service(choice):
@@ -3432,6 +3464,9 @@ def _navigate(initial_go=None):
                 continue
             if current == "news" and choice == "8":
                 sports_menu()
+                continue
+            if current == "news" and choice == "9":
+                entertainment_menu()
                 continue
 
             if current == "support" and choice in screens["support"]["options"]:

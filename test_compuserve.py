@@ -18,6 +18,11 @@ import compuserve
 import cis_hamnet
 import cis_nightstation
 import cis_sports
+import cis_veterans
+import cis_roots
+import cis_guitar
+import cis_tradingpost
+import cis_entertainment
 from cis_nightstation import MAX_MOVES, NightStationGame
 import cis_phones
 import cis_communities
@@ -244,7 +249,7 @@ class ComputerCommunityTests(unittest.TestCase):
                 results = list(pool.map(cis_communities.install, [directory] * 3))
             self.assertEqual(results.count(True), 1)
             forums = cis_storage.load_json(directory, 'forums.json')
-            self.assertEqual(sum(map(len, forums.values())), 52)
+            self.assertEqual(sum(map(len, forums.values())), 102)
 
     def test_downloads_contain_complete_content_and_exact_byte_counts(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(compuserve, 'current_user_id', None):
@@ -261,7 +266,9 @@ class ComputerCommunityTests(unittest.TestCase):
                         self.assertIn('RELEASE HISTORY', cis_communities.detail_lines(record))
 
     def test_forum_menu_and_go_routes_open_new_services(self):
-        for choice, forum_id in list(compuserve.FORUM_CHOICES.items())[-4:]:
+        lib_forums = [item for item in compuserve.FORUM_CHOICES.items()
+                      if item[1] in cis_communities.LIBRARIES]
+        for choice, forum_id in lib_forums[-4:]:
             with self.subTest(forum=forum_id), patch.object(compuserve, 'session_state', SessionState()), patch.object(compuserve, 'show_screen'), patch.object(compuserve, 'forum_service') as service, patch.object(compuserve, 'show_logout_summary'), patch('builtins.input', side_effect=['2', choice, 'OFF']):
                 compuserve.navigate()
                 service.assert_called_once_with(forum_id)
@@ -3261,3 +3268,317 @@ class TestSessionIsolation(unittest.TestCase):
             self.assertEqual(cis_dynamic.simulation_day(), date(1986, 1, 28))
         from cis_session import session_simulation_date
         self.assertIsNone(session_simulation_date())
+
+
+# --- Content pack 2: veterans / roots / guitar forums, trading post, entertainment ---
+
+CP2_REQUIRED_FIELDS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
+
+VETERANS_ANACHRONISMS = [
+    "iraq", "afghanistan", "desert storm", "desert shield", "9/11",
+    "september 11", "enduring freedom", "iraqi freedom", "va choice",
+    "internet", "website", "web site", "1990", "1991", "2001",
+]
+
+ROOTS_ANACHRONISMS = [
+    "1920 census", "1930 census", "1940 census", "ancestry.com", "dna test",
+    "dna testing", "genetic genealogy", "internet", "website", "web site",
+    "familysearch.org", "online tree",
+]
+
+GUITAR_ANACHRONISMS = [
+    "line 6", "line6", "silver sky", "kemper", "axe-fx", "axefx",
+    "fractal", "neural dsp", "youtube", "internet", "website",
+    "reverb.com", "sweetwater.com", " helix",
+]
+
+TRADINGPOST_ANACHRONISMS = [
+    "pentium", "windows 95", "windows95", "dvd", "mp3", "zip drive",
+    "1990", "1991",
+]
+
+ENTERTAINMENT_ANACHRONISMS = [
+    "1990", "internet", "website", "grunge", "nirvana",
+]
+
+
+def _check_cp2_seed_posts(testcase, module, prefix):
+    """Shared quality gate for the three new forum content modules."""
+    posts = module.SEED_POSTS
+    testcase.assertGreaterEqual(len(posts), 12, f"{prefix}: too few seed posts")
+    testcase.assertLessEqual(len(posts), 20, f"{prefix}: too many seed posts")
+    valid_sections = {sec_id for sec_id, _ in module.SECTIONS.values()}
+    seen = []
+    for post in posts:
+        testcase.assertEqual(set(post.keys()), CP2_REQUIRED_FIELDS,
+                             f"field mismatch in {post.get('content_id')}")
+        for field in ("content_id", "section", "date", "author", "subject", "body"):
+            testcase.assertTrue(str(post[field]).strip(),
+                                f"{field} empty in {post['content_id']}")
+        testcase.assertIsNone(post["parent"], post["content_id"])
+        testcase.assertIn(post["section"], valid_sections, post["content_id"])
+        month, day, year = post["date"].split("/")
+        testcase.assertEqual((month, year), ("12", "88"), post["content_id"])
+        testcase.assertTrue(1 <= int(day) <= 31, post["content_id"])
+        seen.append(post["content_id"])
+    testcase.assertEqual(len(set(seen)), len(seen), f"{prefix}: duplicate content ids")
+    for cid in seen:
+        testcase.assertRegex(cid, rf"^{prefix}-1988-\d{{3}}$", cid)
+
+
+def _check_no_anachronisms(testcase, posts, banned, label):
+    for post in posts:
+        text = (post["subject"] + "\n" + post["body"]).lower()
+        for bad in banned:
+            testcase.assertNotIn(bad.lower(), text,
+                                 f"anachronism {bad!r} in {post['content_id']} ({label})")
+
+
+def _check_sections_shape(testcase, module, prefix, expected_count):
+    secs = module.SECTIONS
+    testcase.assertIsInstance(secs, dict)
+    testcase.assertEqual(len(secs), expected_count)
+    testcase.assertEqual(set(secs.keys()), {str(i) for i in range(1, expected_count + 1)})
+    ids = []
+    for key, spec in secs.items():
+        testcase.assertIsInstance(spec, (tuple, list), f"section {key}")
+        testcase.assertEqual(len(spec), 2, f"section {key}")
+        sec_id, title = spec
+        testcase.assertTrue(sec_id.startswith(prefix + "_"), sec_id)
+        testcase.assertTrue(title.strip(), sec_id)
+        ids.append(sec_id)
+    testcase.assertEqual(len(set(ids)), len(ids), "section ids must be unique")
+    testcase.assertEqual(module.section_spec(), module.SECTIONS)
+
+
+class VeteransForumTests(unittest.TestCase):
+    def test_sections(self):
+        _check_sections_shape(self, cis_veterans, "veterans", 4)
+
+    def test_seed_posts(self):
+        _check_cp2_seed_posts(self, cis_veterans, "veterans")
+
+    def test_no_anachronisms(self):
+        _check_no_anachronisms(self, cis_veterans.SEED_POSTS,
+                               VETERANS_ANACHRONISMS, "veterans")
+
+    def test_wall_dedication_era(self):
+        blob = " ".join(p["subject"] + " " + p["body"]
+                        for p in cis_veterans.SEED_POSTS).lower()
+        self.assertIn("vietnam veterans memorial", blob)
+
+
+class RootsForumTests(unittest.TestCase):
+    def test_sections(self):
+        _check_sections_shape(self, cis_roots, "roots", 6)
+
+    def test_seed_posts(self):
+        _check_cp2_seed_posts(self, cis_roots, "roots")
+
+    def test_no_anachronisms(self):
+        _check_no_anachronisms(self, cis_roots.SEED_POSTS,
+                               ROOTS_ANACHRONISMS, "roots")
+
+    def test_1920_census_not_listed_available(self):
+        blob = " ".join(p["subject"] + " " + p["body"]
+                        for p in cis_roots.SEED_POSTS)
+        # A surname date range may end in 1920, but the 1920 census must
+        # never be listed as an available research source.
+        self.assertNotIn("1920 census", blob)
+
+    def test_research_tips(self):
+        self.assertGreaterEqual(len(cis_roots.RESEARCH_TIPS), 5)
+        rendered = cis_roots.render_tips()
+        self.assertIn("Soundex", rendered)
+        for tip in cis_roots.RESEARCH_TIPS:
+            self.assertTrue(tip["title"].strip())
+            self.assertTrue(tip["body"].strip())
+
+
+class GuitarForumTests(unittest.TestCase):
+    def test_sections(self):
+        _check_sections_shape(self, cis_guitar, "guitar", 6)
+
+    def test_seed_posts(self):
+        _check_cp2_seed_posts(self, cis_guitar, "guitar")
+
+    def test_no_anachronisms(self):
+        _check_no_anachronisms(self, cis_guitar.SEED_POSTS,
+                               GUITAR_ANACHRONISMS, "guitar")
+
+    def test_period_gear_present(self):
+        blob = " ".join(p["subject"] + " " + p["body"]
+                        for p in cis_guitar.SEED_POSTS)
+        for gear in ("JCM800", "Tube Screamer", "Portastudio", "DX7"):
+            self.assertIn(gear, blob, f"expected period gear {gear!r} in seed posts")
+
+
+class TradingPostTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self._old_base = cis_tradingpost.BASE_DIR
+        cis_tradingpost.BASE_DIR = Path(self._tmp.name)
+
+    def tearDown(self):
+        cis_tradingpost.BASE_DIR = self._old_base
+
+    def test_seed_ad_count_and_categories(self):
+        ads = cis_tradingpost.seed_ads()
+        self.assertEqual(len(ads), 15)
+        cats = {ad["category"] for ad in ads}
+        self.assertEqual(cats, {"FOR SALE", "WANTED", "TRADE"})
+        ids = [ad["id"] for ad in ads]
+        self.assertEqual(ids, [f"TP-{n:04d}" for n in range(1, 16)])
+        for ad in ads:
+            self.assertRegex(ad["placed"], r"^1988-12-\d{2}$")
+
+    def test_seed_ads_no_anachronisms(self):
+        for ad in cis_tradingpost.seed_ads():
+            text = (ad["title"] + "\n" + ad["body"]).lower()
+            for bad in TRADINGPOST_ANACHRONISMS:
+                self.assertNotIn(bad, text, f"anachronism {bad!r} in {ad['id']}")
+
+    def test_place_ad_persists_and_lists(self):
+        ad = cis_tradingpost.place_ad("WANTED", "Test widget", 42.5,
+                                      "tester", "A test ad body.",
+                                      day=date(1988, 12, 15))
+        self.assertEqual(ad["id"], "TP-0016")
+        self.assertEqual(ad["placed"], "1988-12-15")
+        active = cis_tradingpost.active_ads(day=date(1988, 12, 20))
+        self.assertIn("Test widget", [a["title"] for a in active])
+        in_cat = cis_tradingpost.ads_in_category("WANTED", day=date(1988, 12, 20))
+        self.assertEqual(len(in_cat), 3)  # 2 seed + 1 placed
+
+    def test_ad_expiry(self):
+        ad = cis_tradingpost.place_ad("FOR SALE", "Expiring gizmo", 10.0,
+                                      "tester", "Soon gone.",
+                                      day=date(1988, 12, 1))
+        self.assertFalse(cis_tradingpost.is_expired(ad, date(1988, 12, 31)))
+        self.assertTrue(cis_tradingpost.is_expired(ad, date(1989, 1, 2)))
+        active = cis_tradingpost.active_ads(day=date(1989, 2, 1))
+        self.assertNotIn(ad["id"], [a["id"] for a in active])
+
+    def test_category_lines_render(self):
+        lines = cis_tradingpost.category_lines("FOR SALE", day=date(1988, 12, 20))
+        text = "\n".join(lines)
+        self.assertIn("Hayes Smartmodem 1200", text)
+        self.assertIn("FOR SALE --", text)
+
+    def test_menu_lines_cover_all_categories(self):
+        sections = cis_tradingpost.tradingpost_menu_lines(day=date(1988, 12, 20))
+        self.assertEqual([title for title, _ in sections],
+                         ["FOR SALE", "WANTED", "TRADE"])
+        for _title, lines in sections:
+            self.assertTrue(lines)
+
+
+class EntertainmentTests(unittest.TestCase):
+    def test_service_sections(self):
+        sections = cis_entertainment.entertainment_service(None)
+        self.assertEqual([title for title, _ in sections],
+                         ["Billboard Hot 100", "Movies", "Bowl Previews"])
+        for _title, lines in sections:
+            self.assertTrue(lines)
+
+    def test_chart_number_one_by_week(self):
+        early = "\n".join(cis_entertainment.chart_lines(date(1988, 12, 5)))
+        self.assertIn("Chicago", early)
+        self.assertIn("Look Away", early)
+        late = "\n".join(cis_entertainment.chart_lines(date(1988, 12, 25)))
+        self.assertIn("Poison", late)
+        self.assertIn("Every Rose Has Its Thorn", late)
+
+    def test_movies_december_1988(self):
+        text = "\n".join(cis_entertainment.movies_lines(date(1988, 12, 15)))
+        for title in ("RAIN MAN", "TWINS", "THE NAKED GUN", "SCROOGED",
+                      "WORKING GIRL", "DIE HARD", "WHO FRAMED ROGER RABBIT"):
+            self.assertIn(title, text)
+
+    def test_bowls_are_previews_not_results(self):
+        text = "\n".join(cis_entertainment.bowls_lines(date(1988, 12, 15)))
+        for bowl in ("FIESTA BOWL", "ORANGE BOWL", "SUGAR BOWL",
+                     "ROSE BOWL", "COTTON BOWL"):
+            self.assertIn(bowl, text)
+        self.assertIn("Previews only", text)
+        # None of the actual Jan 2, 1989 final scores may appear --
+        # previews must never assert results.
+        for score in ("34-21", "23-3", "13-7", "22-14", "17-3"):
+            self.assertNotIn(score, text, f"result {score} leaked into previews")
+
+    def test_no_anachronisms(self):
+        texts = []
+        for _title, lines in cis_entertainment.entertainment_menu_lines(date(1988, 12, 15)):
+            texts.append("\n".join(lines))
+        blob = "\n".join(texts).lower()
+        for bad in ENTERTAINMENT_ANACHRONISMS:
+            self.assertNotIn(bad, blob, f"anachronism {bad!r} in entertainment")
+
+
+class ContentPack2WiringTests(unittest.TestCase):
+    def test_forum_catalog_entries(self):
+        for forum_id, module in (("veterans", cis_veterans),
+                                 ("roots", cis_roots),
+                                 ("guitar", cis_guitar)):
+            self.assertIn(forum_id, compuserve.FORUM_CATALOG)
+            sections = compuserve.FORUM_CATALOG[forum_id]["sections"]
+            self.assertEqual(sections, module.SECTIONS)
+
+    def test_forum_choices(self):
+        self.assertEqual(compuserve.FORUM_CHOICES["11"], "veterans")
+        self.assertEqual(compuserve.FORUM_CHOICES["12"], "roots")
+        self.assertEqual(compuserve.FORUM_CHOICES["13"], "guitar")
+
+    def test_screens_options(self):
+        screens = json.loads((REPO_ROOT / "screens.json").read_text(encoding="utf-8"))
+        self.assertEqual(screens["forums"]["options"]["11"], "Veterans Forum")
+        self.assertEqual(screens["forums"]["options"]["12"], "Roots & Branches Genealogy Forum")
+        self.assertEqual(screens["forums"]["options"]["13"], "Guitar & Music Forum")
+        self.assertEqual(screens["news"]["options"]["9"], "Entertainment")
+        self.assertEqual(screens["shopping"]["options"]["6"], "Trading Post Classifieds")
+
+    def test_go_commands(self):
+        self.assertEqual(compuserve.resolve_go_destination("VETERANS"), "veterans")
+        self.assertEqual(compuserve.resolve_go_destination("ROOTS"), "roots")
+        self.assertEqual(compuserve.resolve_go_destination("GUITAR"), "guitar")
+        self.assertEqual(compuserve.resolve_go_destination("TRADINGPOST"), "shopping")
+        self.assertEqual(compuserve.resolve_go_destination("ENTERTAINMENT"), "news")
+
+    def test_seed_messages_in_computer_communities(self):
+        pack = json.loads((REPO_ROOT / "computer_communities.json").read_text(encoding="utf-8"))
+        by_prefix = {}
+        for message in pack["messages"]:
+            for prefix in ("veterans", "roots", "guitar"):
+                if message["content_id"].startswith(prefix + "-1988-"):
+                    by_prefix.setdefault(prefix, []).append(message)
+        self.assertEqual(len(by_prefix["veterans"]), len(cis_veterans.SEED_POSTS))
+        self.assertEqual(len(by_prefix["roots"]), len(cis_roots.SEED_POSTS))
+        self.assertEqual(len(by_prefix["guitar"]), len(cis_guitar.SEED_POSTS))
+        for prefix, module in (("veterans", cis_veterans), ("roots", cis_roots),
+                               ("guitar", cis_guitar)):
+            valid = {sec_id for sec_id, _ in module.SECTIONS.values()}
+            for message in by_prefix[prefix]:
+                self.assertIn(message["section"], valid, message["content_id"])
+
+    def test_merge_forums_installs_new_sections(self):
+        merged = cis_communities.merge_forums({})
+        for _sec_id, section_key in (("veterans", "veterans_stories"),
+                                     ("roots", "roots_census"),
+                                     ("guitar", "guitar_tabs")):
+            self.assertTrue(merged.get(section_key), section_key)
+            for message in merged[section_key]:
+                self.assertIn("id", message)
+                self.assertIn("parent_id", message)
+
+
+    def test_new_forums_reachable_from_menu(self):
+        for choice, forum_id in (("11", "veterans"), ("12", "roots"),
+                                 ("13", "guitar")):
+            with self.subTest(forum=forum_id), \
+                    patch.object(compuserve, 'session_state', SessionState()), \
+                    patch.object(compuserve, 'show_screen'), \
+                    patch.object(compuserve, 'forum_service') as service, \
+                    patch.object(compuserve, 'show_logout_summary'), \
+                    patch('builtins.input', side_effect=['2', choice, 'OFF']):
+                compuserve.navigate()
+                service.assert_called_once_with(forum_id)

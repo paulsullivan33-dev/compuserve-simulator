@@ -37,7 +37,10 @@
       "7": "Commodore and Amiga Forum",
       "8": "Apple II Forum",
       "9": "Atari ST Forum",
-      "10": "DOS Software Forum"
+      "10": "DOS Software Forum",
+      "11": "Veterans Forum",
+      "12": "Roots & Branches Genealogy Forum",
+      "13": "Guitar & Music Forum"
     }
   },
 
@@ -63,7 +66,8 @@
       "5": "December 1988 News Edition",
       "6": "Update Current News",
       "7": "Online Weekly Magazine",
-      "8": "Sports & TV"
+      "8": "Sports & TV",
+      "9": "Entertainment"
     }
   },
 
@@ -116,7 +120,8 @@
       "2": "Electronic Classifieds",
       "3": "Consumer Product Information",
       "4": "Shopping Instructions",
-      "5": "Owned Equipment and Support"
+      "5": "Owned Equipment and Support",
+      "6": "Trading Post Classifieds"
     }
   },
 
