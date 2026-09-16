@@ -1,6 +1,6 @@
 """Time-capsule mode: experience the service as of a date you choose.
 
-Prototype scope: date selection at login, a per-session simulation date, and
+Prototype scope: date selection at connection setup, a per-session simulation date, and
 deterministic seeding derived from that date. The FEATURED_DATES list has
 curated per-date content packs (archival headlines, era-specific
 announcements, CB topics, market notes, on-this-day context) loaded from

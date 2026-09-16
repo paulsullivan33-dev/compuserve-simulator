@@ -79,6 +79,11 @@ SIMULATION_DATE = "12/15/88"
 SCREEN_WIDTH = 80
 BAUD_RATES = {300: 6.00, 1200: 12.00, 2400: 24.00}
 connection_baud = 1200
+# Time-capsule date chosen during connection setup, applied to the session
+# after login. Holds a date, None for "Present Day", or _SURPRISE_SENTINEL to
+# resolve a per-user deterministic surprise date once the account is known.
+_SURPRISE_SENTINEL = "surprise"
+pending_simulation_date = None
 premium_charges = 0.0
 capture_path = None
 startup_options = {
@@ -273,35 +278,37 @@ def startup_configuration():
             connection_baud = int(startup_options["baud"])
             SCREEN_WIDTH = int(startup_options["columns"])
             save_json_atomic("terminal_config.json", startup_options)
-        return
-    if action != "C":
-        return
-    baud = input("Baud [300/1200/2400]: ").strip()
-    columns = input("Columns [40/80]: ").strip()
-    mode = input("Display [scroll/screen]: ").strip().lower()
-    skip = input("Skip modem dialing [Y/N]: ").strip().upper()
-    connection = input("Connection [clean/variable]: ").strip().lower()
-    sound = input("Modem sound [Y/N]: ").strip().upper()
-    paging = input("Pause every 16 lines [Y/N]: ").strip().upper()
-    refresh = input("Refresh current news after login [Y/N]: ").strip().upper()
-    fast = input("Fast output mode [Y/N]: ").strip().upper()
-    if baud.isdigit() and int(baud) in BAUD_RATES:
-        connection_baud = int(baud)
-    if columns.isdigit() and int(columns) in (40, 80):
-        SCREEN_WIDTH = int(columns)
-    if mode in ("scroll", "screen"):
-        startup_options["display_mode"] = mode
-    startup_options["skip_dialing"] = skip == "Y"
-    if connection in ("clean", "variable"):
-        startup_options["connection_mode"] = connection
-    startup_options["sound"] = sound == "Y"
-    startup_options["page_pause"] = paging == "Y"
-    startup_options["refresh_news"] = refresh == "Y"
-    startup_options["fast_mode"] = fast == "Y"
-    startup_options["customized"] = True
-    startup_options["baud"] = connection_baud
-    startup_options["columns"] = SCREEN_WIDTH
-    save_json_atomic("terminal_config.json", startup_options)
+    elif action == "C":
+        baud = input("Baud [300/1200/2400]: ").strip()
+        columns = input("Columns [40/80]: ").strip()
+        mode = input("Display [scroll/screen]: ").strip().lower()
+        skip = input("Skip modem dialing [Y/N]: ").strip().upper()
+        connection = input("Connection [clean/variable]: ").strip().lower()
+        sound = input("Modem sound [Y/N]: ").strip().upper()
+        paging = input("Pause every 16 lines [Y/N]: ").strip().upper()
+        refresh = input("Refresh current news after login [Y/N]: ").strip().upper()
+        fast = input("Fast output mode [Y/N]: ").strip().upper()
+        if baud.isdigit() and int(baud) in BAUD_RATES:
+            connection_baud = int(baud)
+        if columns.isdigit() and int(columns) in (40, 80):
+            SCREEN_WIDTH = int(columns)
+        if mode in ("scroll", "screen"):
+            startup_options["display_mode"] = mode
+        startup_options["skip_dialing"] = skip == "Y"
+        if connection in ("clean", "variable"):
+            startup_options["connection_mode"] = connection
+        startup_options["sound"] = sound == "Y"
+        startup_options["page_pause"] = paging == "Y"
+        startup_options["refresh_news"] = refresh == "Y"
+        startup_options["fast_mode"] = fast == "Y"
+        startup_options["customized"] = True
+        startup_options["baud"] = connection_baud
+        startup_options["columns"] = SCREEN_WIDTH
+        save_json_atomic("terminal_config.json", startup_options)
+    # Anything else (including RETURN) accepts the current settings as-is.
+    # The time-capsule destination is a connection-setup choice too, so it
+    # lives here with the other non-service options rather than after login.
+    choose_temporal_destination_setup()
 
 
 def set_capture(enabled):
@@ -590,16 +597,14 @@ def _prompt_for_simulation_date():
             ansi_scroll(str(exc), 0.01)
 
 
-def choose_temporal_destination():
-    """Offer time-capsule date selection once, right after login."""
-    remembered = _remembered_simulation_date()
-    if remembered is not None:
-        answer = input(f"Return to {remembered:%A, %B %d, %Y}? (Y/N) ").strip().upper()
-        if answer in ("Y", "YES", ""):
-            _set_simulation_date(remembered)
-            return
-        if answer not in ("N", "NO"):
-            ansi_scroll("Assuming NO.", 0.01)
+def choose_temporal_destination_setup():
+    """Offer time-capsule date selection during connection setup.
+
+    The account isn't known yet, so the per-account "Return to <date>?"
+    shortcut can't run here. The raw choice is stashed in
+    pending_simulation_date and applied to the session after login.
+    """
+    global pending_simulation_date
     while True:
         clear()
         header_bar("main")
@@ -613,26 +618,52 @@ def choose_temporal_destination():
         ansi_scroll("4  Surprise me", 0.01)
         choice = input("Choice: ").strip()
         if choice == "1":
-            _set_simulation_date(None)
+            pending_simulation_date = None
             return
         if choice == "2":
             picked = _featured_date_menu()
             if picked is None:
                 continue
-            _set_simulation_date(picked)
+            pending_simulation_date = picked
             return
         if choice == "3":
             picked = _prompt_for_simulation_date()
             if picked is None:
                 continue
-            _set_simulation_date(picked)
+            pending_simulation_date = picked
             return
         if choice == "4":
-            picked = cis_timecapsule.surprise_date(current_user_id or "")
-            ansi_scroll(f"Your destination: {picked:%A, %B %d, %Y}.", 0.01)
-            _set_simulation_date(picked)
+            pending_simulation_date = _SURPRISE_SENTINEL
             return
         ansi_scroll("Enter 1, 2, 3, or 4.", 0.01)
+
+
+def apply_pending_simulation_date():
+    """Apply the connection-setup time-capsule choice to this session.
+
+    Runs after login, when the account (and its remembered era) is known.
+    An explicit date or surprise choice applies directly; "Present Day"
+    still offers the account's remembered era via "Return to <date>?".
+    """
+    global pending_simulation_date
+    pending, pending_simulation_date = pending_simulation_date, None
+    if pending == _SURPRISE_SENTINEL:
+        picked = cis_timecapsule.surprise_date(current_user_id or "")
+        ansi_scroll(f"Your destination: {picked:%A, %B %d, %Y}.", 0.01)
+        _set_simulation_date(picked)
+        return
+    if pending is not None:
+        _set_simulation_date(pending)
+        return
+    remembered = _remembered_simulation_date()
+    if remembered is not None:
+        answer = input(f"Return to {remembered:%A, %B %d, %Y}? (Y/N) ").strip().upper()
+        if answer in ("Y", "YES", ""):
+            _set_simulation_date(remembered)
+            return
+        if answer not in ("N", "NO"):
+            ansi_scroll("Assuming NO.", 0.01)
+    _set_simulation_date(None)
 
 
 def account_settings():
@@ -3412,7 +3443,7 @@ def main():
         return 1
     with active_session(session_state):
         try:
-            choose_temporal_destination()
+            apply_pending_simulation_date()
             create_data_backup()
             if startup_options["refresh_news"]:
                 refresh_current_news()

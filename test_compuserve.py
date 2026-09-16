@@ -1396,25 +1396,31 @@ class NavigationTests(unittest.TestCase):
         old_baud = compuserve.connection_baud
         old_width = compuserve.SCREEN_WIDTH
         old_options = dict(compuserve.startup_options)
+        old_pending = compuserve.pending_simulation_date
         try:
             with tempfile.TemporaryDirectory() as directory:
                 with (
                     patch.object(compuserve, "BASE_DIR", Path(directory)),
                     patch(
                         "builtins.input",
-                        side_effect=["C", "2400", "40", "screen", "Y", "clean", "N", "N", "N", "N"],
+                        side_effect=["C", "2400", "40", "screen", "Y", "clean", "N", "N", "N", "N", "1"],
                     ),
                     patch.object(compuserve, "ansi_scroll"),
+                    patch.object(compuserve, "clear"),
+                    patch.object(compuserve, "header_bar"),
                 ):
                     compuserve.startup_configuration()
             self.assertEqual(compuserve.connection_baud, 2400)
             self.assertEqual(compuserve.SCREEN_WIDTH, 40)
             self.assertTrue(compuserve.startup_options["skip_dialing"])
+            # The temporal menu now runs in connection setup; "1" = Present Day.
+            self.assertIsNone(compuserve.pending_simulation_date)
         finally:
             compuserve.connection_baud = old_baud
             compuserve.SCREEN_WIDTH = old_width
             compuserve.startup_options.clear()
             compuserve.startup_options.update(old_options)
+            compuserve.pending_simulation_date = old_pending
 
     def test_remaining_top_services_have_data(self):
         for key in ("quotes", "exchange", "hotels", "reference", "catalog", "classifieds"):
@@ -2317,6 +2323,115 @@ class TimeCapsulePackTests(unittest.TestCase):
             first = cis_dynamic.cb_ambient_events("1", "bucket", hour=20)
             second = cis_dynamic.cb_ambient_events("1", "bucket", hour=20)
             self.assertEqual(first, second)
+
+
+class ConnectionSetupTimeCapsuleTests(unittest.TestCase):
+    """The temporal destination menu lives in connection setup, not post-login."""
+
+    def setUp(self):
+        self._old_pending = compuserve.pending_simulation_date
+        compuserve.pending_simulation_date = None
+
+    def tearDown(self):
+        compuserve.pending_simulation_date = self._old_pending
+
+    def test_post_login_menu_is_gone(self):
+        self.assertFalse(hasattr(compuserve, "choose_temporal_destination"))
+
+    def test_temporal_menu_in_connection_setup_stores_featured_date(self):
+        from datetime import date
+        with (
+            patch("builtins.input", side_effect=["", "2", "5"]),
+            patch.object(compuserve, "ansi_scroll"),
+            patch.object(compuserve, "clear"),
+            patch.object(compuserve, "header_bar"),
+        ):
+            compuserve.startup_configuration()
+        self.assertEqual(compuserve.pending_simulation_date, date(1989, 11, 9))
+
+    def test_temporal_menu_in_connection_setup_accepts_typed_date(self):
+        from datetime import date
+        with (
+            patch("builtins.input", side_effect=["", "3", "06/12/1985"]),
+            patch.object(compuserve, "ansi_scroll"),
+            patch.object(compuserve, "clear"),
+            patch.object(compuserve, "header_bar"),
+        ):
+            compuserve.startup_configuration()
+        self.assertEqual(compuserve.pending_simulation_date, date(1985, 6, 12))
+
+    def test_apply_phase_sets_session_date_and_persists_profile(self):
+        from datetime import date
+        from cis_session import active_session
+        import cis_timecapsule
+        state = SessionState()
+        profile = {}
+        compuserve.pending_simulation_date = date(1987, 10, 19)
+        with (
+            patch.object(compuserve, "session_state", state),
+            patch.object(compuserve, "current_profile", profile),
+            patch.object(compuserve, "current_user_id", "70000,0001"),
+            patch.object(compuserve, "save_profiles"),
+            patch.object(compuserve, "ansi_scroll"),
+        ):
+            compuserve.apply_pending_simulation_date()
+        self.assertEqual(state.simulation_date, date(1987, 10, 19))
+        self.assertEqual(profile["last_simulation_date"], "1987-10-19")
+        self.assertIsNone(compuserve.pending_simulation_date)
+        # The chosen date reaches the session exactly as the briefing sees it.
+        with active_session(state):
+            self.assertEqual(cis_dynamic.simulation_day(), date(1987, 10, 19))
+            self.assertIsNotNone(cis_timecapsule.pack_for(date(1987, 10, 19)))
+
+    def test_apply_phase_offers_remembered_era_shortcut(self):
+        from datetime import date
+        state = SessionState()
+        profile = {"last_simulation_date": "1989-11-09"}
+        compuserve.pending_simulation_date = None  # "Present Day" at setup
+        with (
+            patch.object(compuserve, "session_state", state),
+            patch.object(compuserve, "current_profile", profile),
+            patch.object(compuserve, "current_user_id", "70000,0001"),
+            patch.object(compuserve, "save_profiles"),
+            patch.object(compuserve, "ansi_scroll"),
+            patch("builtins.input", side_effect=["Y"]),
+        ):
+            compuserve.apply_pending_simulation_date()
+        self.assertEqual(state.simulation_date, date(1989, 11, 9))
+
+    def test_apply_phase_present_day_clears_remembered_era_on_no(self):
+        state = SessionState()
+        profile = {"last_simulation_date": "1989-11-09"}
+        compuserve.pending_simulation_date = None
+        with (
+            patch.object(compuserve, "session_state", state),
+            patch.object(compuserve, "current_profile", profile),
+            patch.object(compuserve, "current_user_id", "70000,0001"),
+            patch.object(compuserve, "save_profiles"),
+            patch.object(compuserve, "ansi_scroll"),
+            patch("builtins.input", side_effect=["N"]),
+        ):
+            compuserve.apply_pending_simulation_date()
+        self.assertIsNone(state.simulation_date)
+        self.assertNotIn("last_simulation_date", profile)
+
+    def test_apply_phase_surprise_resolves_per_user(self):
+        from cis_session import active_session
+        import cis_timecapsule
+        state = SessionState()
+        compuserve.pending_simulation_date = compuserve._SURPRISE_SENTINEL
+        with (
+            patch.object(compuserve, "session_state", state),
+            patch.object(compuserve, "current_profile", {}),
+            patch.object(compuserve, "current_user_id", "70000,0001"),
+            patch.object(compuserve, "save_profiles"),
+            patch.object(compuserve, "ansi_scroll"),
+        ):
+            compuserve.apply_pending_simulation_date()
+        expected = cis_timecapsule.surprise_date("70000,0001")
+        self.assertEqual(state.simulation_date, expected)
+        with active_session(state):
+            self.assertEqual(cis_dynamic.simulation_day(), expected)
 
 
 if __name__ == "__main__":
