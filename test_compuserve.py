@@ -1914,7 +1914,11 @@ class BusinessTravelTests(unittest.TestCase):
 
     def test_chip_88_decision_changes_semiconductor_sentiment(self):
         with tempfile.TemporaryDirectory() as directory:
-            with patch.object(compuserve, "BASE_DIR", Path(directory)), patch.object(compuserve, "current_user_id", "70000,0001"):
+            with (
+                patch.object(compuserve, "BASE_DIR", Path(directory)),
+                patch.object(compuserve, "current_user_id", "70000,0001"),
+                patch.dict("os.environ", {"CIS_SIMULATION_DATE": "1988-12-23"}),
+            ):
                 ordinary = cis_dynamic.market_quotes(compuserve.service_data["quotes"])
                 state = cis_dynamic.load_state(compuserve)
                 state["story_cases"] = {"70000,0001": {"decision": "PUBLISH"}}
