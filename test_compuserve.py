@@ -2753,6 +2753,11 @@ class FakeApp:
         self.tmpdir = Path(tmpdir)
         self.current_user_id = user_id
         self.cis_dynamic = cis_dynamic
+        self.output_lines = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.output_lines.append(str(text))
+        return True
 
     def load_json(self, filename, default=None):
         path = self.tmpdir / filename
@@ -4058,12 +4063,20 @@ class EraSafetyTests(unittest.TestCase):
 class PlayLoopTests(unittest.TestCase):
     def _run(self, inputs, day):
         puzzle = puzzle_for_day(day)
+
+        class CaptureApp:
+            def __init__(self):
+                self.lines = []
+
+            def ansi_scroll(self, text, delay=0.01):
+                self.lines.append(str(text))
+                return True
+
+        app = CaptureApp()
         with patch("builtins.input", side_effect=inputs + ["QUIT"]):
-            buf = io.StringIO()
-            with redirect_stdout(buf):
-                with patch("cis_crossword.puzzle_for_day", return_value=puzzle):
-                    play(None)
-        return buf.getvalue(), puzzle
+            with patch("cis_crossword.puzzle_for_day", return_value=puzzle):
+                play(app)
+        return "\n".join(app.lines), puzzle
 
     def test_quit_immediately(self):
         out, _ = self._run(["QUIT"], date(1988, 12, 19))
@@ -4328,6 +4341,11 @@ class ArcadeFakeApp:
     def __init__(self, user_id="T100"):
         self.current_user_id = user_id
         self.cis_dynamic = ArcadeFakeDynamic()
+        self.output_lines = []
+
+    def ansi_scroll(self, text, delay=0.01):
+        self.output_lines.append(str(text))
+        return True
 
 
 # ---------------------------------------------------------------------------

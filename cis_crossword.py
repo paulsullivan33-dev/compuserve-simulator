@@ -410,62 +410,62 @@ def play(app):
     """Interactive entry point: wired into the games menu by the coordinator."""
     puzzle = puzzle_for_day()
     state = new_state(puzzle)
-    print(TITLE)
-    print("%s -- %s" % (puzzle["weekday"], puzzle["theme"]))
-    print()
-    print("Fill the grid. Each down word crosses one across word.")
-    print("Type HELP for commands.")
-    print()
-    print(render_grid(puzzle, state))
-    print()
-    print(render_clues(puzzle, state))
+    app.ansi_scroll(TITLE, 0.01)
+    app.ansi_scroll("%s -- %s" % (puzzle["weekday"], puzzle["theme"]), 0.01)
+    app.ansi_scroll("", 0.01)
+    app.ansi_scroll("Fill the grid. Each down word crosses one across word.", 0.01)
+    app.ansi_scroll("Type HELP for commands.", 0.01)
+    app.ansi_scroll("", 0.01)
+    app.ansi_scroll(render_grid(puzzle, state), 0.01)
+    app.ansi_scroll("", 0.01)
+    app.ansi_scroll(render_clues(puzzle, state), 0.01)
     while True:
         if is_solved(state, puzzle):
-            print()
-            print("CONGRATULATIONS! Puzzle solved in %d move%s." % (
-                state["moves"], "" if state["moves"] == 1 else "s"))
-            print("Come back tomorrow for a new grid.")
+            app.ansi_scroll("", 0.01)
+            app.ansi_scroll("CONGRATULATIONS! Puzzle solved in %d move%s." % (
+                state["moves"], "" if state["moves"] == 1 else "s"), 0.01)
+            app.ansi_scroll("Come back tomorrow for a new grid.", 0.01)
             return
         try:
             raw = input("crossword> ")
         except (EOFError, KeyboardInterrupt):
-            print()
+            app.ansi_scroll("", 0.01)
             raw = "QUIT"
         verb, number, direction, rest = _parse_command(raw)
         if verb == "QUIT":
-            print("Puzzle abandoned. The grid will keep.")
+            app.ansi_scroll("Puzzle abandoned. The grid will keep.", 0.01)
             return
         if verb == "GRID":
-            print(render_grid(puzzle, state))
+            app.ansi_scroll(render_grid(puzzle, state), 0.01)
             continue
         if verb == "CLUES":
-            print(render_clues(puzzle, state))
+            app.ansi_scroll(render_clues(puzzle, state), 0.01)
             continue
         if verb == "HELP":
-            print(HELP_TEXT)
+            app.ansi_scroll(HELP_TEXT, 0.01)
             continue
         if verb == "GUESS":
             slot = _find_slot(puzzle, number, direction)
             if slot is None:
-                print("No such entry. Try HELP for the command list.")
+                app.ansi_scroll("No such entry. Try HELP for the command list.", 0.01)
                 continue
             _d, _n, answer, _clue, _cells = slot
             key = (direction, number)
             if state["entries"].get(key) == list(answer):
-                print("Already solved.")
+                app.ansi_scroll("Already solved.", 0.01)
                 continue
             if not rest:
-                print("Give an answer, e.g. %s%d <answer>." % (direction, number))
+                app.ansi_scroll("Give an answer, e.g. %s%d <answer>." % (direction, number), 0.01)
                 continue
             state["moves"] += 1
             if fill_slot(state, puzzle, number, direction, rest):
-                print("Correct!")
-                print(render_grid(puzzle, state))
+                app.ansi_scroll("Correct!", 0.01)
+                app.ansi_scroll(render_grid(puzzle, state), 0.01)
             else:
                 cleaned = "".join(ch for ch in rest.upper() if ch.isalpha())
                 if len(cleaned) != len(answer):
-                    print("That entry needs %d letters." % len(answer))
+                    app.ansi_scroll("That entry needs %d letters." % len(answer), 0.01)
                 else:
-                    print("Not quite -- try again.")
+                    app.ansi_scroll("Not quite -- try again.", 0.01)
             continue
-        print("Hmm? Type HELP for commands.")
+        app.ansi_scroll("Hmm? Type HELP for commands.", 0.01)

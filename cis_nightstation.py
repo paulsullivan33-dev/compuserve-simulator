@@ -710,16 +710,16 @@ class NightStationGame:
 def play(app):
     """Interactive entry point: wired into the games menu by the coordinator."""
     game = NightStationGame(app)
-    print(game.intro())
-    print()
-    print(game.describe())
+    app.ansi_scroll(game.intro(), 0.01)
+    app.ansi_scroll("", 0.01)
+    app.ansi_scroll(game.describe(), 0.01)
     while not game.over:
         try:
             cmd = input("? ")
         except (EOFError, KeyboardInterrupt):
-            print()
+            app.ansi_scroll("", 0.01)
             cmd = "QUIT"
-        print(game.command(cmd))
-        print()
+        app.ansi_scroll(game.command(cmd), 0.01)
+        app.ansi_scroll("", 0.01)
     for line in game.records_table():
-        print(line)
+        app.ansi_scroll(line, 0.01)

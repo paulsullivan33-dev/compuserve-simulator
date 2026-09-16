@@ -284,17 +284,17 @@ def wumpus_intro():
 def play_wumpus(app, user_id):
     game = WumpusGame(app=app, user_id=user_id)
     game.reset()
-    print(wumpus_intro())
-    print()
+    app.ansi_scroll(wumpus_intro(), 0.01)
+    app.ansi_scroll("", 0.01)
     while game.alive and not game.won:
-        print(f"You are in room {game.player}. Tunnels to {', '.join(map(str, TUNNELS[game.player]))}.")
+        app.ansi_scroll(f"You are in room {game.player}. Tunnels to {', '.join(map(str, TUNNELS[game.player]))}.", 0.01)
         for warn in game.warnings():
-            print(warn)
-        print(f"Arrows: {game.arrows}  Moves: {game.moves}")
+            app.ansi_scroll(warn, 0.01)
+        app.ansi_scroll(f"Arrows: {game.arrows}  Moves: {game.moves}", 0.01)
         try:
             raw = input("wumpus> ").strip().upper()
         except (EOFError, KeyboardInterrupt):
-            print()
+            app.ansi_scroll("", 0.01)
             raw = "Q"
         if not raw:
             continue
@@ -302,53 +302,53 @@ def play_wumpus(app, user_id):
         verb = parts[0]
         if verb in ("Q", "QUIT", "M"):
             game.quit()
-            print("You crawl out of the cave, empty-handed.")
+            app.ansi_scroll("You crawl out of the cave, empty-handed.", 0.01)
             break
         if verb == "H":
-            print(wumpus_intro())
+            app.ansi_scroll(wumpus_intro(), 0.01)
             continue
         if verb == "M" or verb == "MOVE":
             if len(parts) < 2 or not parts[1].isdigit():
-                print("Move where? M <room number>")
+                app.ansi_scroll("Move where? M <room number>", 0.01)
                 continue
             result = game.move_to(int(parts[1]))
             if result == "NO_TUNNEL":
-                print("No tunnel leads there from this room.")
+                app.ansi_scroll("No tunnel leads there from this room.", 0.01)
             elif result == "EATEN":
-                print("...Oops! Bumped a WUMPUS!")
+                app.ansi_scroll("...Oops! Bumped a WUMPUS!", 0.01)
             elif result == "PIT":
-                print("YYYYIIIIEEEE... fell into a pit!")
+                app.ansi_scroll("YYYYIIIIEEEE... fell into a pit!", 0.01)
             elif result == "BATS":
-                print("ZAP -- Super Bat snatch! They drop you in another room.")
-                print(f"You are in room {game.player}.")
+                app.ansi_scroll("ZAP -- Super Bat snatch! They drop you in another room.", 0.01)
+                app.ansi_scroll(f"You are in room {game.player}.", 0.01)
             elif result == "FLED":
-                print("You startled the Wumpus -- it fled to another room!")
+                app.ansi_scroll("You startled the Wumpus -- it fled to another room!", 0.01)
             continue
         if verb in ("S", "SHOOT"):
             rooms = [p for p in parts[1:] if p.isdigit()]
             if not rooms:
-                print("Shoot where? S <room> [<room> ...]  (up to 5 rooms)")
+                app.ansi_scroll("Shoot where? S <room> [<room> ...]  (up to 5 rooms)", 0.01)
                 continue
             result = game.fire([int(r) for r in rooms])
             if result == "KILL":
-                print("A-HA! You got the Wumpus!")
+                app.ansi_scroll("A-HA! You got the Wumpus!", 0.01)
             elif result == "SUICIDE":
-                print("Ouch! Arrow got you!")
+                app.ansi_scroll("Ouch! Arrow got you!", 0.01)
             elif result == "MISS_MOVED":
-                print("Missed. You woke the Wumpus -- it has moved!")
+                app.ansi_scroll("Missed. You woke the Wumpus -- it has moved!", 0.01)
             elif result == "MISS":
-                print("Missed.")
+                app.ansi_scroll("Missed.", 0.01)
             elif result == "EATEN":
-                print("The Wumpus fled into YOUR room. ...Oops!")
+                app.ansi_scroll("The Wumpus fled into YOUR room. ...Oops!", 0.01)
             elif result == "NO_ARROWS":
-                print("You are out of arrows!")
+                app.ansi_scroll("You are out of arrows!", 0.01)
             continue
-        print("I don't understand. M <room>, S <rooms>, H, or Q.")
+        app.ansi_scroll("I don't understand. M <room>, S <rooms>, H, or Q.", 0.01)
     if game.won:
-        print(f"WUMPUS SLAIN in {game.moves} moves with {game.arrows} arrows to spare!")
+        app.ansi_scroll(f"WUMPUS SLAIN in {game.moves} moves with {game.arrows} arrows to spare!", 0.01)
     if not game._recorded:
         game._finish(game.won)
-    print(game.record_line)
+    app.ansi_scroll(game.record_line, 0.01)
 
 
 # ===========================================================================
@@ -512,12 +512,12 @@ def hamurabi_intro():
         "Beware rats, plague, and starvation -- starve 45% and you are impeached!")
 
 
-def _ask_int(prompt, minimum=0):
+def _ask_int(app, prompt, minimum=0):
     while True:
         try:
             raw = input(prompt).strip().upper()
         except (EOFError, KeyboardInterrupt):
-            print()
+            app.ansi_scroll("", 0.01)
             return None
         if raw in ("Q", "QUIT", "M"):
             return None
@@ -525,60 +525,60 @@ def _ask_int(prompt, minimum=0):
             value = int(raw)
             if value >= minimum:
                 return value
-        print(f"Enter a whole number of {minimum} or more (or Q to quit).")
+        app.ansi_scroll(f"Enter a whole number of {minimum} or more (or Q to quit).", 0.01)
 
 
 def play_hamurabi(app, user_id):
     game = HamurabiGame(app=app, user_id=user_id)
-    print(hamurabi_intro())
-    print()
+    app.ansi_scroll(hamurabi_intro(), 0.01)
+    app.ansi_scroll("", 0.01)
     while not game.over:
-        print(f"--- YEAR {game.year + 1} of {HAMURABI_YEARS} ---")
-        print(f"Population: {game.population}  Grain: {game.grain} bushels  "
-              f"Land: {game.land} acres  Land price: {game.price} bushels/acre")
-        buy = _ask_int("Acres to BUY [0]? ")
+        app.ansi_scroll(f"--- YEAR {game.year + 1} of {HAMURABI_YEARS} ---", 0.01)
+        app.ansi_scroll(f"Population: {game.population}  Grain: {game.grain} bushels  "
+                        f"Land: {game.land} acres  Land price: {game.price} bushels/acre", 0.01)
+        buy = _ask_int(app, "Acres to BUY [0]? ")
         if buy is None:
-            print("You abdicate the throne.")
+            app.ansi_scroll("You abdicate the throne.", 0.01)
             game._finish()
             return
         sell = 0
         if buy == 0:
-            sell = _ask_int("Acres to SELL [0]? ")
+            sell = _ask_int(app, "Acres to SELL [0]? ")
             if sell is None:
-                print("You abdicate the throne.")
+                app.ansi_scroll("You abdicate the throne.", 0.01)
                 game._finish()
                 return
-        feed = _ask_int("Bushels to FEED the people? ")
+        feed = _ask_int(app, "Bushels to FEED the people? ")
         if feed is None:
-            print("You abdicate the throne.")
+            app.ansi_scroll("You abdicate the throne.", 0.01)
             game._finish()
             return
-        plant = _ask_int("Acres to PLANT with seed? ")
+        plant = _ask_int(app, "Acres to PLANT with seed? ")
         if plant is None:
-            print("You abdicate the throne.")
+            app.ansi_scroll("You abdicate the throne.", 0.01)
             game._finish()
             return
         report = game.play_year(buy=buy, sell=sell, feed=feed, plant=plant)
         if not report["ok"]:
-            print(report["error"])
+            app.ansi_scroll(report["error"], 0.01)
             continue  # validation failed: the year was not resolved, try again
-        print()
+        app.ansi_scroll("", 0.01)
         if report["starved"]:
-            print(f"{report['starved']} citizens starved.")
+            app.ansi_scroll(f"{report['starved']} citizens starved.", 0.01)
         if report["plague"]:
-            print("A horrible plague struck! Half the people died.")
-        print(f"Harvest: {report['yield']} bushels/acre, {report['harvest']} bushels gathered.")
+            app.ansi_scroll("A horrible plague struck! Half the people died.", 0.01)
+        app.ansi_scroll(f"Harvest: {report['yield']} bushels/acre, {report['harvest']} bushels gathered.", 0.01)
         if report["rats"]:
-            print(f"Rats ate {report['rats']} bushels.")
-        print(f"{report['births']} children were born; {report['immigrants']} came to the city.")
-        print()
-    print(f"--- END OF REIGN: year {game.year} ---")
-    print(f"Final population: {game.population}, grain: {game.grain}, land: {game.land}.")
-    print(f"Score: {game.final_score()} of 100.")
-    print(game.epitaph())
+            app.ansi_scroll(f"Rats ate {report['rats']} bushels.", 0.01)
+        app.ansi_scroll(f"{report['births']} children were born; {report['immigrants']} came to the city.", 0.01)
+        app.ansi_scroll("", 0.01)
+    app.ansi_scroll(f"--- END OF REIGN: year {game.year} ---", 0.01)
+    app.ansi_scroll(f"Final population: {game.population}, grain: {game.grain}, land: {game.land}.", 0.01)
+    app.ansi_scroll(f"Score: {game.final_score()} of 100.", 0.01)
+    app.ansi_scroll(game.epitaph(), 0.01)
     if not game._recorded:
         game._finish()
-    print(game.record_line)
+    app.ansi_scroll(game.record_line, 0.01)
 
 
 # ===========================================================================
@@ -923,17 +923,17 @@ def trek_intro():
 def play_startrek(app, user_id):
     game = StarTrekGame(app=app, user_id=user_id)
     game.new_mission()
-    print(trek_intro())
-    print()
-    print(f"{game.klingons_total} Klingons detected. Mission ends at stardate {game.deadline}.")
-    print()
+    app.ansi_scroll(trek_intro(), 0.01)
+    app.ansi_scroll("", 0.01)
+    app.ansi_scroll(f"{game.klingons_total} Klingons detected. Mission ends at stardate {game.deadline}.", 0.01)
+    app.ansi_scroll("", 0.01)
     while not game.over:
         for line in game.status_lines():
-            print(line)
+            app.ansi_scroll(line, 0.01)
         try:
             raw = input("trek> ").strip().upper()
         except (EOFError, KeyboardInterrupt):
-            print()
+            app.ansi_scroll("", 0.01)
             raw = "XXX"
         if not raw:
             continue
@@ -941,56 +941,56 @@ def play_startrek(app, user_id):
         verb = parts[0]
         args = parts[1:]
         if verb == "XXX":
-            print("You resign your command. The fleet mourns.")
+            app.ansi_scroll("You resign your command. The fleet mourns.", 0.01)
             game._finish()
             break
         if verb == "H":
-            print(trek_intro())
+            app.ansi_scroll(trek_intro(), 0.01)
             continue
         if verb == "SRS":
             for line in game.srs():
-                print(line)
+                app.ansi_scroll(line, 0.01)
             continue
         if verb == "LRS":
             for line in game.lrs():
-                print(line)
+                app.ansi_scroll(line, 0.01)
             continue
         if verb == "DAM":
             for line in game.damage_report():
-                print(line)
+                app.ansi_scroll(line, 0.01)
             continue
         if verb == "COM":
-            print("STATUS REPORT:")
+            app.ansi_scroll("STATUS REPORT:", 0.01)
             for line in game.status_lines():
-                print("  " + line)
+                app.ansi_scroll("  " + line, 0.01)
             continue
         if verb == "NAV" and len(args) == 2 and all(a.isdigit() for a in args):
             for line in game.nav(int(args[0]), int(args[1])):
-                print(line)
-            print()
+                app.ansi_scroll(line, 0.01)
+            app.ansi_scroll("", 0.01)
             continue
         if verb == "PHA" and len(args) == 1 and args[0].isdigit():
             for line in game.phasers(int(args[0])):
-                print(line)
-            print()
+                app.ansi_scroll(line, 0.01)
+            app.ansi_scroll("", 0.01)
             continue
         if verb == "TOR" and len(args) == 2 and all(a.isdigit() for a in args):
             for line in game.torpedo(int(args[0]), int(args[1])):
-                print(line)
-            print()
+                app.ansi_scroll(line, 0.01)
+            app.ansi_scroll("", 0.01)
             continue
         if verb == "SHE" and len(args) == 1 and args[0].lstrip("+-").isdigit():
             for line in game.shields_cmd(int(args[0])):
-                print(line)
+                app.ansi_scroll(line, 0.01)
             continue
-        print("Unknown command. Valid: NAV SRS LRS PHA TOR SHE DAM COM XXX  (H for help)")
+        app.ansi_scroll("Unknown command. Valid: NAV SRS LRS PHA TOR SHE DAM COM XXX  (H for help)", 0.01)
     if game.won:
-        print(f"VICTORY at stardate {game.stardate}: {game.klingons_down()} Klingons destroyed.")
+        app.ansi_scroll(f"VICTORY at stardate {game.stardate}: {game.klingons_down()} Klingons destroyed.", 0.01)
     elif game.over:
-        print("MISSION FAILED.")
+        app.ansi_scroll("MISSION FAILED.", 0.01)
     if not game._recorded:
         game._finish()
-    print(game.record_line)
+    app.ansi_scroll(game.record_line, 0.01)
 
 
 # ===========================================================================
@@ -1169,27 +1169,27 @@ def _show_hand(label, cards, hide_hole=False):
 
 def play_blackjack(app, user_id):
     game = BlackjackGame(app=app, user_id=user_id)
-    print(blackjack_intro())
-    print()
+    app.ansi_scroll(blackjack_intro(), 0.01)
+    app.ansi_scroll("", 0.01)
     while game.chips > 0:
-        print(f"You hold {game.chips} chips.  (Hands: {game.hands}, won: {game.wins})")
+        app.ansi_scroll(f"You hold {game.chips} chips.  (Hands: {game.hands}, won: {game.wins})", 0.01)
         try:
             raw = input("Bet how many chips (Q to quit)? ").strip().upper()
         except (EOFError, KeyboardInterrupt):
-            print()
+            app.ansi_scroll("", 0.01)
             raw = "Q"
         if raw in ("Q", "QUIT", "M"):
             break
         if not raw.isdigit() or int(raw) <= 0:
-            print("Enter a whole-number bet.")
+            app.ansi_scroll("Enter a whole-number bet.", 0.01)
             continue
         bet = int(raw)
         if bet > game.chips:
-            print(f"You hold only {game.chips} chips.")
+            app.ansi_scroll(f"You hold only {game.chips} chips.", 0.01)
             continue
         player, dealer = game.deal()
-        print(_show_hand("You", player))
-        print(_show_hand("Dealer", dealer, hide_hole=True))
+        app.ansi_scroll(_show_hand("You", player), 0.01)
+        app.ansi_scroll(_show_hand("Dealer", dealer, hide_hole=True), 0.01)
         doubled = False
         while True:
             total, _ = hand_value(player)
@@ -1199,21 +1199,21 @@ def play_blackjack(app, user_id):
             try:
                 choice = input(prompt).strip().upper()
             except (EOFError, KeyboardInterrupt):
-                print()
+                app.ansi_scroll("", 0.01)
                 choice = "S"
             if choice == "H":
                 player.append(game.shoe.pop())
-                print(_show_hand("You", player))
+                app.ansi_scroll(_show_hand("You", player), 0.01)
             elif choice == "D" and len(player) == 2 and bet * 2 <= game.chips:
                 bet *= 2
                 doubled = True
                 player.append(game.shoe.pop())
-                print(_show_hand("You", player) + "  (doubled)")
+                app.ansi_scroll(_show_hand("You", player) + "  (doubled)", 0.01)
                 break
             elif choice in ("S", "Q", "M"):
                 break
             else:
-                print("H, S, or D.")
+                app.ansi_scroll("H, S, or D.", 0.01)
         player_total, _ = hand_value(player)
         if player_total <= 21 and not is_blackjack(player):
             dealer = dealer_play(game.shoe, dealer)
@@ -1223,7 +1223,7 @@ def play_blackjack(app, user_id):
         if delta > 0:
             game.wins += 1
         game.best = max(game.best, game.chips)
-        print(_show_hand("Dealer", dealer))
+        app.ansi_scroll(_show_hand("Dealer", dealer), 0.01)
         messages = {
             "blackjack": f"BLACKJACK! You win {delta} chips.",
             "win": f"You win {delta} chips{' (doubled)' if doubled else ''}.",
@@ -1232,16 +1232,16 @@ def play_blackjack(app, user_id):
             "bust": f"Bust! You lose {bet} chips.",
             "lose": f"Dealer wins. You lose {bet} chips.",
         }
-        print(messages[outcome])
-        print()
+        app.ansi_scroll(messages[outcome], 0.01)
+        app.ansi_scroll("", 0.01)
         if game.chips <= 0:
-            print("You are out of chips. The dealer wishes you better luck.")
+            app.ansi_scroll("You are out of chips. The dealer wishes you better luck.", 0.01)
             break
     game.quit()
-    print(f"Session over: {game.hands} hands, {game.wins} won, best stack {game.best}.")
+    app.ansi_scroll(f"Session over: {game.hands} hands, {game.wins} won, best stack {game.best}.", 0.01)
     if not game._recorded:
         game._finish_session()
-    print(game.record_line)
+    app.ansi_scroll(game.record_line, 0.01)
 
 
 # ===========================================================================
@@ -1281,18 +1281,18 @@ def play(app):
     }
     while True:
         for line in arcade_menu_text():
-            print(line)
-        print()
+            app.ansi_scroll(line, 0.01)
+        app.ansi_scroll("", 0.01)
         try:
             choice = input("arcade> ").strip().upper()
         except (EOFError, KeyboardInterrupt):
-            print()
+            app.ansi_scroll("", 0.01)
             choice = "M"
         if choice in ("M", "Q", "QUIT"):
             return
         if choice in handlers:
-            print()
+            app.ansi_scroll("", 0.01)
             handlers[choice](app, user_id)
-            print()
+            app.ansi_scroll("", 0.01)
             continue
-        print("Pick 1-4, or M to return.")
+        app.ansi_scroll("Pick 1-4, or M to return.", 0.01)
