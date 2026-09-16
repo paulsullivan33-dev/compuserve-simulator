@@ -56,7 +56,7 @@ class SessionState:
 _prompt_app = ContextVar("compuserve_prompt_app", default=None)
 
 # The SessionState of the currently running session. Each OS process serves a
-# single session (local console, Flask web terminal, and telnet gateway all
+# single session (local console, FastAPI web terminal, and telnet gateway all
 # spawn one compuserve.py per session), so this is session-scoped in practice.
 # Date-aware modules read it via current_session_state() / session_simulation_date()
 # instead of consulting module-level globals.

@@ -1,6 +1,6 @@
 """Time-capsule mode: experience the service as of a date you choose.
 
-Prototype scope: date selection at connection setup, a per-session simulation date, and
+Scope: date selection at connection setup, a per-session simulation date, and
 deterministic seeding derived from that date. The FEATURED_DATES list has
 curated per-date content packs (archival headlines, era-specific
 announcements, CB topics, market notes, on-this-day context) loaded from
@@ -19,9 +19,7 @@ MIN_DATE = date(1979, 1, 1)
 MAX_DATE = date(1998, 12, 31)
 
 # Curated jump points. Each entry is (date, short label shown on the menu).
-# Content packs are NOT YET IMPLEMENTED: choosing one sets the simulation date
-# and everything date-driven (briefing, period news, CB ambience, markets)
-# responds to it, but there is no hand-written archival content per date yet.
+# Each featured date has curated archival content in timecapsule_packs.json.
 FEATURED_DATES = (
     (date(1981, 4, 12), "Columbia's first flight"),
     (date(1981, 8, 12), "IBM PC announced"),

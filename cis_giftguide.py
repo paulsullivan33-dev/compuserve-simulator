@@ -554,7 +554,7 @@ def giftguide_menu(app, day: Optional[date] = None) -> None:
     while True:
         app.clear()
         app.header_bar("news")
-        app.ansi_scroll("1988 HOLIDAY SHOPPING GUIDE", 0.01)
+        app.ansi_scroll("1988 HOLIDAY SHOPPING GUIDE - DECEMBER 1988 ARCHIVE", 0.01)
         app.ansi_scroll("---------------------------", 0.01)
         for index, (title, _lines) in enumerate(sections, 1):
             app.ansi_scroll(f"{index}  {title}", 0.01)

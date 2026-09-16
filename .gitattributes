@@ -1,0 +1,9 @@
+* text=auto
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.lock text eol=lf
+*.zip binary

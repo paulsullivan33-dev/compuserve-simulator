@@ -229,8 +229,31 @@ adds notes to simulated-member profiles.
 
 ### Time capsule
 
+Enter **GO START** after signing in for three suggested destinations. Featured
+dates suggest their news coverage, December 1988 suggests available magazines
+and seasonal features, and other dates suggest CB and the classic arcade.
+The main menu and login briefing both show this shortcut.
+
+Fixed collections are labelled **DECEMBER 1988 ARCHIVE**, including seeded
+forums, sports, entertainment, books, weather retrospectives, shopping and holiday
+features. These are browsable period exhibits and may contain material later than
+your selected date. The label stays visible on nested article pages. Featured-date
+headlines remain tied to your selected date; `GO WEATHER` remains explicitly live.
+Use `GO WEATHERWIRE` for the separate December 1988 weather archive.
+
+The Year in Review also respects publication dates: election results begin on
+November 9, the Armenia report on December 7, the Pan Am report on December 21,
+and the full-year roundup on December 31, 1988. Earlier sessions show an explanation
+when no year-end stories are available. The briefing does not reuse future events
+as historical anniversaries.
+
+`GO SPORTS`, `GO BOOKS`, `GO ENTERTAINMENT`, `GO YEARINREVIEW`, `GO GIFTGUIDE`,
+`GO CHRISTMAS`, `GO ARCADE`, `GO CROSSWORD`, and `GO TRADINGPOST` open their named
+services directly. Existing numbered menu routes still work.
+
 Connection setup includes a Temporal Destination step: experience CompuServe as of
-the date you choose. Pick **Present Day** (the service's current date), choose from
+the date you choose. Pick **Present Day** (the service's default December 1988
+calendar, or the administrator's `CIS_SIMULATION_DATE` override), choose from
 fourteen featured dates, enter any date from 1979 through 1998 as `MM/DD/YYYY`, or
 let **Surprise me** choose a session-scoped deterministic date that stays fixed for that
 call. Featured dates include Columbia's first flight (1981), the IBM PC

@@ -61,7 +61,8 @@ ELECTION_RESULT = {
 
 def election_lines(day: Optional[date] = None) -> List[str]:
     """Wire retrospective of the November 1988 presidential election."""
-    _ = _day(day)  # Election was November 8; no gating needed.
+    if _day(day) < date(1988, 11, 9):
+        return []
     r = ELECTION_RESULT
     return [
         "ELECTION '88 -- BUSH WINS THE WHITE HOUSE",
@@ -246,7 +247,8 @@ TECH_1988: List[str] = [
 
 def bestof_lines(day: Optional[date] = None) -> List[str]:
     """Best-of-1988 roundups: movies, music, sports, tech."""
-    _ = _day(day)  # Retrospective of the full year; no gating.
+    if _day(day) < date(1988, 12, 31):
+        return []
     lines = [
         "BEST OF 1988 -- THE YEAR IN CULTURE",
         "",
@@ -311,10 +313,14 @@ def yearend_menu(app, day: Optional[date] = None) -> None:
     """
     d = _day(day)
     sections = yearend_menu_lines(d)
+    if not sections:
+        app.text_page("news", "1988 YEAR IN REVIEW",
+                      ["No year-end stories have been published by this date."])
+        return
     while True:
         app.clear()
         app.header_bar("news")
-        app.ansi_scroll("1988 YEAR IN REVIEW", 0.01)
+        app.ansi_scroll("1988 YEAR IN REVIEW - DECEMBER 1988 ARCHIVE", 0.01)
         app.ansi_scroll("------------------", 0.01)
         for index, (title, _lines) in enumerate(sections, 1):
             app.ansi_scroll(f"{index}  {title}", 0.01)

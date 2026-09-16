@@ -7,6 +7,45 @@ import cis_travel
 import cis_timeline
 import cis_features
 import cis_magazine
+from datetime import date
+from cis_timecapsule import pack_for
+from cis_archive import in_archive
+
+
+ARCHIVE_NOTICE = (
+    "DECEMBER 1988 ARCHIVE",
+    "Fixed period material; it may postdate your selected simulation date.",
+)
+
+
+def archive_notice(screen_key, forums=()):
+    """Identify fixed collections without mislabelling live or featured-date news."""
+    archive_screens = {
+        "forums", "finance", "travel", "reference", "shopping", "timeline",
+        "features", "magazine", "case", "equipment", "shareware", "games",
+    }
+    if in_archive.get() or screen_key in archive_screens or screen_key in forums or "lib" in screen_key:
+        return ARCHIVE_NOTICE
+    return ()
+
+
+def start_suggestions(day):
+    """Three stable, distinct choices appropriate to this session's date."""
+    pack = pack_for(day)
+    if pack:
+        first = (pack['label'], 'GO NEWS', 'Read the curated headlines for this date.')
+    elif day.year == 1988 and day.month == 12:
+        first = ('Online Weekly', 'GO MAGAZINE', 'Read issues published by your selected date.')
+    else:
+        first = ('CB Simulator', 'GO CB', 'Join a conversation with date-aware ambience.')
+    if date(1988, 12, 1) <= day <= date(1988, 12, 25):
+        second = ('Christmas in the Sim', 'GO CHRISTMAS', 'Open the advent treats available today.')
+    elif day.year == 1988 and day.month == 12 and day.day >= 26:
+        second = ('1988 Year in Review', 'GO YEARINREVIEW', 'Read the stories available by today.')
+    else:
+        second = ('Classic Games Arcade', 'GO ARCADE', 'Play a classic from the December 1988 archive.')
+    third = ('Forum Directory', 'GO FORUMS', 'Explore 21 forums in the December 1988 archive.')
+    return [first, second, third]
 
 
 def whats_new(app):

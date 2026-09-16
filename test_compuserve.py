@@ -3572,8 +3572,8 @@ class ContentPack2WiringTests(unittest.TestCase):
         self.assertEqual(compuserve.resolve_go_destination("VETERANS"), "veterans")
         self.assertEqual(compuserve.resolve_go_destination("ROOTS"), "roots")
         self.assertEqual(compuserve.resolve_go_destination("GUITAR"), "guitar")
-        self.assertEqual(compuserve.resolve_go_destination("TRADINGPOST"), "shopping")
-        self.assertEqual(compuserve.resolve_go_destination("ENTERTAINMENT"), "news")
+        self.assertEqual(compuserve.resolve_go_destination("TRADINGPOST"), "tradingpost")
+        self.assertEqual(compuserve.resolve_go_destination("ENTERTAINMENT"), "entertainment")
 
     def test_seed_messages_in_computer_communities(self):
         pack = json.loads((REPO_ROOT / "computer_communities.json").read_text(encoding="utf-8"))
@@ -4276,8 +4276,8 @@ class ContentPack3WiringTests(unittest.TestCase):
         self.assertEqual(compuserve.resolve_go_destination("TECH"), "tech")
         # GO WEATHER intentionally still reaches the pre-existing live wire.
         self.assertEqual(compuserve.resolve_go_destination("WEATHER"), "weather")
-        self.assertEqual(compuserve.resolve_go_destination("BOOKS"), "news")
-        self.assertEqual(compuserve.resolve_go_destination("CROSSWORD"), "games")
+        self.assertEqual(compuserve.resolve_go_destination("BOOKS"), "books")
+        self.assertEqual(compuserve.resolve_go_destination("CROSSWORD"), "crossword")
 
     def test_seed_messages_in_computer_communities(self):
         pack = json.loads((REPO_ROOT / "computer_communities.json").read_text(encoding="utf-8"))
@@ -5127,7 +5127,8 @@ class MagazinePack4Tests(unittest.TestCase):
             ['git', 'show', 'HEAD:magazine_issues.json'],
             cwd=MAG_REPO_DIR, capture_output=True, check=True).stdout
         self.assertEqual(
-            (MAG_REPO_DIR / 'magazine_issues.json').read_bytes(), committed,
+            (MAG_REPO_DIR / 'magazine_issues.json').read_text(encoding='utf-8'),
+            committed.decode('utf-8').replace('\r\n', '\n'),
             'magazine_issues.json must stay untouched; pack-4 content lives in cis_magazine.py')
 
     def test_original_article_ids_present_and_unchanged(self):
@@ -5367,7 +5368,7 @@ class YearEndMenuContentTest(unittest.TestCase):
         self.assertIn("426", blob)
 
     def test_bestof_covers_four_areas(self):
-        blob = "\n".join(cis_yearend.bestof_lines(date(1988, 12, 1)))
+        blob = "\n".join(cis_yearend.bestof_lines(date(1988, 12, 31)))
         for expected in ("MOVIES", "MUSIC", "SPORTS", "TECHNOLOGY"):
             self.assertIn(expected, blob)
 
@@ -7623,7 +7624,7 @@ class TrainsPhotoTests(unittest.TestCase):
         self.assertEqual(mod.SEED_POSTS[0]["subject"], fresh[0]["subject"])
 
         # repo root rule: no hardcoded absolute paths in module
-        self.assertTrue(str(mod.REPO_ROOT).startswith("/"))
+        self.assertTrue(mod.REPO_ROOT.is_absolute())
 
     def test_photo_module(self):
         self.assertEqual(cis_photo.FORUM_ID, "photo")

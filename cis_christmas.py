@@ -856,7 +856,7 @@ def christmas_menu(app, day: Optional[date] = None) -> None:
     while True:
         app.clear()
         app.header_bar("news")
-        app.ansi_scroll("CHRISTMAS IN THE SIM", 0.01)
+        app.ansi_scroll("CHRISTMAS IN THE SIM - DECEMBER 1988 ARCHIVE", 0.01)
         app.ansi_scroll("--------------------", 0.01)
         app.ansi_scroll("1  Advent Calendar (25 daily treats)", 0.01)
         app.ansi_scroll("2  Holiday CB Topics", 0.01)

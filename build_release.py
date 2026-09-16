@@ -12,10 +12,10 @@ BASE_DIR = Path(__file__).resolve().parent
 DIST_DIR = BASE_DIR / "dist"
 ARCHIVE_NAME = f"classic-compuserve-{VERSION}.zip"
 FIXED_TIMESTAMP = (1988, 12, 15, 12, 0, 0)
-INCLUDED_SUFFIXES = {".py", ".json", ".md", ".cmd", ".sh", ".toml", ".txt", ".html", ".css", ".js"}
+INCLUDED_SUFFIXES = {".py", ".json", ".md", ".cmd", ".sh", ".toml", ".txt", ".html", ".css", ".js", ".in"}
 EXCLUDED_NAMES = {"test_compuserve.py"}
 EXCLUDED_DIRECTORIES = {
-    ".venv", "__pycache__", "backups", "captures", "dist", "downloads", "old_versions",
+    ".git", ".github", "build", ".venv", "__pycache__", "backups", "captures", "dist", "downloads", "old_versions",
     "testdata", "tests", "tools", "uploads",
     "compuserve.db", "compuserve.db-shm", "compuserve.db-wal"
 }
@@ -28,7 +28,7 @@ def release_files():
         relative = path.relative_to(BASE_DIR)
         if not path.is_file() or path.name in EXCLUDED_NAMES:
             continue
-        if any(part in EXCLUDED_DIRECTORIES for part in relative.parts):
+        if any(part in EXCLUDED_DIRECTORIES or part.endswith(".egg-info") for part in relative.parts):
             continue
         if path.suffix.lower() in INCLUDED_SUFFIXES:
             result.append(relative)

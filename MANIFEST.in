@@ -1,0 +1,4 @@
+include *.json
+include build_support.py
+recursive-include web *.html *.css *.js
+exclude *.patch *.bundle

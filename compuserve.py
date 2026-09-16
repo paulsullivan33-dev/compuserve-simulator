@@ -47,6 +47,7 @@ import cis_period_news
 import cis_reference
 import cis_store
 import cis_discovery
+from cis_archive import archive_service
 import cis_business
 import cis_travel
 import cis_experience
@@ -233,6 +234,8 @@ def header_bar(screen_key):
     go_prompt_screen = screen_key
     page = page_names.get(screen_key, "")
     ansi_scroll(header_line("CompuServe", page, SCREEN_WIDTH), 0.01)
+    for line in cis_discovery.archive_notice(screen_key, FORUM_CATALOG):
+        ansi_scroll(line, 0.01)
 
 
 def page_indicator(screen_key):
@@ -1339,13 +1342,14 @@ def forum_conference(forum_id):
             ansi_scroll(line, 0.005)
 
 
+@archive_service
 def sports_menu():
     """Sports & TV submenu (December 1988 setting, session-date aware)."""
     sections = cis_sports.sports_service(sys.modules[__name__])
     while True:
         clear()
         header_bar("news")
-        ansi_scroll("SPORTS & TV", 0.01)
+        ansi_scroll("SPORTS & TV - DECEMBER 1988 ARCHIVE", 0.01)
         ansi_scroll("-----------", 0.01)
         for index, (title, _lines) in enumerate(sections, 1):
             ansi_scroll(f"{index}  {title}", 0.01)
@@ -1360,13 +1364,14 @@ def sports_menu():
             ansi_scroll("Enter a number from the list, or M.", 0.01)
 
 
+@archive_service
 def weather_menu():
     """Weather wire submenu (December 1988 setting, session-date aware)."""
     sections = cis_weather.weather_service(sys.modules[__name__])
     while True:
         clear()
         header_bar("news")
-        ansi_scroll("WEATHER WIRE", 0.01)
+        ansi_scroll("WEATHER WIRE - DECEMBER 1988 ARCHIVE", 0.01)
         ansi_scroll("------------", 0.01)
         for index, (title, _lines) in enumerate(sections, 1):
             ansi_scroll(f"{index}  {title}", 0.01)
@@ -1381,13 +1386,14 @@ def weather_menu():
             ansi_scroll("Enter a number from the list, or M.", 0.01)
 
 
+@archive_service
 def books_menu():
     """Books & magazines submenu (December 1988 setting, session-date aware)."""
     sections = cis_books.books_service(sys.modules[__name__])
     while True:
         clear()
         header_bar("news")
-        ansi_scroll("BOOKS & MAGAZINES", 0.01)
+        ansi_scroll("BOOKS & MAGAZINES - DECEMBER 1988 ARCHIVE", 0.01)
         ansi_scroll("-----------------", 0.01)
         for index, (title, _lines) in enumerate(sections, 1):
             ansi_scroll(f"{index}  {title}", 0.01)
@@ -1402,13 +1408,14 @@ def books_menu():
             ansi_scroll("Enter a number from the list, or M.", 0.01)
 
 
+@archive_service
 def entertainment_menu():
     """Entertainment submenu (December 1988 setting, session-date aware)."""
     sections = cis_entertainment.entertainment_service(sys.modules[__name__])
     while True:
         clear()
         header_bar("news")
-        ansi_scroll("ENTERTAINMENT", 0.01)
+        ansi_scroll("ENTERTAINMENT - DECEMBER 1988 ARCHIVE", 0.01)
         ansi_scroll("-------------", 0.01)
         for index, (title, _lines) in enumerate(sections, 1):
             ansi_scroll(f"{index}  {title}", 0.01)
@@ -1423,16 +1430,19 @@ def entertainment_menu():
             ansi_scroll("Enter a number from the list, or M.", 0.01)
 
 
+@archive_service
 def yearend_menu():
     """1988 Year in Review news special (session-date aware)."""
     cis_yearend.yearend_menu(sys.modules[__name__])
 
 
+@archive_service
 def giftguide_menu():
     """1988 Holiday Shopping Guide news special (session-date aware)."""
     cis_giftguide.giftguide_menu(sys.modules[__name__])
 
 
+@archive_service
 def christmas_menu():
     """Christmas in the Sim news special (session-date aware)."""
     cis_christmas.christmas_menu(sys.modules[__name__])
@@ -2421,7 +2431,7 @@ def games_service(choice):
             "Daily Crossword serves a fresh 1988-themed puzzle every day: A<num>",
             "answers an across clue, D<num> a down clue. GRID redisplays the board.",
             "Classic Games Arcade (menu 9) hosts Hunt the Wumpus, Hamurabi,",
-            "Super Star Trek, and Blackjack played with fictional arcade chips.",
+            "Super Star Trek, Blackjack, ELIZA, and Lunar Lander.",
             "Enter M to return to the previous menu.",
             "$ identifies premium connect-time services.",
         ])
@@ -2848,8 +2858,8 @@ def personality_line(personality):
     if personality == "technical":
         return random.choice([
             "Anyone debugging IRQ conflicts?",
-            "Let’s talk BIOS settings.",
-            "Who’s tweaking their CONFIG.SYS tonight?",
+            "LetÃ¢â‚¬â„¢s talk BIOS settings.",
+            "WhoÃ¢â‚¬â„¢s tweaking their CONFIG.SYS tonight?",
             "Channel 3: where the tech nerds live."
         ])
     if personality == "eliza":
@@ -3055,6 +3065,10 @@ def show_screen(screen_key):
         screen["options"], SCREEN_WIDTH,
     ):
         ansi_scroll(line, 0.01)
+    for line in cis_discovery.archive_notice(screen_key, FORUM_CATALOG):
+        ansi_scroll(line, 0.01)
+    if screen_key == "main":
+        ansi_scroll("GO START - three suggestions for your selected date", 0.01)
     if screen_key == "main" and current_user_id and not session_state.top_announcements_shown:
         for line in cis_dynamic.announcements(current_user_id, mail_waiting_count(current_user_id), sys.modules[__name__]):
             ansi_scroll(line, 0.005)
@@ -3067,7 +3081,7 @@ def destination_label(destination):
     if destination in FORUM_CATALOG:
         return FORUM_CATALOG[destination]['title']
     labels = {
-        "profile": "Personal Service Summary", "new": "What's New",
+        "start": "Start here", "profile": "Personal Service Summary", "new": "What's New",
         "calendar": "Personal Calendar", "notebook": "Personal Notebook",
         "downloads": "Download Center", "achievements": "Achievements",
         "sysop": "Sysop Console",
@@ -3092,7 +3106,8 @@ def today_in_1988_lines(fetch_weather=True):
         # Outside the curated 1988 archive, fall back to "on this day".
         month_day = today.isoformat()[5:]
         records = [record for record in cis_timeline.RECORDS
-                   if record.get("date", "")[5:] == month_day]
+                   if record.get("date", "")[5:] == month_day
+                   and record.get("date", "") <= today.isoformat()]
     pack = cis_timecapsule.pack_for(today)
     if pack:
         # Featured date: the pack's context items take precedence.
@@ -3142,7 +3157,9 @@ def today_in_1988_lines(fetch_weather=True):
         lines.extend(["", f'DID YOU KNOW?  {fact["term"]}', f'  {fact["text"]}'])
     if current_user_id and cis_dynamic.simulation_day().day >= 12:
         lines.extend(["", "SPECIAL DESK", *[f"  {line}" for line in cis_story.status_lines(sys.modules[__name__])[:2]]])
-    lines.extend(["", "READ HISTORY  |  READ WEATHER  |  READ NEW  |  GO CASE  |  GO TOP"])
+    lines.extend(["", "GO START - three suggestions for your selected date",
+                  "Fixed period collections are marked DECEMBER 1988 ARCHIVE.",
+                  "READ HISTORY  |  READ WEATHER  |  READ NEW  |  GO CASE  |  GO TOP"])
     return lines
 
 
@@ -3346,7 +3363,18 @@ def timeline_service():
 
 def open_go_destination(target, stack):
     """Open a resolved GO target and report whether it was recognized."""
-    if target in FORUM_CATALOG:
+    direct_services = {
+        "start": start_here, "sports": sports_menu, "books": books_menu,
+        "entertainment": entertainment_menu, "weatherwire": weather_menu,
+        "yearinreview": yearend_menu, "giftguide": giftguide_menu,
+        "christmas": christmas_menu,
+        "arcade": lambda: cis_arcade.play(sys.modules[__name__]),
+        "crossword": lambda: games_service("8"),
+        "tradingpost": lambda: shopping_service("6"),
+    }
+    if target in direct_services:
+        direct_services[target]()
+    elif target in FORUM_CATALOG:
         forum_service(target)
     elif target == "sysop":
         sysop_console()
@@ -3390,6 +3418,26 @@ def open_go_destination(target, stack):
         return False
     session_state.remember_destination(target)
     return True
+
+
+def start_here():
+    """Offer three date-aware destinations without adding another long directory."""
+    while True:
+        day = cis_dynamic.simulation_day()
+        choices = cis_discovery.start_suggestions(day)
+        clear()
+        header_bar("main")
+        ansi_scroll(f"START HERE - {day:%B %d, %Y}", 0.01)
+        ansi_scroll("Fixed period collections are marked DECEMBER 1988 ARCHIVE.", 0.01)
+        for index, (label, command, reason) in enumerate(choices, 1):
+            ansi_scroll(f"{index}  {label} ({command})", 0.01)
+            ansi_scroll(f"   {reason}", 0.01)
+        selection = input("Choose 1-3, or M to return: ").strip().upper()
+        if selection == "M":
+            return
+        if selection.isdigit() and 1 <= int(selection) <= len(choices):
+            raise GoNavigation(choices[int(selection) - 1][1])
+        ansi_scroll("Enter 1, 2, 3, or M.", 0.01)
 
 
 def choose_recent_destination():

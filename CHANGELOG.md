@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 1.17.0 - 2026-09-16
+
+- Marked fixed period services as the December 1988 archive, separate from
+  selected-date headlines and live feeds. Year-end election results and the
+  full-year roundup now respect publication dates; briefings omit future history.
+- Added GO START with three date-aware destinations and direct GO shortcuts
+  for the new news specials, arcade, crossword, and Trading Post.
+- Fixed Windows path and line-ending assumptions in regression tests.
+- Included all runtime modules, seed JSON, and browser assets in Python wheels;
+  added a clean installed-package check and Windows/Linux CI.
+- Removed superseded patch/bundle handoff files and updated release guidance.
+
 
 - Added ELIZA, a faithful 1966-style computer therapist engine (`cis_eliza`),
   in two places: as arcade game 5 (`GO ARCADE`) and as CB Channel 4,

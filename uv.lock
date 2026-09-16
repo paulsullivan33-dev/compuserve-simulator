@@ -40,7 +40,7 @@ wheels = [
 
 [[package]]
 name = "classic-compuserve"
-version = "1.16.0"
+version = "1.17.0"
 source = { editable = "." }
 
 [package.optional-dependencies]

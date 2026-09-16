@@ -1,2 +1,2 @@
-VERSION = "1.16.0"
+VERSION = "1.17.0"
 RELEASE_NAME = "Classic CompuServe Simulation"

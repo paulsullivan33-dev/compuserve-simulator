@@ -19,6 +19,27 @@ functions that accept an optional simulated `day`; the coordinator in
 `go_commands.json`. Never hardcode absolute filesystem paths in a module or its
 tests; derive the repo root from `Path(__file__).resolve().parent`.
 
+`cis_archive.archive_service` scopes the December 1988 archive label across a
+service and its nested pages, resetting even when GO navigation interrupts it.
+`cis_discovery.archive_notice` also labels fixed collections such as forums and
+libraries. Featured-date and live news are not implicitly labelled as archive
+pages. Publication-sensitive services must still gate stories by the full date.
+`cis_discovery.start_suggestions` supplies the three date-aware GO START choices;
+the standard navigation router opens their destinations.
+
+## Packaging
+
+`pyproject.toml` lists every runtime module. `build_support.BuildPy` copies seed
+JSON and browser files beside those modules in wheels; `MANIFEST.in` carries
+those resources into source distributions. When adding a runtime module, update
+the module list. `tests/check_installed_package.py` checks wheel contents and
+runs isolated imports, content loading, entry-point resolution and database
+initialization after a real pip installation outside the checkout.
+
+The deterministic release ZIP includes its build configuration and excludes
+Git metadata, build output, tests and runtime files. Superseded patch and bundle
+handoffs were removed in 1.17.0; their history remains in Git.
+
 ## Main boundaries
 
 - **Terminal application:** `compuserve.py`, `cis_terminal.py`, `cis_session.py`

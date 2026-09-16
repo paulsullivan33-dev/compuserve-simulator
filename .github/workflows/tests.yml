@@ -1,0 +1,22 @@
+name: Test and package
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --upgrade pip setuptools wheel
+      - run: python -m pip install -e ".[dev,web]"
+      - run: python -m unittest -q test_compuserve.py
+      - run: python -m unittest discover -s tests -q
+      - run: python -m compileall -q -x "old_versions|build|dist|.venv" .
+      - run: python smoke_test.py
+      - run: python tests/check_installed_package.py
+      - run: python -c "import build_release, smoke_test; print(smoke_test.verify_archive(build_release.build_release()))"
