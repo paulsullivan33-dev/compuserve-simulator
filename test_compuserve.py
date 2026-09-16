@@ -2194,5 +2194,126 @@ class FeedTests(unittest.TestCase):
         self.assertEqual(len(data["World"][0]["title"]), feed_utils.MAX_FIELD_LENGTH)
 
 
+class TimeCapsuleTests(unittest.TestCase):
+    def test_parse_user_date_accepts_valid_entry(self):
+        from datetime import date
+        import cis_timecapsule
+        self.assertEqual(cis_timecapsule.parse_user_date("11/09/1989"), date(1989, 11, 9))
+
+    def test_parse_user_date_rejects_bad_form_and_range(self):
+        import cis_timecapsule
+        for bad in ("1989-11-09", "13/01/1990", "02/30/1990", "01/01/1970", "06/12/2026"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                cis_timecapsule.parse_user_date(bad)
+
+    def test_surprise_date_is_deterministic_per_seed(self):
+        import cis_timecapsule
+        first = cis_timecapsule.surprise_date("70000,0001")
+        second = cis_timecapsule.surprise_date("70000,0001")
+        self.assertEqual(first, second)
+        self.assertTrue(cis_timecapsule.in_range(first))
+
+    def test_simulation_day_prefers_session_date(self):
+        from datetime import date
+        from cis_session import active_session, session_simulation_date
+        state = SessionState()
+        state.simulation_date = date(1989, 11, 9)
+        with active_session(state):
+            self.assertEqual(cis_dynamic.simulation_day(), date(1989, 11, 9))
+            self.assertEqual(session_simulation_date(), date(1989, 11, 9))
+            first = cis_dynamic.rng("period-news-0", "70000,0001").random()
+            second = cis_dynamic.rng("period-news-0", "70000,0001").random()
+            self.assertEqual(first, second)
+
+    def test_simulation_day_falls_back_without_session_choice(self):
+        from cis_session import active_session, session_simulation_date
+        state = SessionState()
+        with active_session(state):
+            self.assertIsNone(session_simulation_date())
+            # No session date: existing env/default behavior is preserved.
+            self.assertEqual(cis_dynamic.simulation_day(), cis_dynamic.simulation_day())
+
+    def test_no_active_session_means_no_session_date(self):
+        from cis_session import session_simulation_date
+        self.assertIsNone(session_simulation_date())
+
+
+class TimeCapsulePackTests(unittest.TestCase):
+    def test_packs_are_loaded_for_every_featured_date(self):
+        import cis_timecapsule
+        self.assertEqual(cis_timecapsule.CONTENT_PACK_STATUS, "loaded")
+        for when, _label in cis_timecapsule.FEATURED_DATES:
+            with self.subTest(date=when.isoformat()):
+                pack = cis_timecapsule.pack_for(when)
+                self.assertIsNotNone(pack)
+                self.assertEqual(pack["date"], when.isoformat())
+
+    def test_pack_sections_meet_required_counts(self):
+        import cis_timecapsule
+        for when, _label in cis_timecapsule.FEATURED_DATES:
+            pack = cis_timecapsule.pack_for(when)
+            with self.subTest(date=when.isoformat()):
+                self.assertTrue(8 <= len(pack["headlines"]) <= 12)
+                self.assertTrue(2 <= len(pack["announcements"]) <= 4)
+                self.assertTrue(4 <= len(pack["cb_topics"]) <= 6)
+                self.assertTrue(0 <= len(pack["market_notes"]) <= 4)
+                self.assertTrue(2 <= len(pack["on_this_day"]) <= 3)
+
+    def test_pack_headlines_have_news_article_shape(self):
+        import cis_timecapsule
+        required = {"id", "category", "title", "summary", "published", "source"}
+        for when, _label in cis_timecapsule.FEATURED_DATES:
+            pack = cis_timecapsule.pack_for(when)
+            for story in pack["headlines"]:
+                with self.subTest(date=when.isoformat(), story=story.get("id")):
+                    self.assertTrue(required.issubset(story))
+                    for field in required:
+                        self.assertTrue(story[field], f"empty {field}")
+
+    def test_pack_for_returns_none_without_a_pack(self):
+        import cis_timecapsule
+        from datetime import date
+        self.assertIsNone(cis_timecapsule.pack_for(None))
+        self.assertIsNone(cis_timecapsule.pack_for(date(1985, 6, 15)))
+
+    def test_pack_headlines_returns_copies(self):
+        import cis_timecapsule
+        from datetime import date
+        pack = cis_timecapsule.pack_for(date(1981, 8, 12))
+        stories = cis_timecapsule.pack_headlines(pack)
+        self.assertEqual(len(stories), len(pack["headlines"]))
+        self.assertIsNot(stories[0], pack["headlines"][0])
+        self.assertEqual(stories[0]["title"], "IBM ENTERS PERSONAL COMPUTER MARKET")
+
+    def test_cb_conversation_uses_pack_topics_and_given_handles(self):
+        import random
+        import cis_timecapsule
+        from datetime import date
+        pack = cis_timecapsule.pack_for(date(1986, 1, 28))
+        handles = ["Alpha", "Beta", "Gamma"]
+        lines = cis_timecapsule.cb_conversation(pack, random.Random(7), handles)
+        self.assertEqual(len(lines), 2)
+        for sender, line in lines:
+            self.assertIn(sender, handles)
+            self.assertIn(line, pack["cb_topics"])
+        self.assertNotEqual(lines[0][0], lines[1][0])
+
+    def test_cb_conversation_empty_without_topics_or_handles(self):
+        import random
+        import cis_timecapsule
+        self.assertEqual(cis_timecapsule.cb_conversation({}, random.Random(1), ["A"]), [])
+        self.assertEqual(cis_timecapsule.cb_conversation({"cb_topics": ["hi"]}, random.Random(1), []), [])
+
+    def test_cb_ambient_is_deterministic_on_featured_date(self):
+        from datetime import date
+        from cis_session import active_session
+        state = SessionState()
+        state.simulation_date = date(1987, 10, 19)
+        with active_session(state):
+            first = cis_dynamic.cb_ambient_events("1", "bucket", hour=20)
+            second = cis_dynamic.cb_ambient_events("1", "bucket", hour=20)
+            self.assertEqual(first, second)
+
+
 if __name__ == "__main__":
     unittest.main()
