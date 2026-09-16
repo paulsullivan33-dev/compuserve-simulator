@@ -5205,3 +5205,61 @@ class MagazinePack4Tests(unittest.TestCase):
                 patch('builtins.input', side_effect=['11', 'M']):
             cis_magazine.issue_menu(compuserve, issue)
             reader.assert_called_once_with(compuserve, issue, 10)
+
+
+# --- Page pause: line count resets at each user prompt ---
+
+import cis_session
+
+
+class PagePauseTests(unittest.TestCase):
+    def setUp(self):
+        self._saved_options = dict(compuserve.startup_options)
+        self._saved_profile = compuserve.current_profile
+        self._saved_count = compuserve.transmitted_line_count
+        compuserve.startup_options["fast_mode"] = True
+        compuserve.startup_options["page_pause"] = True
+        compuserve.current_profile = {}
+        compuserve.transmitted_line_count = 0
+        self._token = cis_session._prompt_app.set(compuserve)
+
+    def tearDown(self):
+        cis_session._prompt_app.reset(self._token)
+        compuserve.startup_options.clear()
+        compuserve.startup_options.update(self._saved_options)
+        compuserve.current_profile = self._saved_profile
+        compuserve.transmitted_line_count = self._saved_count
+
+    def _scroll(self, n, prompts):
+        with patch("builtins.input", side_effect=lambda p="": prompts.append(p) or ""):
+            for i in range(n):
+                compuserve.ansi_scroll(f"line {i}", 0.01)
+
+    def test_reset_page_pause_clears_counter(self):
+        compuserve.transmitted_line_count = 42
+        compuserve.reset_page_pause()
+        self.assertEqual(compuserve.transmitted_line_count, 0)
+
+    def test_pause_after_sixteen_lines_without_prompt(self):
+        prompts = []
+        self._scroll(20, prompts)
+        more = [p for p in prompts if p == "More ! "]
+        self.assertEqual(len(more), 1)
+
+    def test_prompt_resets_so_short_blocks_never_pause(self):
+        prompts = []
+        with patch("builtins.input", side_effect=lambda p="": prompts.append(p) or ""):
+            for _ in range(3):
+                for i in range(10):
+                    compuserve.ansi_scroll(f"line {i}", 0.01)
+                cis_session.read_input("Choice: ")
+        more = [p for p in prompts if p == "More ! "]
+        self.assertEqual(more, [])
+
+    def test_read_input_without_app_still_works(self):
+        token = cis_session._prompt_app.set(None)
+        try:
+            with patch("builtins.input", return_value="hello"):
+                self.assertEqual(cis_session.read_input("P> "), "hello")
+        finally:
+            cis_session._prompt_app.reset(token)

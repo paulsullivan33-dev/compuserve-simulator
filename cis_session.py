@@ -108,8 +108,11 @@ def navigation_prompts(app):
 
 def read_input(prompt="", *, local_go=()):
     while True:
-        value = builtins.input(prompt)
         app = _prompt_app.get()
+        reset_pause = getattr(app, "reset_page_pause", None)
+        if callable(reset_pause):
+            reset_pause()
+        value = builtins.input(prompt)
         match = re.fullmatch(r"(?:GO|G)(?:\s+(.*))?", value.strip(), re.IGNORECASE)
         if app is None or not match:
             return value

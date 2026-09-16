@@ -233,6 +233,16 @@ def clear():
     else:
         print()
 
+def reset_page_pause():
+    """Reset the page-pause line count at a user prompt.
+
+    Called by cis_session.read_input so the 16-line pause only triggers when a
+    single block of output exceeds 16 lines, not on a cumulative total.
+    """
+    global transmitted_line_count
+    transmitted_line_count = 0
+
+
 def ansi_scroll(text, delay=0.01):
     global transmitted_line_count
     text = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", "", str(text))
