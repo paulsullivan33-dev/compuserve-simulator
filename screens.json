@@ -55,7 +55,18 @@
       "7": "Commodore and Amiga Forum",
       "8": "Apple II Forum",
       "9": "Atari ST Forum",
-      "10": "DOS Software Forum"
+      "10": "DOS Software Forum",
+      "11": "Veterans Forum",
+      "12": "Roots & Branches Genealogy Forum",
+      "13": "Guitar & Music Forum",
+      "14": "Tech Talk Forum",
+      "15": "Space & Astronomy Forum",
+      "16": "Cooking Forum",
+      "17": "Aviation Forum",
+      "18": "Comics & Sci-Fi Forum",
+      "19": "Health & Fitness Forum",
+      "20": "Pets & Animals Forum",
+      "21": "Model Railroading Forum"
     }
   },
   "cb": {
@@ -66,7 +77,8 @@
       "3": "Enter Channel 3",
       "4": "Private Messages",
       "5": "CB Help & Commands",
-      "6": "Channel Directory / Who Is On"
+      "6": "Channel Directory / Who Is On",
+      "7": "Enter Channel 4 - Eliza's Office"
     }
   },
   "news": {
@@ -78,7 +90,14 @@
       "4": "Science News",
       "5": "December 1988 News Edition",
       "6": "Update Current News",
-      "7": "Online Weekly Magazine"
+      "7": "Online Weekly Magazine",
+      "8": "Sports & TV",
+      "9": "Entertainment",
+      "10": "Weather Wire",
+      "11": "Books & Magazines",
+      "12": "1988 Year in Review",
+      "13": "1988 Holiday Shopping Guide",
+      "14": "Christmas in the Sim"
     }
   },
   "finance": {
@@ -127,7 +146,8 @@
       "2": "Electronic Classifieds",
       "3": "Consumer Product Information",
       "4": "Shopping Instructions",
-      "5": "Owned Equipment and Support"
+      "5": "Owned Equipment and Support",
+      "6": "Trading Post Classifieds"
     }
   },
   "games": {
@@ -138,7 +158,10 @@
       "3": "Trivia Tournament",
       "4": "Game Instructions",
       "5": "Player Records",
-      "6": "Online Adventure League"
+      "6": "Online Adventure League",
+      "7": "Night Shift: Earth Station",
+      "8": "Daily Crossword",
+      "9": "Classic Games Arcade"
     }
   },
   "support": {

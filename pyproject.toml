@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "classic-compuserve"
-version = "1.16.0"
+version = "1.17.0"
 description = "An independent historical simulation of CompuServe circa 1988"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,15 +24,84 @@ dev = [
 classic-compuserve = "compuserve:main"
 
 [tool.setuptools]
+packages = []
 py-modules = [
-    "compuserve", "cis_accounts", "cis_announcements", "cis_billing", "cis_poster", "cis_communications", "cis_hardware",
-    "cis_business", "cis_cb", "cis_discovery", "cis_drafts", "cis_dynamic",
-    "cis_experience", "cis_features", "cis_forums", "cis_library", "cis_mail",
-    "cis_migrations", "cis_news", "cis_period_news", "cis_reference",
-    "cis_security", "cis_session", "cis_settings", "cis_storage", "cis_store",
-    "cis_sysop", "cis_terminal", "cis_timeline", "cis_travel", "cis_version",
-    "cis_weather", "cis_story", "cis_disruptions", "cis_ownership", "cis_shareware", "cis_phones", "cis_communities", "cis_web_files", "cis_magazine",
+    "compuserve",
+    "web_app",
+    "telnet_app",
+    "event_worker",
+    "feed_utils",
+    "make_sysop",
+    "cis_accounts",
+    "cis_adventure_league",
+    "cis_announcements",
+    "cis_arcade",
+    "cis_archive",
+    "cis_aviation",
+    "cis_billing",
+    "cis_books",
+    "cis_business",
+    "cis_cb",
+    "cis_christmas",
+    "cis_communications",
+    "cis_communities",
+    "cis_cooking",
+    "cis_crossword",
+    "cis_discovery",
+    "cis_disruptions",
+    "cis_drafts",
+    "cis_dynamic",
+    "cis_eliza",
+    "cis_entertainment",
+    "cis_experience",
+    "cis_features",
+    "cis_fitness",
+    "cis_forums",
+    "cis_giftguide",
+    "cis_guitar",
+    "cis_hamnet",
+    "cis_hardware",
+    "cis_library",
+    "cis_magazine",
+    "cis_mail",
+    "cis_migrations",
+    "cis_news",
+    "cis_nightstation",
+    "cis_ownership",
+    "cis_period_news",
+    "cis_pets",
+    "cis_phones",
+    "cis_photo",
+    "cis_poster",
+    "cis_reference",
+    "cis_roots",
+    "cis_scifi",
+    "cis_security",
+    "cis_session",
+    "cis_settings",
+    "cis_shareware",
+    "cis_space",
+    "cis_sports",
+    "cis_storage",
+    "cis_store",
+    "cis_story",
+    "cis_sysop",
+    "cis_tech",
+    "cis_terminal",
+    "cis_timecapsule",
+    "cis_timeline",
+    "cis_tradingpost",
+    "cis_trains",
+    "cis_travel",
+    "cis_version",
+    "cis_veterans",
+    "cis_weather",
+    "cis_web_files",
+    "cis_yearend"
 ]
+
+[tool.setuptools.cmdclass]
+build_py = "build_support.BuildPy"
 
 [tool.pytest.ini_options]
 python_files = ["test_*.py"]

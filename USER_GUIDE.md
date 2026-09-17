@@ -514,6 +514,13 @@ Forum, and contribute to the member relationship with the representative. Equipm
 ownership also unlocks a member achievement. These workflows never move real goods or
 money and should not be treated as actual product support.
 
+The **Trading Post** (`GO TRADINGPOST`) is a member classifieds board separate from
+Comp-U-Store: FOR SALE, WANTED, and TRADE categories seeded with December 1988 ads
+for modems, 8-bit micros, dot-matrix printers, floppies, LPs, concert tickets, and
+computer books, all priced in 1988 dollars. Members can place their own ads; ads
+persist and expire 30 days after the simulated date they were placed. All listings
+are fictional simulation content, and no real goods change hands.
+
 ## Active computer and download limits
 
 After delivery, use `GO SETUP`. `USE EQ-0001` selects one of your own delivered
