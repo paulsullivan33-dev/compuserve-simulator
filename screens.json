@@ -298,6 +298,17 @@
     },
     "targets": {
       "2": "weather"
+    },
+    "related_targets": {
+      "1": "sports",
+      "3": "news",
+      "4": "news",
+      "5": "news",
+      "6": "news",
+      "7": "news",
+      "8": "news",
+      "10": "magazine",
+      "11": "entertainment"
     }
   },
   "poster_shopping": {
@@ -339,7 +350,14 @@
       "9": "Business News",
       "10": "Instructions/Fees"
     },
-    "targets": {}
+    "targets": {},
+    "related_targets": {
+      "3": "finance",
+      "5": "finance",
+      "6": "finance",
+      "7": "finance",
+      "10": "support"
+    }
   },
   "poster_games": {
     "title": "ENTERTAINMENT/GAMES",
@@ -361,6 +379,14 @@
     },
     "targets": {
       "10": "gamers"
+    },
+    "related_targets": {
+      "3": "games",
+      "4": "games",
+      "5": "games",
+      "6": "games",
+      "9": "entertainment",
+      "11": "shopping"
     }
   },
   "poster_home": {
@@ -384,6 +410,13 @@
       "5": "poster_shopping",
       "6": "forums",
       "9": "poster_reference"
+    },
+    "related_targets": {
+      "1": "space",
+      "2": "cooking",
+      "4": "fitness",
+      "7": "forums",
+      "8": "guitar"
     }
   },
   "poster_computers": {
@@ -409,6 +442,10 @@
       "2": "poster_hardware",
       "3": "poster_magazines",
       "5": "poster_softex"
+    },
+    "related_targets": {
+      "6": "tech",
+      "9": "tech"
     }
   },
   "poster_business": {
@@ -427,7 +464,17 @@
       "8": "Market Quotes/Highlights",
       "9": "Other Interests"
     },
-    "targets": {}
+    "targets": {},
+    "related_targets": {
+      "1": "aviation",
+      "2": "forums",
+      "3": "tech",
+      "4": "magazine",
+      "5": "tech",
+      "6": "fitness",
+      "7": "forums",
+      "9": "forums"
+    }
   },
   "poster_index": {
     "title": "PHOTOGRAPHED POSTER MENUS",
@@ -486,6 +533,10 @@
       "9": "poster_order",
       "6": "poster_feedback",
       "11": "poster_subscribers"
+    },
+    "related_targets": {
+      "2": "magazine",
+      "10": "support"
     }
   },
   "poster_topics": {
@@ -535,6 +586,14 @@
       "1": "poster_travel_news",
       "2": "poster_air",
       "3": "poster_hotel"
+    },
+    "related_targets": {
+      "5": "travel",
+      "6": "travel",
+      "7": "travel",
+      "8": "travel",
+      "9": "forums",
+      "10": "aviation"
     }
   },
   "poster_reference": {
@@ -556,6 +615,15 @@
     "targets": {
       "1": "poster_aae",
       "2": "poster_gpo"
+    },
+    "related_targets": {
+      "3": "reference",
+      "4": "reference",
+      "5": "reference",
+      "6": "reference",
+      "7": "reference",
+      "8": "reference",
+      "9": "games"
     },
     "section_headings": {
       "6": "EDUCATION"
@@ -587,6 +655,9 @@
       "2": "Travelshopper"
     },
     "targets": {},
+    "related_targets": {
+      "2": "travel"
+    },
     "service": "TRAVELSHOPPER"
   },
   "poster_hotel": {
@@ -601,6 +672,11 @@
       "4": "Worldwide Property Guide"
     },
     "targets": {},
+    "related_targets": {
+      "2": "travel",
+      "3": "travel",
+      "4": "travel"
+    },
     "section_headings": {
       "4": "ADVANCE"
     }
@@ -616,7 +692,13 @@
       "3": "Feedback/Comments to the\nInformation Provider",
       "4": "FBI Ten Most Wanted"
     },
-    "targets": {}
+    "targets": {},
+    "related_targets": {
+      "1": "reference",
+      "2": "reference",
+      "3": "support",
+      "4": "news"
+    }
   },
   "poster_aae": {
     "title": "",
@@ -668,6 +750,10 @@
       "9": "quick:LOTUS",
       "10": "quick:MSOFT"
     },
+    "related_targets": {
+      "6": "dos",
+      "8": "dos"
+    },
     "prompt": "Enter choice or <CR> for more !",
     "next_page": "poster_software_more"
   },
@@ -689,6 +775,10 @@
       "13": "quick:MUSUS",
       "15": "quick:PROGSIG",
       "16": "quick:WHOLEEARTH"
+    },
+    "related_targets": {
+      "11": "dos",
+      "14": "dos"
     },
     "prompt": "Last menu page, enter choice !",
     "previous_page": "poster_software"
@@ -714,6 +804,12 @@
       "3": "quick:CBMNET",
       "4": "quick:CLUB"
     },
+    "related_targets": {
+      "5": "ibmhw",
+      "6": "ibmhw",
+      "7": "ibmhw",
+      "8": "ibmhw"
+    },
     "prompt": "Enter choice or <CR> for more !",
     "next_page": "poster_hardware_more"
   },
@@ -734,7 +830,11 @@
       "11": "quick:KAYPRO"
     },
     "related_targets": {
-      "9": "ibmhw"
+      "9": "ibmhw",
+      "10": "ibmhw",
+      "12": "ibmhw",
+      "13": "ibmhw",
+      "14": "ibmhw"
     },
     "prompt": "Enter choice or <CR> for more !",
     "next_page": "poster_hardware_last",
@@ -755,6 +855,13 @@
     },
     "targets": {
       "19": "quick:TIFORUM"
+    },
+    "related_targets": {
+      "15": "ibmhw",
+      "16": "ibmhw",
+      "17": "ibmhw",
+      "18": "tech",
+      "20": "ibmhw"
     },
     "prompt": "Last menu page, enter choice !",
     "previous_page": "poster_hardware_more"
@@ -781,6 +888,16 @@
       "1": "quick:ANTIC",
       "2": "quick:AOL",
       "4": "quick:CLM"
+    },
+    "related_targets": {
+      "3": "magazine",
+      "5": "magazine",
+      "6": "magazine",
+      "7": "magazine",
+      "8": "reference",
+      "9": "magazine",
+      "10": "magazine",
+      "11": "magazine"
     }
   },
   "poster_science": {
@@ -804,7 +921,13 @@
       "6": "quick:ARTSIG"
     },
     "related_targets": {
-      "5": "science"
+      "1": "space",
+      "2": "tech",
+      "4": "space",
+      "5": "science",
+      "7": "tech",
+      "8": "guitar",
+      "9": "tech"
     },
     "prompt": "Enter choice or <CR> for more !",
     "next_page": "poster_science_more"
@@ -821,6 +944,12 @@
       "14": "Online Computer Connection"
     },
     "targets": {},
+    "related_targets": {
+      "11": "scifi",
+      "12": "space",
+      "13": "magazine",
+      "14": "tech"
+    },
     "prompt": "Last menu page, enter choice !",
     "previous_page": "poster_science"
   },
@@ -838,6 +967,11 @@
       "6": "Enter The Mall"
     },
     "targets": {},
+    "related_targets": {
+      "2": "shopping",
+      "3": "shopping",
+      "4": "shopping"
+    },
     "service": "The Electronic Mall",
     "intro": [
       "  __/ __/ THE",
@@ -858,7 +992,12 @@
       "4": "Shopping & Ordering for\nMembers",
       "5": "Canadian Comp-u-store users"
     },
-    "targets": {}
+    "targets": {},
+    "related_targets": {
+      "1": "support",
+      "3": "shopping",
+      "5": "shopping"
+    }
   },
   "poster_softex": {
     "title": "EXCHANGE",
@@ -869,7 +1008,11 @@
       "1": "Instructions",
       "2": "Enter CompuServe's Electronic\nsoftware exchange"
     },
-    "targets": {}
+    "targets": {},
+    "related_targets": {
+      "1": "support",
+      "2": "shareware"
+    }
   },
   "poster_order": {
     "title": "ORDER FROM COMPUSERVE",
@@ -882,7 +1025,11 @@
       "3": "Check on orders already placed",
       "4": "How to order Braille guides"
     },
-    "targets": {}
+    "targets": {},
+    "related_targets": {
+      "2": "shopping",
+      "4": "support"
+    }
   },
   "poster_ebb": {
     "title": "",
@@ -896,6 +1043,11 @@
       "4": "Shopper's Guide Classifieds"
     },
     "targets": {},
+    "related_targets": {
+      "1": "forums",
+      "2": "magazine",
+      "3": "books"
+    },
     "centered_intro": [
       "ONLINE TODAY ADVERTISERS",
       "ELECTRONIC BOUNCE BACK (EBB)",
@@ -914,7 +1066,11 @@
       "1": "Savings-Scan",
       "2": "New Car Showroom"
     },
-    "targets": {}
+    "targets": {},
+    "related_targets": {
+      "1": "shopping",
+      "2": "shopping"
+    }
   },
   "poster_mail": {
     "title": "",
@@ -955,6 +1111,13 @@
       "7": "CB Pictures"
     },
     "targets": {},
+    "related_targets": {
+      "2": "cb",
+      "3": "cb",
+      "4": "cb",
+      "5": "cb",
+      "7": "cb"
+    },
     "service": "CB Information",
     "section_headings": {
       "5": ""
@@ -986,7 +1149,15 @@
       "10": "poster_software"
     },
     "related_targets": {
-      "4": "gamers"
+      "1": "aviation",
+      "2": "reference",
+      "4": "gamers",
+      "5": "finance",
+      "7": "magazine",
+      "8": "fitness",
+      "9": "forums",
+      "11": "sports",
+      "12": "travel"
     }
   },
   "poster_subscribers": {

@@ -23,10 +23,11 @@ addresses and relative PCS addresses also work.
 
 The exact printed numbering is preserved, including software choices 11-16,
 hardware choices 9-20, and the unexplained science gap between 9 and 11.
-World of Lotus (W) is preserved without guessing what W means. Unimplemented
-forum and publication destinations show a notice. Related existing communities
-are identified as reconstructions before opening. Online Today is not replaced
-with Online Weekly; the latter remains available through GO MAGAZINE.
+World of Lotus (W) is preserved without guessing what W means. Every forum and
+publication destination opens a related reconstructed community, identified
+as a reconstruction before opening. Online Today opens Online Weekly as its
+related periodical reconstruction; the latter remains available directly
+through GO MAGAZINE.
 
 The 31 readable quick words from IMG_3287 and IMG_3288 remain searchable through
 GO QUICK and stored with their source filenames in poster_words.json. No new
@@ -56,7 +57,8 @@ IMG_3301 supplies REFERENCE with its separate EDUCATION section. TOP choices 5
 and 10 and GO TRAVEL / GO REFERENCE open these transcriptions. Air, hotel, car,
 travel help, feedback, and encyclopedia choices reuse existing simulation
 services. Car Information opens the existing combined rail/rental-car directory.
-Other choices remain explicitly unimplemented. Historical accessibility wording
+Remaining travel choices open related reconstructed travel, aviation, and forum
+services with a reconstruction notice. Historical accessibility wording
 is retained verbatim as source material.
 
 What's New in Travel preserves choices 5 and 7 and the printed statement about
@@ -99,7 +101,8 @@ catalog without cart or checkout operations. ORD-1 order status shows only the
 signed-in member's simulated orders. Original catalogs and advertisements have
 not been transcribed. Merchant directory, manager, Mall News, membership,
 Canadian-specific services, SOFTEX contents, Braille ordering, and other named
-services without implementations continue to display the unimplemented notice.
+services now open the related reconstructed shopping, shareware, or support
+services with a reconstruction notice.
 
 
 IMG_3314-3318 add the centered EasyPlex mail panel (choices 2-6 only), CB-10,
@@ -126,5 +129,6 @@ Communications 7-9 now open reconstructed CB Society, Access text sharing and
 Color Mail. The Society has original Club Notes rather than invented Cupcake text;
 cards use original ASCII art rather than historical Hallmark designs. GO SOCIETY,
 GO ACCESS and GO CARDS are convenience aliases added by this simulation.
-GO QUICK and GO COVERAGE distinguish working menus from reconstructed services
-and unimplemented selections. GO PHOTOS lists the specific reference gaps.
+GO QUICK and GO COVERAGE distinguish working menus from reconstructed services;
+a few photographed quick words intentionally remain unimplemented. GO PHOTOS
+lists the specific reference gaps.

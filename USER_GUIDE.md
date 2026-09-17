@@ -24,6 +24,10 @@ The TOP menu follows the photographed twelve-category CompuServe map. Choose
 and an alphabetical directory; `GO QUICK` opens the searchable GO-word directory.
 In directories, use `S words`, `F`/`B`, `ALL`, a displayed number, or `M`.
 Historical entries identify related simulations and services not yet recreated.
+Every numbered poster menu choice now opens either its transcribed destination
+or a related reconstructed simulation, announced before opening; only a few
+photographed quick words (e.g. ASHTON) intentionally keep the unimplemented
+notice.
 `GO SUPPORT` retains the older support menu and its extra simulation features.
 See [Poster reference](POSTER_REFERENCE.md) for source coverage and limitations.
 
