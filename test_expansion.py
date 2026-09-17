@@ -1,4 +1,5 @@
 import io
+from contextlib import ExitStack
 import tempfile
 import unittest
 from pathlib import Path
@@ -184,13 +185,33 @@ class ExpansionTests(unittest.TestCase):
         rows = cis_poster.coverage_records(app)
         society = next(r for r in rows if r['destination'] == 'poster_communicate' and '/ 7 ' in r['label'])
         self.assertIn('working', society['status'])
-        self.assertTrue(any(r['status'] == 'unimplemented' for r in rows))
+        self.assertTrue(rows)
+        self.assertEqual([r['label'] for r in rows if r['status'] == 'unimplemented'], [])
         with patch.object(app, 'text_page') as page:
             app.open_go_destination(app.go_map['GO PHOTOS'], ['main'])
         self.assertTrue(any('CUPCAKE' in line for line in page.call_args.args[2]))
         with patch.object(cis_poster, 'input', side_effect=['U', 'M']), patch.object(app, 'ansi_scroll') as output, patch.object(app, 'clear'), patch.object(app, 'header_bar'):
             cis_poster.directory(app, ['main'], coverage=True)
-        self.assertTrue(any('unimplemented' in str(c) for c in output.call_args_list))
+        self.assertTrue(any('No matching topics.' in str(c) for c in output.call_args_list))
+
+    def test_poster_destinations_are_recognized_by_dispatcher(self):
+        # Exercise real destination resolution, replacing only interactive services.
+        with ExitStack() as mocks:
+            for name in ('sports_menu', 'books_menu', 'entertainment_menu',
+                         'forum_service', 'activity_center', 'live_weather_service',
+                         'text_page'):
+                mocks.enter_context(patch.object(app, name))
+            mocks.enter_context(patch.object(app.cis_magazine, 'service'))
+            mocks.enter_context(patch.object(app.cis_shareware, 'service'))
+            mocks.enter_context(patch.object(app.session_state, 'remember_destination'))
+            for key, screen in app.screens.items():
+                if not screen.get('poster'):
+                    continue
+                for field in ('targets', 'related_targets'):
+                    for choice, target in screen.get(field, {}).items():
+                        with self.subTest(screen=key, choice=choice, field=field, target=target):
+                            self.assertIn(choice, screen['options'])
+                            self.assertTrue(app.open_go_destination(target, ['main']))
 
 
 if __name__ == '__main__':

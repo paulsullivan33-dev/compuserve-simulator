@@ -1,4 +1,4 @@
-include *.json
-include build_support.py
+include cb_personalities.json cnn_news.json computer_communities.json data_schema.json easyplex.json fake_lines.json feedback.json forums.json go_commands.json historical_features.json historical_timeline.json library_files.json magazine_issues.json master_news_hub.json merged_news.json news.json orders.json page_names.json poster_words.json profiles.json reference_databases.json release_assets.json screens.json service_data.json store_catalog.json terminal_config.json timecapsule_packs.json yahoo_news.json
+include build_support.py release_payload.py
 recursive-include web *.html *.css *.js
 exclude *.patch *.bundle

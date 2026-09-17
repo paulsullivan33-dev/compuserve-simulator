@@ -30,3 +30,14 @@ text should normalize line endings without changing the content assertion.
 
 Keep `cis_version.py`, `pyproject.toml`, and the local package version in `uv.lock`
 in sync. Verify both the release ZIP and installed wheel before tagging a release.
+# Release data privacy
+
+ZIPs, wheels, and source distributions use `release_assets.json` as their asset
+list. Add new distributable resources to that list (and JSON resources to
+`MANIFEST.in`). Never add member data, databases, exports, or credentials.
+The `defaults` section contains clean starter state, including built-in forum
+and library content. Builders substitute these defaults for mutable JSON files
+without changing the local originals. Unknown JSON files are excluded; stale
+unlisted JSON in a wheel build directory causes the build to fail.
+Run `python -m unittest discover -s tests -q` and
+`python tests/check_installed_package.py` to verify packaging.

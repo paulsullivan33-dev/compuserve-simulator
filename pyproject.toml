@@ -102,6 +102,7 @@ py-modules = [
 
 [tool.setuptools.cmdclass]
 build_py = "build_support.BuildPy"
+sdist = "build_support.SourceDist"
 
 [tool.pytest.ini_options]
 python_files = ["test_*.py"]

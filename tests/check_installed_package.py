@@ -9,6 +9,8 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+import json
+import tarfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +30,14 @@ def run():
                         'import setuptools.build_meta, sys; setuptools.build_meta.build_sdist(sys.argv[1])',
                         str(sources)], cwd=ROOT, env=env, check=True)
         source = next(sources.glob('*.tar.gz'))
+        rules = json.loads((ROOT / 'release_assets.json').read_text(encoding='utf-8'))
+        with tarfile.open(source) as archive:
+            for member in archive.getmembers():
+                name = '/'.join(member.name.split('/')[1:])
+                if name.endswith('.json'):
+                    assert name in rules['files'], name
+                if name in rules['defaults']:
+                    assert json.load(archive.extractfile(member)) == rules['defaults'][name], name
         subprocess.run([sys.executable, '-m', 'pip', 'wheel', '--no-build-isolation',
                         '--no-deps', '--wheel-dir', str(wheels), str(source)],
                        cwd=work, env=env, check=True)
@@ -35,7 +45,10 @@ def run():
         with zipfile.ZipFile(wheel) as archive:
             names = set(archive.namelist())
             required = {path.name for path in ROOT.glob('cis_*.py')}
-            required.update(path.name for path in ROOT.glob('*.json'))
+            assert all(not name.endswith('.json') or name in rules['files'] for name in names)
+            required.update(name for name in rules['files'] if name.endswith('.json'))
+            for name, clean in rules['defaults'].items():
+                assert json.loads(archive.read(name)) == clean, name
             required.update({'compuserve.py', 'web_app.py', 'telnet_app.py',
                              'event_worker.py', 'web/index.html'})
             missing = required - names

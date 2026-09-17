@@ -6,6 +6,7 @@ from pathlib import Path
 import zipfile
 
 from cis_version import VERSION
+from release_payload import policy, payload
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -23,16 +24,7 @@ EXCLUDED_DIRECTORIES = {
 
 def release_files():
     """Return stable, relative paths for files shipped to players."""
-    result = []
-    for path in BASE_DIR.rglob("*"):
-        relative = path.relative_to(BASE_DIR)
-        if not path.is_file() or path.name in EXCLUDED_NAMES:
-            continue
-        if any(part in EXCLUDED_DIRECTORIES or part.endswith(".egg-info") for part in relative.parts):
-            continue
-        if path.suffix.lower() in INCLUDED_SUFFIXES:
-            result.append(relative)
-    return sorted(result, key=lambda item: item.as_posix().lower())
+    return [Path(name) for name in policy(BASE_DIR)['files']]
 
 
 def build_release():
@@ -40,11 +32,12 @@ def build_release():
     DIST_DIR.mkdir(exist_ok=True)
     target = DIST_DIR / ARCHIVE_NAME
     files = release_files()
+    contents = {path: payload(BASE_DIR, path) for path in files}
     manifest = {
         "name": "Classic CompuServe Simulation",
         "version": VERSION,
         "files": {
-            path.as_posix(): hashlib.sha256((BASE_DIR / path).read_bytes()).hexdigest()
+            path.as_posix(): hashlib.sha256(contents[path]).hexdigest()
             for path in files
         },
     }
@@ -53,12 +46,12 @@ def build_release():
             info = zipfile.ZipInfo(relative.as_posix(), FIXED_TIMESTAMP)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o755 if relative.suffix.lower() == ".sh" else 0o644) << 16
-            archive.writestr(info, (BASE_DIR / relative).read_bytes(), compresslevel=9)
+            archive.writestr(info, contents[relative], compresslevel=9)
         info = zipfile.ZipInfo("RELEASE_MANIFEST.json", FIXED_TIMESTAMP)
         info.compress_type = zipfile.ZIP_DEFLATED
         info.external_attr = 0o644 << 16
-        payload = json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8") + b"\n"
-        archive.writestr(info, payload, compresslevel=9)
+        manifest_bytes = json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8") + b"\n"
+        archive.writestr(info, manifest_bytes, compresslevel=9)
     return target
 
 
