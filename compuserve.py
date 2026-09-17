@@ -2858,8 +2858,8 @@ def personality_line(personality):
     if personality == "technical":
         return random.choice([
             "Anyone debugging IRQ conflicts?",
-            "LetÃ¢â‚¬â„¢s talk BIOS settings.",
-            "WhoÃ¢â‚¬â„¢s tweaking their CONFIG.SYS tonight?",
+            "Let’s talk BIOS settings.",
+            "Who’s tweaking their CONFIG.SYS tonight?",
             "Channel 3: where the tech nerds live."
         ])
     if personality == "eliza":
