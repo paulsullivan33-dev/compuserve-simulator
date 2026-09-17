@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from cis_security import hash_password, verify_password
 from cis_migrations import CURRENT_SCHEMA_VERSION, migrate_data
-from cis_session import SessionState, GoNavigation, navigation_prompts, active_session
+from cis_session import SessionState, GoNavigation, navigation_prompts
 from cis_settings import PRESETS, apply_preset, merged_settings
 from cis_storage import (
     MUTABLE_DATA_FILES,
@@ -47,7 +47,9 @@ import cis_period_news
 import cis_reference
 import cis_store
 import cis_discovery
-from cis_archive import archive_service
+import cis_poster
+import cis_communications
+import cis_hardware
 import cis_business
 import cis_travel
 import cis_experience
@@ -55,7 +57,6 @@ import cis_drafts
 import cis_announcements
 import cis_weather
 import cis_timeline
-import cis_timecapsule
 import cis_features
 import cis_magazine
 import cis_cb
@@ -64,29 +65,6 @@ import cis_disruptions
 import cis_ownership
 import cis_shareware
 import cis_adventure_league
-import cis_hamnet
-import cis_nightstation
-import cis_sports
-import cis_veterans
-import cis_roots
-import cis_guitar
-import cis_tradingpost
-import cis_entertainment
-import cis_tech
-import cis_crossword
-import cis_books
-import cis_arcade
-import cis_space
-import cis_yearend
-import cis_giftguide
-import cis_fitness
-import cis_christmas
-import cis_cooking
-import cis_aviation
-import cis_scifi
-import cis_pets
-import cis_trains
-import cis_photo
 
 try:
     import msvcrt
@@ -103,11 +81,6 @@ SIMULATION_DATE = "12/15/88"
 SCREEN_WIDTH = 80
 BAUD_RATES = {300: 6.00, 1200: 12.00, 2400: 24.00}
 connection_baud = 1200
-# Time-capsule date chosen during connection setup, applied to the session
-# after login. Holds a date, None for "Present Day", or _SURPRISE_SENTINEL to
-# resolve a per-user deterministic surprise date once the account is known.
-_SURPRISE_SENTINEL = "surprise"
-pending_simulation_date = None
 premium_charges = 0.0
 capture_path = None
 startup_options = {
@@ -189,32 +162,15 @@ FORUM_CATALOG = {
         },
     },
     "macdev": {"title": "Macintosh Developers Forum", "sections": {"1": ("macdev_general", "General")}},
-    "photo": {"title": "Photography Forum", "sections": cis_photo.section_spec()},
-    "hamnet": {"title": "Amateur Radio Forum", "sections": {
-        "1": ("hamnet_general", "General"),
-        **{str(int(k) + 1): tuple(v) for k, v in cis_hamnet.section_spec().items()},
-    }},
-    "veterans": {"title": "Veterans Forum", "sections": cis_veterans.section_spec()},
-    "roots": {"title": "Roots & Branches Genealogy Forum", "sections": cis_roots.section_spec()},
-    "guitar": {"title": "Guitar & Music Forum", "sections": cis_guitar.section_spec()},
-    "tech": {"title": "Tech Talk Forum", "sections": cis_tech.section_spec()},
-    "space": {"title": "Space & Astronomy Forum", "sections": cis_space.section_spec()},
-    "cooking": {"title": "Cooking Forum", "sections": cis_cooking.section_spec()},
-    "aviation": {"title": "Aviation Forum", "sections": cis_aviation.section_spec()},
-    "scifi": {"title": "Comics & Sci-Fi Forum", "sections": cis_scifi.section_spec()},
-    "fitness": {"title": "Health & Fitness Forum", "sections": cis_fitness.section_spec()},
-    "pets": {"title": "Pets & Animals Forum", "sections": cis_pets.section_spec()},
-    "trains": {"title": "Model Railroading Forum", "sections": cis_trains.section_spec()},
+    "photo": {"title": "Photography Forum", "sections": {"1": ("photography_general", "General")}},
+    "hamnet": {"title": "Amateur Radio Forum", "sections": {"1": ("hamnet_general", "General")}},
     "science": {"title": "Science Forum", "sections": {"1": ("science_general", "General")}},
 }
 
 FORUM_CATALOG.update(cis_communities.FORUMS)
-FORUM_CHOICES = dict(zip((str(i) for i in range(1, 22)),
+FORUM_CHOICES = dict(zip((str(i) for i in range(1, 11)),
                         ('ibmhw', 'gamers', 'macdev', 'photo', 'hamnet', 'science',
-                         'commodore', 'appleii', 'atarist', 'dos',
-                         'veterans', 'roots', 'guitar', 'tech', 'space',
-                         'cooking', 'aviation', 'scifi', 'fitness',
-                         'pets', 'trains')))
+                         'commodore', 'appleii', 'atarist', 'dos')))
 
 def cis_prompt(context="command"):
     prompts = {
@@ -234,8 +190,6 @@ def header_bar(screen_key):
     go_prompt_screen = screen_key
     page = page_names.get(screen_key, "")
     ansi_scroll(header_line("CompuServe", page, SCREEN_WIDTH), 0.01)
-    for line in cis_discovery.archive_notice(screen_key, FORUM_CATALOG):
-        ansi_scroll(line, 0.01)
 
 
 def page_indicator(screen_key):
@@ -253,16 +207,6 @@ def clear():
         sys.stdout.flush()
     else:
         print()
-
-def reset_page_pause():
-    """Reset the page-pause line count at a user prompt.
-
-    Called by cis_session.read_input so the 16-line pause only triggers when a
-    single block of output exceeds 16 lines, not on a cumulative total.
-    """
-    global transmitted_line_count
-    transmitted_line_count = 0
-
 
 def ansi_scroll(text, delay=0.01):
     global transmitted_line_count
@@ -331,37 +275,35 @@ def startup_configuration():
             connection_baud = int(startup_options["baud"])
             SCREEN_WIDTH = int(startup_options["columns"])
             save_json_atomic("terminal_config.json", startup_options)
-    elif action == "C":
-        baud = input("Baud [300/1200/2400]: ").strip()
-        columns = input("Columns [40/80]: ").strip()
-        mode = input("Display [scroll/screen]: ").strip().lower()
-        skip = input("Skip modem dialing [Y/N]: ").strip().upper()
-        connection = input("Connection [clean/variable]: ").strip().lower()
-        sound = input("Modem sound [Y/N]: ").strip().upper()
-        paging = input("Pause every 16 lines [Y/N]: ").strip().upper()
-        refresh = input("Refresh current news after login [Y/N]: ").strip().upper()
-        fast = input("Fast output mode [Y/N]: ").strip().upper()
-        if baud.isdigit() and int(baud) in BAUD_RATES:
-            connection_baud = int(baud)
-        if columns.isdigit() and int(columns) in (40, 80):
-            SCREEN_WIDTH = int(columns)
-        if mode in ("scroll", "screen"):
-            startup_options["display_mode"] = mode
-        startup_options["skip_dialing"] = skip == "Y"
-        if connection in ("clean", "variable"):
-            startup_options["connection_mode"] = connection
-        startup_options["sound"] = sound == "Y"
-        startup_options["page_pause"] = paging == "Y"
-        startup_options["refresh_news"] = refresh == "Y"
-        startup_options["fast_mode"] = fast == "Y"
-        startup_options["customized"] = True
-        startup_options["baud"] = connection_baud
-        startup_options["columns"] = SCREEN_WIDTH
-        save_json_atomic("terminal_config.json", startup_options)
-    # Anything else (including RETURN) accepts the current settings as-is.
-    # The time-capsule destination is a connection-setup choice too, so it
-    # lives here with the other non-service options rather than after login.
-    choose_temporal_destination_setup()
+        return
+    if action != "C":
+        return
+    baud = input("Baud [300/1200/2400]: ").strip()
+    columns = input("Columns [40/80]: ").strip()
+    mode = input("Display [scroll/screen]: ").strip().lower()
+    skip = input("Skip modem dialing [Y/N]: ").strip().upper()
+    connection = input("Connection [clean/variable]: ").strip().lower()
+    sound = input("Modem sound [Y/N]: ").strip().upper()
+    paging = input("Pause every 16 lines [Y/N]: ").strip().upper()
+    refresh = input("Refresh current news after login [Y/N]: ").strip().upper()
+    fast = input("Fast output mode [Y/N]: ").strip().upper()
+    if baud.isdigit() and int(baud) in BAUD_RATES:
+        connection_baud = int(baud)
+    if columns.isdigit() and int(columns) in (40, 80):
+        SCREEN_WIDTH = int(columns)
+    if mode in ("scroll", "screen"):
+        startup_options["display_mode"] = mode
+    startup_options["skip_dialing"] = skip == "Y"
+    if connection in ("clean", "variable"):
+        startup_options["connection_mode"] = connection
+    startup_options["sound"] = sound == "Y"
+    startup_options["page_pause"] = paging == "Y"
+    startup_options["refresh_news"] = refresh == "Y"
+    startup_options["fast_mode"] = fast == "Y"
+    startup_options["customized"] = True
+    startup_options["baud"] = connection_baud
+    startup_options["columns"] = SCREEN_WIDTH
+    save_json_atomic("terminal_config.json", startup_options)
 
 
 def set_capture(enabled):
@@ -427,6 +369,19 @@ for forum_id, forum in cis_communities.FORUMS.items():
 fake_lines = load_json("fake_lines.json")
 forum_threads = load_json("forums.json")
 go_map = load_json("go_commands.json")
+for keyword in ("NEWS", "GAMES", "TRAVEL", "REFERENCE", "FORUMS"):
+    go_map["GO " + keyword + "SIM"] = go_map["GO " + keyword]
+for key, screen in screens.items():
+    if screen.get("poster"):
+        page_names[key] = screen["page"]
+        if screen["page"]:
+            go_map["GO " + screen["page"]] = key
+        OPTION_TARGETS[key] = {
+            number: target for number, target in screen.get("targets", {}).items()
+            if target in screens
+        }
+poster_words = load_json("poster_words.json")
+cis_poster.install(sys.modules[__name__])
 cb_personalities = load_json("cb_personalities.json")
 profiles = load_json("profiles.json", default={})
 library_files = load_json("library_files.json", default={})
@@ -458,6 +413,9 @@ PAGE_ADDRESSES = {
     "GAMERS-1": "gamers", "LIB-1": "ibmhw_lib1", "LIB-2": "ibmhw_lib2",
     "LIB-3": "ibmhw_lib3", "LIB-4": "ibmhw_lib4",
 }
+for key, screen in screens.items():
+    if screen.get('poster') and screen.get('page'):
+        PAGE_ADDRESSES[screen['page']] = key
 for forum_id, forum in cis_communities.FORUMS.items():
     PAGE_ADDRESSES[page_names[forum_id]] = forum_id
     PAGE_ADDRESSES[page_names[forum['library']]] = forum['library']
@@ -477,6 +435,8 @@ def resolve_go_destination(destination, current_screen="main"):
         return PAGE_ADDRESSES[destination]
     if destination.isdigit():
         current_address = page_names.get(current_screen, "")
+        if current_screen == "main":
+            current_address = "CIS-1"  # Preserve legacy relative page addressing.
         if "-" in current_address:
             relative = current_address.split("-", 1)[0] + "-" + destination
             return PAGE_ADDRESSES.get(relative)
@@ -583,6 +543,8 @@ def login_screen():
             "page_pause": startup_options["page_pause"],
         })
         save_profiles()
+    if cis_hardware.snapshot(sys.modules[__name__]):
+        cis_hardware.apply_settings(sys.modules[__name__])
     ansi_scroll("Access granted", 0.01)
     waiting = mail_waiting_count(user_id)
     if waiting and current_profile.get("mail_notice", True):
@@ -601,122 +563,6 @@ def login_screen():
     cis_story.ensure_case(sys.modules[__name__])
     cis_disruptions.evaluate_reservations(sys.modules[__name__])
     return True
-
-
-# --- Temporal Destination (time-capsule mode) ---------------------------------
-
-def _remembered_simulation_date():
-    """The account's last-chosen era, or None."""
-    return cis_timecapsule.parse_stored_date(current_profile.get("last_simulation_date"))
-
-
-def _set_simulation_date(value):
-    session_state.simulation_date = value
-    if value is None:
-        current_profile.pop("last_simulation_date", None)
-    else:
-        current_profile["last_simulation_date"] = value.isoformat()
-    save_profiles()
-    ansi_scroll(f"Temporal destination: {cis_timecapsule.describe(value)}.", 0.01)
-
-
-def _featured_date_menu():
-    """Return the chosen featured date, or None to go back."""
-    while True:
-        clear()
-        header_bar("main")
-        ansi_scroll("FEATURED DATES", 0.01)
-        ansi_scroll("--------------", 0.01)
-        for index, (when, label) in enumerate(cis_timecapsule.FEATURED_DATES, 1):
-            ansi_scroll(f"{index}  {when:%m/%d/%Y}  {label}", 0.01)
-        ansi_scroll("M  Back", 0.01)
-        choice = input("Choice: ").strip().upper()
-        if choice == "M":
-            return None
-        if choice.isdigit() and 1 <= int(choice) <= len(cis_timecapsule.FEATURED_DATES):
-            return cis_timecapsule.FEATURED_DATES[int(choice) - 1][0]
-        ansi_scroll("Enter a number from the list, or M.", 0.01)
-
-
-def _prompt_for_simulation_date():
-    """Return the typed date, or None to go back."""
-    while True:
-        text = input("Date (MM/DD/YYYY), or M to go back: ").strip()
-        if text.upper() == "M":
-            return None
-        try:
-            return cis_timecapsule.parse_user_date(text)
-        except ValueError as exc:
-            ansi_scroll(str(exc), 0.01)
-
-
-def choose_temporal_destination_setup():
-    """Offer time-capsule date selection during connection setup.
-
-    The account isn't known yet, so the per-account "Return to <date>?"
-    shortcut can't run here. The raw choice is stashed in
-    pending_simulation_date and applied to the session after login.
-    """
-    global pending_simulation_date
-    while True:
-        clear()
-        header_bar("main")
-        ansi_scroll("TEMPORAL DESTINATION", 0.01)
-        ansi_scroll("--------------------", 0.01)
-        ansi_scroll("Experience CompuServe as of the date you choose.", 0.01)
-        ansi_scroll("", 0.01)
-        ansi_scroll("1  Present Day (the service's current date)", 0.01)
-        ansi_scroll("2  Featured dates...", 0.01)
-        ansi_scroll("3  Enter a date (MM/DD/YYYY, 1979-1998)", 0.01)
-        ansi_scroll("4  Surprise me", 0.01)
-        choice = input("Choice: ").strip()
-        if choice == "1":
-            pending_simulation_date = None
-            return
-        if choice == "2":
-            picked = _featured_date_menu()
-            if picked is None:
-                continue
-            pending_simulation_date = picked
-            return
-        if choice == "3":
-            picked = _prompt_for_simulation_date()
-            if picked is None:
-                continue
-            pending_simulation_date = picked
-            return
-        if choice == "4":
-            pending_simulation_date = _SURPRISE_SENTINEL
-            return
-        ansi_scroll("Enter 1, 2, 3, or 4.", 0.01)
-
-
-def apply_pending_simulation_date():
-    """Apply the connection-setup time-capsule choice to this session.
-
-    Runs after login, when the account (and its remembered era) is known.
-    An explicit date or surprise choice applies directly; "Present Day"
-    still offers the account's remembered era via "Return to <date>?".
-    """
-    global pending_simulation_date
-    pending, pending_simulation_date = pending_simulation_date, None
-    if pending == _SURPRISE_SENTINEL:
-        picked = cis_timecapsule.surprise_date(current_user_id or "")
-        ansi_scroll(f"Your destination: {picked:%A, %B %d, %Y}.", 0.01)
-        _set_simulation_date(picked)
-        return
-    if pending is not None:
-        _set_simulation_date(pending)
-        return
-    remembered = _remembered_simulation_date()
-    if remembered is not None:
-        answer = input(f"Return to {remembered:%A, %B %d, %Y}? (Y/N) ").strip().upper()
-        if answer in ("Y", "YES", ""):
-            _set_simulation_date(remembered)
-            return
-        if answer not in ("N", "NO"):
-            ansi_scroll("Assuming NO.", 0.01)
-    _set_simulation_date(None)
 
 
 def account_settings():
@@ -1342,112 +1188,6 @@ def forum_conference(forum_id):
             ansi_scroll(line, 0.005)
 
 
-@archive_service
-def sports_menu():
-    """Sports & TV submenu (December 1988 setting, session-date aware)."""
-    sections = cis_sports.sports_service(sys.modules[__name__])
-    while True:
-        clear()
-        header_bar("news")
-        ansi_scroll("SPORTS & TV - DECEMBER 1988 ARCHIVE", 0.01)
-        ansi_scroll("-----------", 0.01)
-        for index, (title, _lines) in enumerate(sections, 1):
-            ansi_scroll(f"{index}  {title}", 0.01)
-        ansi_scroll("M  Back", 0.01)
-        choice = input("Choice: ").strip().upper()
-        if choice == "M":
-            return
-        if choice.isdigit() and 1 <= int(choice) <= len(sections):
-            title, lines = sections[int(choice) - 1]
-            text_page("news", title.upper(), lines)
-        else:
-            ansi_scroll("Enter a number from the list, or M.", 0.01)
-
-
-@archive_service
-def weather_menu():
-    """Weather wire submenu (December 1988 setting, session-date aware)."""
-    sections = cis_weather.weather_service(sys.modules[__name__])
-    while True:
-        clear()
-        header_bar("news")
-        ansi_scroll("WEATHER WIRE - DECEMBER 1988 ARCHIVE", 0.01)
-        ansi_scroll("------------", 0.01)
-        for index, (title, _lines) in enumerate(sections, 1):
-            ansi_scroll(f"{index}  {title}", 0.01)
-        ansi_scroll("M  Back", 0.01)
-        choice = input("Choice: ").strip().upper()
-        if choice == "M":
-            return
-        if choice.isdigit() and 1 <= int(choice) <= len(sections):
-            title, lines = sections[int(choice) - 1]
-            text_page("news", title.upper(), lines)
-        else:
-            ansi_scroll("Enter a number from the list, or M.", 0.01)
-
-
-@archive_service
-def books_menu():
-    """Books & magazines submenu (December 1988 setting, session-date aware)."""
-    sections = cis_books.books_service(sys.modules[__name__])
-    while True:
-        clear()
-        header_bar("news")
-        ansi_scroll("BOOKS & MAGAZINES - DECEMBER 1988 ARCHIVE", 0.01)
-        ansi_scroll("-----------------", 0.01)
-        for index, (title, _lines) in enumerate(sections, 1):
-            ansi_scroll(f"{index}  {title}", 0.01)
-        ansi_scroll("M  Back", 0.01)
-        choice = input("Choice: ").strip().upper()
-        if choice == "M":
-            return
-        if choice.isdigit() and 1 <= int(choice) <= len(sections):
-            title, lines = sections[int(choice) - 1]
-            text_page("news", title.upper(), lines)
-        else:
-            ansi_scroll("Enter a number from the list, or M.", 0.01)
-
-
-@archive_service
-def entertainment_menu():
-    """Entertainment submenu (December 1988 setting, session-date aware)."""
-    sections = cis_entertainment.entertainment_service(sys.modules[__name__])
-    while True:
-        clear()
-        header_bar("news")
-        ansi_scroll("ENTERTAINMENT - DECEMBER 1988 ARCHIVE", 0.01)
-        ansi_scroll("-------------", 0.01)
-        for index, (title, _lines) in enumerate(sections, 1):
-            ansi_scroll(f"{index}  {title}", 0.01)
-        ansi_scroll("M  Back", 0.01)
-        choice = input("Choice: ").strip().upper()
-        if choice == "M":
-            return
-        if choice.isdigit() and 1 <= int(choice) <= len(sections):
-            title, lines = sections[int(choice) - 1]
-            text_page("news", title.upper(), lines)
-        else:
-            ansi_scroll("Enter a number from the list, or M.", 0.01)
-
-
-@archive_service
-def yearend_menu():
-    """1988 Year in Review news special (session-date aware)."""
-    cis_yearend.yearend_menu(sys.modules[__name__])
-
-
-@archive_service
-def giftguide_menu():
-    """1988 Holiday Shopping Guide news special (session-date aware)."""
-    cis_giftguide.giftguide_menu(sys.modules[__name__])
-
-
-@archive_service
-def christmas_menu():
-    """Christmas in the Sim news special (session-date aware)."""
-    cis_christmas.christmas_menu(sys.modules[__name__])
-
-
 def forum_announcements(forum_id):
     forum = FORUM_CATALOG[forum_id]
     lines = ["SYSOP BULLETIN", f'Welcome to the {forum["title"]}.']
@@ -1455,7 +1195,6 @@ def forum_announcements(forum_id):
         for message in forum_threads.get(section_key, []):
             if "announcement" in section_key or message.get("author") == "SYSOP":
                 lines.extend(["", message["subject"], message["body"]])
-    lines.extend(["", *cis_dynamic.era_forum_bulletins(forum_id)])
     text_page(forum_id, "Forum Announcements", lines)
 
 
@@ -1591,13 +1330,30 @@ def library_transfer(file):
     if protocol not in ("B", "X"):
         ansi_scroll("Transfer cancelled.", 0.01)
         return
+    try:
+        size = len(cis_library.download_bytes(sys.modules[__name__], file))
+        plan = cis_hardware.transfer_plan(sys.modules[__name__], file, size, protocol)
+    except (OSError, ValueError) as exc:
+        ansi_scroll(f'Transfer unavailable: {exc}', 0.01)
+        return
+    if plan.get('error'):
+        ansi_scroll(plan['error'], 0.01)
+        return
+    ansi_scroll(f"{plan['baud']} baud: {plan['seconds']} seconds simulated transfer time.", 0.01)
     block_size = 512 if protocol == "B" else 128
-    blocks = (file["bytes"] + block_size - 1) // block_size
+    blocks = (size + block_size - 1) // block_size
     name = "CompuServe B" if protocol == "B" else "XMODEM"
     ansi_scroll(f"Beginning {name} transfer...", 0.01)
     for completed in range(0, blocks, max(1, blocks // 10)):
         ansi_scroll(f"Block {min(completed + 1, blocks):>4} of {blocks}", 0.001)
-    destination = cis_library.materialize_download(sys.modules[__name__], file, protocol)
+        if plan.get('machine') and not startup_options.get('fast_mode'):
+            # Accelerated presentation: full duration is recorded in the setup ledger.
+            time.sleep(min(0.5, plan['seconds'] / 600))
+    try:
+        destination = cis_library.materialize_download(sys.modules[__name__], file, protocol)
+    except (OSError, ValueError) as exc:
+        ansi_scroll(f'Transfer stopped: {exc}', 0.01)
+        return
     ansi_scroll(f"Transfer complete -- {destination.stat().st_size} bytes received.", 0.01)
     ansi_scroll(f"Stored as {destination}", 0.01)
 
@@ -1719,26 +1475,16 @@ def news_article(article, category):
 
 
 def period_news_edition():
-    pack = cis_timecapsule.pack_for(cis_dynamic.simulation_day())
-    if pack is not None:
-        # Featured date with a curated archival pack: real dispatches from
-        # that date, in the same article shape the news screen consumes.
-        articles = cis_timecapsule.pack_headlines(pack)
-        banner = f'CIS ARCHIVAL NEWS WIRE -- {pack["date"]}'
-        sub = f'Archival edition: dispatches as of {pack["label"]}.'
-    else:
-        articles = cis_period_news.edition(sys.modules[__name__])
-        if current_user_id and cis_dynamic.simulation_day().day >= 12:
-            story_article = cis_story.news_article(sys.modules[__name__])
-            story_article["story_case"] = cis_story.CASE_ID
-            articles = [story_article, *articles]
-        banner = "CIS PERIOD NEWS WIRE - DECEMBER 1988"
-        sub = "A historical simulation edition; all dispatches remain within 1988."
+    articles = cis_period_news.edition(sys.modules[__name__])
+    if current_user_id and cis_dynamic.simulation_day().day >= 12:
+        story_article = cis_story.news_article(sys.modules[__name__])
+        story_article["story_case"] = cis_story.CASE_ID
+        articles = [story_article, *articles]
     while True:
         clear()
         header_bar("news")
-        ansi_scroll(banner, 0.01)
-        ansi_scroll(sub, 0.005)
+        ansi_scroll("CIS PERIOD NEWS WIRE - DECEMBER 1988", 0.01)
+        ansi_scroll("A historical simulation edition; all dispatches remain within 1988.", 0.005)
         for index, article in enumerate(articles, 1):
             ansi_scroll(f'{index:>2} [{article["category"][:3]}] {article["title"]}', 0.005)
         choice = input("\nEnter item or M ! ").strip().upper()
@@ -1753,13 +1499,21 @@ def refresh_current_news():
     return cis_news.refresh(sys.modules[__name__])
 
 
-def text_page(screen_key, title, lines):
+def text_page(screen_key, title, lines, color=None):
     clear()
     header_bar(screen_key)
     ansi_scroll(title, 0.01)
     ansi_scroll("-" * len(title), 0.01)
-    for line in lines:
-        ansi_scroll(line, 0.005)
+    # Only trusted palette codes bypass normal terminal control sanitization.
+    palette = cis_communications.CARD_COLORS.get(color, '')
+    try:
+        if palette:
+            sys.stdout.write(palette)
+        for line in lines:
+            ansi_scroll(line, 0.005)
+    finally:
+        if palette:
+            sys.stdout.write('\x1b[0m')
     ansi_scroll("\nPress ENTER to return.", 0.01)
     input()
 
@@ -2306,9 +2060,13 @@ def comp_u_store():
             ansi_scroll(f'{product["sku"]} {product["name"]:<35} ${price:>7.2f}{marker}', 0.005)
         ansi_scroll(f"PAGE {page + 1} OF {max(1, (len(products) + page_size - 1) // page_size)}", 0.005)
         ansi_scroll("* DECEMBER SPECIAL", 0.005)
-        command = input("Item, F/B, C category, S search, D deals, K compatibility, A/V/R/O, M ! ").strip().upper()
+        ansi_scroll("PC computers | A add | V view cart | R remove | O order", 0.005)
+        command = input("Item, PC, F/B, C category, S search, D deals, K compatibility, A/V/R/O, M ! ").strip().upper()
         if command == "M":
             return
+        if command == "PC":
+            products, page = cis_store.search(category='COMPUTERS'), 0
+            continue
         if command == "F" and start + page_size < len(products):
             page += 1
             continue
@@ -2330,7 +2088,8 @@ def comp_u_store():
             page = 0
             continue
         if command == "K":
-            system, matches = cis_store.compatible_products(input("Computer [IBM PC/XT, IBM PC AT, Macintosh Plus, Commodore 64, TRS-80]: "))
+            ansi_scroll('Systems: ' + ', '.join(cis_store.COMPATIBILITY), 0.005)
+            system, matches = cis_store.compatible_products(input("Computer name or computer item number ! "))
             if system:
                 products = matches
                 page = 0
@@ -2406,8 +2165,6 @@ def shopping_service(choice):
         ])
     elif choice == "5":
         cis_ownership.service(sys.modules[__name__])
-    elif choice == "6":
-        cis_tradingpost.tradingpost_menu(sys.modules[__name__])
 
 
 def games_service(choice):
@@ -2423,15 +2180,8 @@ def games_service(choice):
         text_page("games", "GAME INSTRUCTIONS", [
             "Most games use short command words or numbered choices.",
             "Adventure supports exploration, optional discoveries, SCORE, MAP, and SAVE.",
-            "Night Shift: Earth Station is a full-length adventure: restore the",
-            "satellite uplink before the 6 AM news feed. Verbs: TAKE, USE, EXAMINE,",
-            "START, FILL, INSTALL, LOAD, TRANSMIT, CLIMB, plus SCORE and TIME.",
             "MegaWars adds missions, shields, missiles, ranks, docking, and a sector map.",
             "Trivia Tournament contains five-question rounds and persistent streak records.",
-            "Daily Crossword serves a fresh 1988-themed puzzle every day: A<num>",
-            "answers an across clue, D<num> a down clue. GRID redisplays the board.",
-            "Classic Games Arcade (menu 9) hosts Hunt the Wumpus, Hamurabi,",
-            "Super Star Trek, Blackjack, ELIZA, and Lunar Lander.",
             "Enter M to return to the previous menu.",
             "$ identifies premium connect-time services.",
         ])
@@ -2439,12 +2189,6 @@ def games_service(choice):
         game_records()
     elif choice == "6":
         cis_adventure_league.service(sys.modules[__name__])
-    elif choice == "7":
-        cis_nightstation.play(sys.modules[__name__])
-    elif choice == "8":
-        cis_crossword.play(sys.modules[__name__])
-    elif choice == "9":
-        cis_arcade.play(sys.modules[__name__])
 
 
 TRIVIA_BANK = [
@@ -2522,7 +2266,6 @@ def game_records():
         f"LEAGUE LEVEL       {league.get('level', 0)}",
         f"LEAGUE GUILD       {league.get('guild') or '---'}",
     ]
-    lines.extend(cis_arcade.arcade_records_lines(state, user_id))
     text_page("games", "PLAYER RECORDS", lines)
 
 
@@ -2862,55 +2605,7 @@ def personality_line(personality):
             "Who’s tweaking their CONFIG.SYS tonight?",
             "Channel 3: where the tech nerds live."
         ])
-    if personality == "eliza":
-        # Rare ambient acknowledgement of Eliza from another participant;
-        # Eliza's DIRECT replies to the user always come from the engine.
-        return random.choice([
-            "Eliza really listens, you know.",
-            "I told Eliza my troubles last night. Felt better after.",
-        ])
     return ""
-
-# Per-user ELIZA conversation state for CB channel 4, keyed by user id.
-_ELIZA_STATES = {}
-
-
-def _eliza_engine():
-    """Return the cis_eliza engine module, or None if Worker A's module is absent."""
-    engine = sys.modules.get("cis_eliza")
-    if engine is not None:
-        return engine
-    try:
-        import cis_eliza
-    except ImportError:
-        return None
-    return cis_eliza
-
-
-def eliza_cb_reply(app, user_id, text):
-    """Post ELIZA's reply to `text` and return the reply string.
-
-    Uses the cis_eliza engine (never the random one-liner pool). State is kept
-    per user id so ELIZA remembers context across turns; a goodbye clears the
-    state so the next visit starts a fresh conversation.
-    """
-    key = str(user_id) if user_id else "GUEST"
-    engine = _eliza_engine()
-    if engine is None:
-        reply = "ELIZA is away from her desk. Please try again later."
-        app.ansi_scroll(f"<ELIZA> {reply}", 0.01)
-        return reply
-    state = _ELIZA_STATES.get(key)
-    if state is None:
-        state = engine.new_state()
-    quitting = bool(engine.is_quit(text))
-    reply, state = engine.respond(text, state)
-    if quitting:
-        _ELIZA_STATES.pop(key, None)
-    else:
-        _ELIZA_STATES[key] = state
-    app.ansi_scroll(f"<ELIZA> {reply}", 0.01)
-    return reply
 
 def cb_chat(channel):
     global current_handle, current_profile
@@ -2999,10 +2694,6 @@ def cb_chat(channel):
             elif command == "SAY" and argument:
                 last_message_id = post_live_message(BASE_DIR, room, current_handle, argument)
                 ansi_scroll(f"<{current_handle}> {argument}", 0.01)
-                if channel == "4":
-                    exchange += 1
-                    eliza_cb_reply(sys.modules[__name__], current_user_id or current_handle, argument)
-                    continue
                 response = cis_dynamic.cb_response(channel, argument, exchange, sys.modules[__name__])
                 exchange += 1
                 if response:
@@ -3024,7 +2715,7 @@ def cb_channel_directory():
     lines = [f'{key:<12} {counts.get(cis_cb.room(key), 0) + len(cis_dynamic.cb_presence(key)):>2}  {description}' for key, description in cis_cb.CHANNELS.items()]
     custom = sorted({room[3:].upper() for room, _, _, _ in presence if room.startswith("cb:") and room[3:].upper() not in cis_cb.CHANNELS})
     lines.extend(f'{key:<12} {counts.get(cis_cb.room(key), 0):>2}  Member-created channel' for key in custom)
-    text_page("cb", "CB CHANNEL DIRECTORY", ["CHANNEL      ON  DESCRIPTION", *lines, "", "Use /JOIN name from any channel.", "", cis_hamnet.upcoming_net()])
+    text_page("cb", "CB CHANNEL DIRECTORY", ["CHANNEL      ON  DESCRIPTION", *lines, "", "Use /JOIN name from any channel."])
 
 
 def cb_private_messages():
@@ -3061,14 +2752,15 @@ def show_screen(screen_key):
     screen = screens[screen_key]
     clear()
     for line in menu_lines(
-        "CompuServe", page_names.get(screen_key, ""), screen["title"],
+        screen.get("service", "CompuServe"), page_names.get(screen_key, ""), screen["title"],
         screen["options"], SCREEN_WIDTH,
+        poster=screen.get("poster", False),
+        show_header=screen.get("header", True),
+        section_headings=screen.get("section_headings"),
+        intro=screen.get("intro", ()),
+        centered_intro=screen.get("centered_intro", ()),
     ):
         ansi_scroll(line, 0.01)
-    for line in cis_discovery.archive_notice(screen_key, FORUM_CATALOG):
-        ansi_scroll(line, 0.01)
-    if screen_key == "main":
-        ansi_scroll("GO START - three suggestions for your selected date", 0.01)
     if screen_key == "main" and current_user_id and not session_state.top_announcements_shown:
         for line in cis_dynamic.announcements(current_user_id, mail_waiting_count(current_user_id), sys.modules[__name__]):
             ansi_scroll(line, 0.005)
@@ -3076,12 +2768,20 @@ def show_screen(screen_key):
 
 
 def destination_label(destination):
+    if destination.startswith("quick:"):
+        return next((r['label'] for r in poster_words if r['word'] == destination[6:]), destination)
+    if destination in ("quick", "phones"):
+        return {"quick": "Quick Reference Words", "phones": "Telephone Access Numbers"}[destination]
     if destination in screens:
-        return screens[destination]["title"]
+        return screens[destination]["title"] or screens[destination].get("label") or screens[destination].get("page") or "Tour/Find a Topic"
     if destination in FORUM_CATALOG:
         return FORUM_CATALOG[destination]['title']
     labels = {
-        "start": "Start here", "profile": "Personal Service Summary", "new": "What's New",
+        'computer_setup': 'My Computer Setup', 'public_files': 'Access Public File Area',
+        'cb_society': 'CB Society', 'color_cards': 'Simulated Color Cards',
+        'coverage': 'Implementation Coverage', 'photo_requests': 'Photo Requests',
+        "personal_files": "Personal File Area",
+        "profile": "Personal Service Summary", "new": "What's New",
         "calendar": "Personal Calendar", "notebook": "Personal Notebook",
         "downloads": "Download Center", "achievements": "Achievements",
         "sysop": "Sysop Console",
@@ -3102,19 +2802,6 @@ def today_in_1988_lines(fetch_weather=True):
     """Build the compact post-login briefing from existing service data."""
     today = cis_dynamic.simulation_day()
     records = cis_timeline.records_for_date(today)
-    if not records:
-        # Outside the curated 1988 archive, fall back to "on this day".
-        month_day = today.isoformat()[5:]
-        records = [record for record in cis_timeline.RECORDS
-                   if record.get("date", "")[5:] == month_day
-                   and record.get("date", "") <= today.isoformat()]
-    pack = cis_timecapsule.pack_for(today)
-    if pack:
-        # Featured date: the pack's context items take precedence.
-        records = list(records) + [
-            {"id": f"TCD-{index}", "title": item["title"]}
-            for index, item in enumerate(pack["on_this_day"], 1)
-        ]
     counts = {}
     for item in cis_discovery.activity_items(sys.modules[__name__]):
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
@@ -3122,15 +2809,6 @@ def today_in_1988_lines(fetch_weather=True):
     lines.extend(f'  {record["id"]}  {record["title"]}' for record in records)
     if not records:
         lines.append("  No curated entry for today.")
-    if pack:
-        # Curated archival content for the featured date.
-        lines.extend(["", "ARCHIVAL HEADLINES"])
-        lines.extend(f'  {story["title"]}' for story in pack["headlines"][:6])
-        if pack.get("market_notes"):
-            lines.extend(["", "MARKET WIRE"])
-            lines.extend(f"  {note}" for note in pack["market_notes"][:3])
-        lines.extend(["", "SERVICE ANNOUNCEMENTS"])
-        lines.extend(f"  {note}" for note in pack["announcements"])
     lines.extend(["", "YOUR SERVICE"])
     service_kinds = ("MAIL", "FORUM", "ORDER", "TRAVEL", "DRAFT", "NOTICE")
     summaries = [f"{kind} {counts[kind]}" for kind in service_kinds if counts.get(kind)]
@@ -3157,18 +2835,15 @@ def today_in_1988_lines(fetch_weather=True):
         lines.extend(["", f'DID YOU KNOW?  {fact["term"]}', f'  {fact["text"]}'])
     if current_user_id and cis_dynamic.simulation_day().day >= 12:
         lines.extend(["", "SPECIAL DESK", *[f"  {line}" for line in cis_story.status_lines(sys.modules[__name__])[:2]]])
-    lines.extend(["", "GO START - three suggestions for your selected date",
-                  "Fixed period collections are marked DECEMBER 1988 ARCHIVE.",
-                  "READ HISTORY  |  READ WEATHER  |  READ NEW  |  GO CASE  |  GO TOP"])
+    lines.extend(["", "READ HISTORY  |  READ WEATHER  |  READ NEW  |  GO CASE  |  GO TOP"])
     return lines
 
 
 def today_in_1988_dashboard(fetch_weather=True):
     clear()
     header_bar("main")
-    title = f"TODAY IN {cis_dynamic.simulation_day().year}"
-    ansi_scroll(title, 0.01)
-    ansi_scroll("-" * len(title), 0.01)
+    ansi_scroll("TODAY IN 1988", 0.01)
+    ansi_scroll("-------------", 0.01)
     for line in today_in_1988_lines(fetch_weather):
         ansi_scroll(line, 0.005)
     input("Press ENTER for the main menu ! ")
@@ -3363,17 +3038,29 @@ def timeline_service():
 
 def open_go_destination(target, stack):
     """Open a resolved GO target and report whether it was recognized."""
-    direct_services = {
-        "start": start_here, "sports": sports_menu, "books": books_menu,
-        "entertainment": entertainment_menu, "weatherwire": weather_menu,
-        "yearinreview": yearend_menu, "giftguide": giftguide_menu,
-        "christmas": christmas_menu,
-        "arcade": lambda: cis_arcade.play(sys.modules[__name__]),
-        "crossword": lambda: games_service("8"),
-        "tradingpost": lambda: shopping_service("6"),
-    }
-    if target in direct_services:
-        direct_services[target]()
+    if target == 'computer_setup':
+        cis_hardware.service(sys.modules[__name__])
+        return True
+    if target in ('public_files', 'cb_society', 'color_cards'):
+        {'public_files': cis_communications.public_files,
+         'cb_society': cis_communications.society,
+         'color_cards': cis_communications.cards}[target](sys.modules[__name__])
+        return True
+    if target == 'coverage':
+        cis_poster.directory(sys.modules[__name__], stack, coverage=True)
+        return True
+    if target == 'photo_requests':
+        cis_poster.photo_requests(sys.modules[__name__])
+        return True
+    if target == 'personal_files':
+        cis_communications.personal_files(sys.modules[__name__])
+        return True
+    if target and target.startswith('quick:'):
+        return cis_poster.open_word(sys.modules[__name__], target[6:], stack)
+    if target == 'quick':
+        cis_poster.directory(sys.modules[__name__], stack)
+    elif target == 'phones':
+        cis_phones.run(ansi_scroll, read=input, return_to="the previous menu")
     elif target in FORUM_CATALOG:
         forum_service(target)
     elif target == "sysop":
@@ -3418,26 +3105,6 @@ def open_go_destination(target, stack):
         return False
     session_state.remember_destination(target)
     return True
-
-
-def start_here():
-    """Offer three date-aware destinations without adding another long directory."""
-    while True:
-        day = cis_dynamic.simulation_day()
-        choices = cis_discovery.start_suggestions(day)
-        clear()
-        header_bar("main")
-        ansi_scroll(f"START HERE - {day:%B %d, %Y}", 0.01)
-        ansi_scroll("Fixed period collections are marked DECEMBER 1988 ARCHIVE.", 0.01)
-        for index, (label, command, reason) in enumerate(choices, 1):
-            ansi_scroll(f"{index}  {label} ({command})", 0.01)
-            ansi_scroll(f"   {reason}", 0.01)
-        selection = input("Choose 1-3, or M to return: ").strip().upper()
-        if selection == "M":
-            return
-        if selection.isdigit() and 1 <= int(selection) <= len(choices):
-            raise GoNavigation(choices[int(selection) - 1][1])
-        ansi_scroll("Enter 1, 2, 3, or M.", 0.01)
 
 
 def choose_recent_destination():
@@ -3489,7 +3156,7 @@ def _navigate(initial_go=None):
                     continue
                 show_screen(current)
                 #choice = input("Select option or type GO command: ").strip()
-                choice = input(cis_prompt("main") + " ").strip()
+                choice = input(screens[current].get("prompt", cis_prompt("main")) + " ").strip()
             command = choice.upper()
 
             if command == "READ HISTORY":
@@ -3580,6 +3247,13 @@ def _navigate(initial_go=None):
             if command == "R":
                 continue
 
+            if (not choice or command in ('F', 'B')) and screens[current].get('poster'):
+                page_target = screens[current].get('previous_page' if command == 'B' else 'next_page')
+                if page_target:
+                    stack[-1] = page_target
+                    session_state.remember_destination(page_target)
+                    continue
+
             if command in ("F", "B"):
                 ansi_scroll("No forward page." if command == "F" else "No previous page.", 0.01)
                 continue
@@ -3620,6 +3294,11 @@ def _navigate(initial_go=None):
             if choice in screens[current]["options"]:
                 last_choice_by_screen[current] = choice
 
+            if screens[current].get("poster") and (choice in screens[current]["options"] or
+                    (not choice and screens[current].get('continue_on_enter'))):
+                cis_poster.select(sys.modules[__name__], current, choice, stack)
+                continue
+
             if current == "forums" and choice in FORUM_CHOICES:
                 forum_id = FORUM_CHOICES[choice]
                 session_state.remember_destination(forum_id)
@@ -3646,10 +3325,6 @@ def _navigate(initial_go=None):
                 cb_private_messages()
                 continue
 
-            if current == "cb" and choice == "7":
-                cb_chat("4")
-                continue
-
             if current == "news" and choice in ("1", "2", "3", "4"):
                 category = {
                     "1": "World", "2": "Business", "3": "Technology", "4": "Science"
@@ -3666,27 +3341,6 @@ def _navigate(initial_go=None):
                 continue
             if current == 'news' and choice == '7':
                 cis_magazine.service(sys.modules[__name__])
-                continue
-            if current == "news" and choice == "8":
-                sports_menu()
-                continue
-            if current == "news" and choice == "9":
-                entertainment_menu()
-                continue
-            if current == "news" and choice == "10":
-                weather_menu()
-                continue
-            if current == "news" and choice == "11":
-                books_menu()
-                continue
-            if current == "news" and choice == "12":
-                yearend_menu()
-                continue
-            if current == "news" and choice == "13":
-                giftguide_menu()
-                continue
-            if current == "news" and choice == "14":
-                christmas_menu()
                 continue
 
             if current == "support" and choice in screens["support"]["options"]:
@@ -3732,15 +3386,13 @@ def main():
         return 0
     if not login_screen():
         return 1
-    with active_session(session_state):
-        try:
-            apply_pending_simulation_date()
-            create_data_backup()
-            if startup_options["refresh_news"]:
-                refresh_current_news()
-            navigate(show_briefing=True)
-        finally:
-            unregister_session(BASE_DIR, live_session_id)
+    try:
+        create_data_backup()
+        if startup_options["refresh_news"]:
+            refresh_current_news()
+        navigate(show_briefing=True)
+    finally:
+        unregister_session(BASE_DIR, live_session_id)
     return 0
 
 

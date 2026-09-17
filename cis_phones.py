@@ -264,7 +264,7 @@ def search(query):
     )]
 
 
-def run(emit, read=None):
+def run(emit, read=None, return_to="Host Name"):
     """Browse without an account; return to the caller's hostname prompt."""
     if read is None:
         read = input
@@ -276,7 +276,7 @@ def run(emit, read=None):
     emit("Archive/simulation only; not current dial-in service.")
     while True:
         emit("City or city, state/province; ALL lists cities.")
-        emit("SOURCES shows references. M returns to Host Name.")
+        emit(f"SOURCES shows references. M returns to {return_to}.")
         query = read("City ! ").strip()
         if not query or query.upper() in {"M", "Q", "CIS"}:
             return

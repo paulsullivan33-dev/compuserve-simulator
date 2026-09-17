@@ -18,7 +18,15 @@ unfinished form; existing EasyPlex and forum draft autosaves retain text already
 entered. Password fields read literal passwords. In adventure games, movement
 commands such as `GO NORTH` still move within the game.
 
-Choose **User Information**, then **10: Guided Tour and Service Representatives**.
+The TOP menu follows the photographed twelve-category CompuServe map. Choose
+**1 Instructions/User Information**, **1 Tour/Find a Topic**, then **1 Tour**.
+`GO HELP` opens the instructions menu directly. `GO INDEX` offers topic search
+and an alphabetical directory; `GO QUICK` opens the searchable GO-word directory.
+In directories, use `S words`, `F`/`B`, `ALL`, a displayed number, or `M`.
+Historical entries identify related simulations and services not yet recreated.
+`GO SUPPORT` retains the older support menu and its extra simulation features.
+See [Poster reference](POSTER_REFERENCE.md) for source coverage and limitations.
+
 Select stops 1 through 4 to open EasyPlex, the IBM Hardware Forum, its libraries,
 and the Activity Center. Each stop explains the commands before opening the service.
 Use M through the service menus to return to the tour. Signed-in members retain
@@ -227,48 +235,6 @@ interactions. The daily library rotation includes RS-232, CONFIG.SYS, AUTOEXEC.B
 VGA, and expanded-memory references. SysOp option 8 posts top-page announcements or
 adds notes to simulated-member profiles.
 
-### Time capsule
-
-Enter **GO START** after signing in for three suggested destinations. Featured
-dates suggest their news coverage, December 1988 suggests available magazines
-and seasonal features, and other dates suggest CB and the classic arcade.
-The main menu and login briefing both show this shortcut.
-
-Fixed collections are labelled **DECEMBER 1988 ARCHIVE**, including seeded
-forums, sports, entertainment, books, weather retrospectives, shopping and holiday
-features. These are browsable period exhibits and may contain material later than
-your selected date. The label stays visible on nested article pages. Featured-date
-headlines remain tied to your selected date; `GO WEATHER` remains explicitly live.
-Use `GO WEATHERWIRE` for the separate December 1988 weather archive.
-
-The Year in Review also respects publication dates: election results begin on
-November 9, the Armenia report on December 7, the Pan Am report on December 21,
-and the full-year roundup on December 31, 1988. Earlier sessions show an explanation
-when no year-end stories are available. The briefing does not reuse future events
-as historical anniversaries.
-
-`GO SPORTS`, `GO BOOKS`, `GO ENTERTAINMENT`, `GO YEARINREVIEW`, `GO GIFTGUIDE`,
-`GO CHRISTMAS`, `GO ARCADE`, `GO CROSSWORD`, and `GO TRADINGPOST` open their named
-services directly. Existing numbered menu routes still work.
-
-Connection setup includes a Temporal Destination step: experience CompuServe as of
-the date you choose. Pick **Present Day** (the service's default December 1988
-calendar, or the administrator's `CIS_SIMULATION_DATE` override), choose from
-fourteen featured dates, enter any date from 1979 through 1998 as `MM/DD/YYYY`, or
-let **Surprise me** choose a session-scoped deterministic date that stays fixed for that
-call. Featured dates include Columbia's first flight (1981), the IBM PC
-announcement (1981), the Macintosh debut (1984), Live Aid (1985), Challenger and
-Chernobyl (1986), the Black Monday crash and the INF Treaty signing (1987),
-Exxon Valdez, the Loma Prieta earthquake, and the Berlin Wall's fall (1989), the
-Hubble launch (1990), and Desert Storm and the first website (1991).
-
-Featured dates carry curated archival content packs: period headlines, sysop
-announcements, CB conversation topics, and market notes written for that moment.
-Your account remembers the last era you visited; when you choose Present Day after
-login, the service offers to return to that date. Ambient CB conversation and
-simulated forum traffic also adapt to the session's date, while the shared daily
-forum story arcs remain December 1988 regardless of era.
-
 Release 1.6 adds simultaneous browser sessions, shared live CB channels and forum
 conferences, SQLite online-session and live-message tables, a SysOp online-member
 display, and an optional ANSI Telnet-style listener on port 2323.
@@ -282,12 +248,9 @@ on December 15 the latest issue is *Small Programs, Real Evenings*. Earlier issu
 remain available as back issues. This is authored simulation content, not an
 archived CompuServe publication or a live news subscription.
 
-Each issue has thirteen articles (65 total), each at least 400 words. All 25 original
+Each issue has ten articles (50 total), each at least 400 words. All 25 original
 articles have more than doubled in length. Departments include editorials, hardware comparisons,
-workshops, game reviews, reader letters, and club projects, plus three departments that
-appear in every issue: News Briefs (short December 1988 items), SysOp Q&A (member
-questions answered by the sysop), and Letters to the Editor (member letters about
-computing life). The issue list shows
+workshops, game reviews, reader letters, and club projects. The issue list shows
 how many articles you have read. Choose an issue number or ID, `L` for the latest
 issue, or `S words` to search published articles. Global `FIND words` also indexes
 the magazine, and `GO NEW` highlights the latest issue.
@@ -333,47 +296,6 @@ do not alter your simulator account or access disks.
 The content installs once at application startup. Installation adds records while
 preserving member posts, uploads, and download counts; subsequent starts do not
 duplicate the content or restore seeded posts a SysOp has deleted.
-
-## Community forums
-
-Beyond the computer forums, the directory offers twelve interest forums. The
-**Amateur Radio Forum** (`GO HAMNET`, choice 5) covers packet radio, HF/VHF rigs,
-antennas and towers, DX and contesting, license study, ARRL bulletins, swap
-and shop, and broadcast listening, with December 1988 seed posts, two scheduled
-on-air nets, and December 1988 shortwave schedules for the BBC World Service,
-Voice of America, and Deutsche Welle. The
-**Veterans Forum** (`GO VETERANS`, choice 11) hosts service stories, reunions and a
-buddy finder, VA benefits discussion, and a Wall remembrance section. **Roots &
-Branches** (`GO ROOTS`, choice 12) is a genealogy forum covering getting started,
-NARA and archives, census records, family history centers, a surname registry,
-and military records. The **Guitar & Music Forum** (`GO GUITAR`, choice 13) covers
-electrics, acoustics, amps and effects, a tablature exchange, MIDI and home
-recording, and what's spinning; gear and music discussion stay era-appropriate to
-December 1988. **Tech Talk** (`GO TECH`, choice 14) debates IBM PC and clones,
-Macintosh, Amiga vs Atari ST, OS/2 and operating systems, modems and telecom,
-and CD-ROM and new tech. The **Space & Astronomy Forum** (`GO SPACE`, choice 15)
-covers shuttle and spaceflight, deep-sky observing, planets and probes, amateur
-telescopes, NASA and space news, and star parties, with December 1988 seed posts.
-The **Cooking Forum** (`GO COOKING`, choice 16) swaps recipes, holiday baking
-ideas, cast-iron and cookware talk, microwave cooking, canning and preserving,
-and restaurant recommendations. The **Aviation Forum** (`GO AVIATION`, choice 17)
-covers private flying, IFR training, aircraft ownership, flight simulators, trip
-reports, and hangar talk. The **Comics & Sci-Fi Forum** (`GO SCIFI`, choice 18)
-discusses comic books, Star Trek, Doctor Who, movies and TV, science-fiction
-books, and conventions, all era-appropriate to December 1988. The **Health &
-Fitness Forum** (`GO FITNESS`, choice 19) covers aerobics, running, weight
-training, nutrition, sports medicine and injuries, and mind & body, seeded with
-16 December 1988 posts. The **Pets & Animals Forum** (`GO PETS`, choice 20)
-covers dogs, cats, birds, fish and aquariums, small pets, and an Ask the Vet
-section, seeded with 16 December 1988 posts. The **Model Railroading Forum**
-(`GO TRAINS`, choice 21) covers layout design, DCC and wiring, locomotives,
-scenery, prototype research, and buy/sell/trade, seeded with 16 December 1988
-posts. The **Photography Forum** (`GO PHOTO`, choice 4) now spans five sections:
-general, cameras & lenses, darkroom, composition & technique, and film &
-processing, seeded with 14 December 1988 posts.
-All twelve use the standard forum commands for reading,
-posting, replying, and watching threads. These forums are original fictional
-simulation content, not recovered historical messages.
 
 ## Accounts and login
 
@@ -480,10 +402,7 @@ CB also includes 34 clearly simulated period members, with 7–12 present in eac
 channel. They remember prior topics, recognize directly addressed handles, and tailor
 technical replies and follow-up questions to the subject and computer mentioned.
 They also hold occasional channel-specific conversations, move between rooms, and
-observe quieter overnight hours. Channel 4, Eliza's Office (CB option 7), is a
-quiet corner for conversation with ELIZA, the 1966 computer therapist: talk to
-her in plain English and she answers in classic Rogerian style, remembering
-context across turns for each member until goodbye ends the session. Ambient and direct replies are retained in shared
+observe quieter overnight hours. Ambient and direct replies are retained in shared
 scrollback without duplicate generation by simultaneous server sessions. Use
 `/INFO handle` to see a simulated member's computer, interests, home forum, and the
 most recent topic you discussed together.
@@ -507,41 +426,6 @@ News option 5 also offers a separately labeled December 1988 period edition draw
 12 selections per edition; recently presented dispatches are retained in that member's
 history so five consecutive editions contain no repeated items. Option 6 updates the
 clearly separate current-news wire.
-
-**Sports & TV** (News option 8, `GO SPORTS`) presents 1988 NFL standings and
-December scores, the 1988-89 prime-time TV grid, and MLB hot-stove news, plus a
-Super Bowl XXIII preview (clearly marked preview-only; the game is played
-January 22, 1989), a 1988 World Series recap, and mid-December 1988 NBA and NHL
-standings. **Entertainment**
-(News option 9, `GO ENTERTAINMENT`) carries the December 1988 Billboard Hot 100 with
-a date-aware number one ("Look Away" by Chicago early in the month, "Every Rose Has
-Its Thorn" by Poison at Christmas), reviews of films in theaters that month, and
-previews (never results) of the January 2, 1989 college bowl games. The **Weather
-Wire** (News option 10) publishes December 1988 city forecasts and ski-resort
-conditions with three date-aware variants, plus a "1988 Weather Retrospective"
-looking back at Hurricane Gilbert and the summer drought and heat wave from a
-December 1988 perspective; `GO WEATHER` continues to open the live
-Open-Meteo weather service described in Travel. **Books & Magazines** (News option
-11, `GO BOOKS`) lists December 1988 hardcover bestseller lists, December magazine
-issues with cover-story blurbs, staff reviews of 1988 books, and back-issue files
-readable from the Data Library. **1988 Year in Review** (News option 12,
-`GO YEARINREVIEW`) is a news special recapping the year: Election '88 results,
-the year's top news stories, the Armenia earthquake wire, science and
-technology highlights, and a best-of roundup spanning movies, music, sports,
-and technology. Date gating applies: the Armenia earthquake coverage appears
-from December 7 onward and the Pan Am Flight 103 developing story appears from
-December 21 onward, following the session's simulated date. The **1988 Holiday
-Shopping Guide** (News option 13, `GO GIFTGUIDE`) is the season's buying desk:
-hottest gifts of Christmas 1988, a catalog-vs.-mall price comparison, a toy
-shortage and shelf-watch report, and gift trends for '88, plus an interactive
-gift picker that recommends a present from the catalog by recipient and budget.
-**Christmas in the Sim** (News option 14, `GO CHRISTMAS`) is the December
-special: a 25-day advent calendar of daily treats (one unlocked each day
-through Christmas), browsable holiday CB topics, and a Christmas music section
-of 1988-or-earlier albums and songs. The Entertainment section also carries the
-Christmas Music listings, and CB picks up seasonal holiday topics during
-December. All News content stays dated no later than December
-1988; these are authored simulation contents, not archived period publications.
 
 CB recognizes a broad set of period topics including modems, DOS memory, disks, display
 adapters, Macintosh development, packet radio, games, software, printers, weather,
@@ -590,14 +474,24 @@ with global `FIND`. Always verify real schedules, fares, and availability.
 
 ## Comp-U-Store
 
-Comp-U-Store contains a fictional 36-item 1988 mail-order catalog covering modems,
+Comp-U-Store contains a fictional 76-item 1988 mail-order catalog covering computers, modems,
 cables, media, printers, software, books, accessories, and upgrades. Choose `GO SHOP`,
 then Comp-U-Store. Enter an item number for its description, availability, compatibility,
 and a simulated owner's report when available. Use `C` to choose a category, `S` to
 search, `D` for rotating December specials, `K` for IBM PC/XT, IBM PC AT, Macintosh
-Plus, Commodore 64, or TRS-80 Model I/III compatibility guidance,
+Plus, Macintosh SE, Commodore 64, Amiga 500, or TRS-80 Model I/III compatibility guidance,
 `A` to add an item and quantity, `V` to review the order, `R` to remove an item, and `O`
 to send the order. `F` and `B` page through the catalog.
+
+Use `PC` to see thirteen complete configurations: XT-compatible Starter and Office 20,
+286-compatible Office, Macintosh Plus, Macintosh SE 1/20, Commodore 64C Disk Starter,
+Amiga 500 512K and 1MB Color, Apple IIe 128K, expanded ROM 01 IIgs, Atari 1040STF,
+Tandy 1000 HX 640K, and Tandy 102 portable bundles. Descriptions list included displays,
+drives, memory, keyboards, cables, and software. The 64C starter needs your TV or
+an additional monitor. `K` accepts a computer SKU (for example `2004`) or system
+name and finds matching products. Read accessory prerequisites: a VGA monitor
+needs a VGA card, and the 1MB Amiga bundle already includes its trapdoor expansion.
+Prices and bundles are reconstructed simulation offerings, not original merchant quotes.
 
 The cart is retained between calls. Sending it creates one consolidated fictional order
 with itemized prices and period-style shipping charges, sends an EasyPlex receipt, and
@@ -620,12 +514,82 @@ Forum, and contribute to the member relationship with the representative. Equipm
 ownership also unlocks a member achievement. These workflows never move real goods or
 money and should not be treated as actual product support.
 
-The **Trading Post** (`GO TRADINGPOST`) is a member classifieds board separate from
-Comp-U-Store: FOR SALE, WANTED, and TRADE categories seeded with December 1988 ads
-for modems, 8-bit micros, dot-matrix printers, floppies, LPs, concert tickets, and
-computer books, all priced in 1988 dollars. Members can place their own ads; ads
-persist and expire 30 days after the simulated date they were placed. All listings
-are fictional simulation content, and no real goods change hands.
+## Active computer and download limits
+
+After delivery, use `GO SETUP`. `USE EQ-0001` selects one of your own delivered
+computers; `ATTACH EQ-0002` fits an owned compatible accessory. Use the actual IDs
+listed on your screen. `DETACH id` removes an accessory, and `OFF` returns to
+legacy unrestricted downloads and your saved terminal preferences.
+
+Your setup persists per account, including each computer's attachments and
+downloaded-file ledger. It displays RAM, drives, display, terminal width, modem,
+used capacity and accumulated simulated transfer time. Selection applies the
+machine's 40/80-column width; fitting a modem applies its baud rate. Most desktop
+bundles need a purchased modem and the correct cable/interface. The Tandy 102 has
+its own 300-baud modem. An accessory cannot be fitted to two computers at once.
+
+Active hardware limits apply to library and Access downloads. Incompatible or
+unknown software platforms are rejected; text documentation is portable. Catalog
+archive payloads remain reconstructed samples, not executable computer emulation.
+An explicit minimum-memory requirement is checked when present. Downloads require
+free capacity; replacing a filename charges only the new size. `DELETE filename`
+in Setup frees the simulated space while retaining exported host copies.
+
+Storage uses a simplified download budget: one disk per supplied drive, the
+supplied hard disk, or the portable's 24K free RAM budget. Adding supported storage
+increases it. This is not a sector-level filesystem or disk-swapping emulator.
+Server-side PER files do not use this local download budget. Modem rate and B/X
+protocol overhead determine the recorded duration. Progress is accelerated (fast
+mode skips waiting); the full modeled duration is shown in seconds, not added to
+real session billing. Returning the active computer makes it unavailable until
+you choose another computer or turn hardware limits off.
+
+## Reconstructed Communications services
+
+From `GO COMMUNICATE`, choose 4 then Enter for the National Bulletin Board.
+Use `P` to post, a number to read, `S` to search, and `D` to delete your own post.
+After reading, `R` composes an EasyPlex reply to the author. Posts persist locally.
+
+Communications choice 5 opens the Subscriber Directory. Add a public listing
+with a category and description to opt in; search by category, handle, or words.
+Deleting your listing does not delete your account, mail, or personal files.
+
+`GO PER` (also Computers choice 7) opens private personal text files. Create,
+upload, read, edit, delete, or use a file to compose mail. Files are separated by
+User ID and limited to 32K characters. Console uploads accept UTF-8 text files up
+to 32K bytes; browser and remote users paste into LINEDIT, finishing with `SAVE`.
+The poster EasyPlex panel's choice 3 imports a message and choice 4 uses a PER file.
+Both open the existing mail composer for recipient, subject, editing, and sending.
+`GO MAIL` continues to provide the inbox and full mail menu.
+
+These are functional reconstructions; the original bulletin posts and member
+directory are not reproduced. No messages are sent outside the simulation.
+
+Communications choices 7, 8 and 9 now open these services:
+
+- `GO SOCIETY`: join or leave CB Society, see members, read original Club Notes,
+  and use the persistent club discussion board. The historical Cupcake column is
+  not reproduced; a complete photo would still help.
+- `GO ACCESS`: publish a copy of a PER text file with a description, search shared
+  files, download them using B/X protocols, or remove your own public copy. Later
+  private edits do not change the published snapshot. This version shares text files.
+- `GO CARDS`: preview birthday, thank-you or seasonal ASCII cards in color, then
+  send one to an existing member's EasyPlex inbox. Cards are new simulation designs,
+  not copies of historical Hallmark artwork. Their text remains readable without color.
+
+## Service coverage and photo requests
+
+`GO QUICK` labels destinations as working poster menus, working reconstructions,
+or unimplemented. `W`, `R`, and `U` filter those groups; `ALL` clears filters.
+`COVERAGE` (also `GO COVERAGE`) lists individual numbered poster selections with
+their status. Selecting one opens its parent menu, with a note explaining whether
+the destination still needs implementation. A working menu does not imply that
+every selection inside it is implemented.
+
+`PHOTOS` (also `GO PHOTOS`) lists specific missing or glare-obscured panels.
+All twelve top category menus are already readable. Priority items include the
+full CUPCAKE, Access and Color Mail panels, the remaining Travel panels, INDEX,
+and the obscured or missing Quick Reference Words.
 
 ## Games
 
@@ -654,31 +618,6 @@ persist. Members can join a guild, invite recurring handles to a party through E
 and post adventure journals to the Gamers Forum. Rotating world events alter encounters,
 and a SysOp can replace the current event with `ADVENTURE text`. Player Records also
 shows League character, level, and guild information.
-
-**NIGHT SHIFT: EARTH STATION** (Games option 7) is a second standalone text
-adventure, distinct from The Silent Mainframe. You are the overnight operator at a
-remote C-band earth station: a thunderstorm has knocked out the satellite uplink,
-and the 6 AM news-wire feed must be on the air before the slot passes. Explore
-17 rooms, restore power, realign the dish, load the feed cartridge, and transmit.
-Verbs include TAKE, USE, EXAMINE, START, FILL, INSTALL, LOAD, TRANSMIT, and CLIMB,
-plus SCORE and TIME; you have 81 five-minute moves from 23:15 to 06:00. High scores
-persist per member.
-
-The **Daily Crossword** (Games option 8, `GO CROSSWORD`) serves a fresh 1988-themed
-7x7 puzzle every day, one per weekday: movies, music, tech, sports, TV, news, and
-variety. Rows 1, 4, and 7 are seven-letter across answers; each column holds two
-three-letter down answers crossing exactly one across word. Use `A<num>` to answer
-an across clue, `D<num>` for a down clue, and `GRID` to redisplay the board.
-Progress persists per member until the puzzle is solved.
-
-The **Classic Games Arcade** (Games option 9, `GO ARCADE`) hosts six
-era-appropriate favorites: Hunt the Wumpus, Hamurabi, Super Star Trek,
-Blackjack, ELIZA, and Lunar Lander. Blackjack is played with fictional arcade
-chips worth nothing but pride. ELIZA is the 1966 computer therapist: tell it
-your troubles in plain English and it answers in classic Rogerian style; say
-goodbye to end the session. Lunar Lander is the 1970s BASIC classic — burn fuel,
-mind gravity, and land soft. Each game records one entry per member session in
-Player Records (Games option 5).
 
 ## Special Desk investigations
 

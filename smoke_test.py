@@ -21,6 +21,7 @@ def run():
     required = {"compuserve.py", "event_worker.py", "install-linux.sh", "screens.json", "go_commands.json", "store_catalog.json", "reference_databases.json", "cis_communities.py", "computer_communities.json"}
     shipped = {path.as_posix() for path in build_release.release_files()}
     required.update({'cis_magazine.py', 'magazine_issues.json', 'cis_web_files.py'})
+    required.update({'cis_poster.py', 'poster_words.json'})
     missing = sorted(required - shipped)
     if missing:
         raise RuntimeError("Release omits: " + ", ".join(missing))

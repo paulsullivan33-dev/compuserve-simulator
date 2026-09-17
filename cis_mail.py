@@ -2,6 +2,7 @@
 from cis_session import read_input as input
 
 import re
+import cis_communications
 
 
 def load_mail(app):
@@ -50,7 +51,7 @@ def message_list(app, folder, all_messages, title, sent_folder=False):
             f'From: {message.get("from", "")}', f'To: {message.get("to", "")}',
             f'Date: {message.get("date", "")}', f'Subject: {message.get("subject", "")}',
             "", message.get("body", ""),
-        ])
+        ], **({'color': message['card_color']} if message.get('card_color') in cis_communications.CARD_COLORS else {}))
         action = input("R Reply, F Forward, V Move, D Delete, or RETURN ! ").strip().upper()
         if action == "R" and not sent_folder:
             compose(app, recipient=message.get("from"), subject_default="RE: " + message.get("subject", ""))
@@ -94,8 +95,9 @@ def compose(app, recipient=None, subject_default="", initial_lines=None, resume_
     recipient = recipient or input("To (or DIR): ").strip()
     if recipient.upper() == "DIR":
         app.text_page("mail", "COMPUSERVE USER DIRECTORY", [
-            f"{user_id}  {profile.get('last_handle') or 'MEMBER'}" for user_id, profile in sorted(app.profiles.items())
-        ])
+            f"{user_id}  {listing['handle']}  [{listing['category']}]"
+            for user_id, listing in sorted(cis_communications.state(app).get('directory', {}).items())
+        ] or ['No public listings. Members can opt in from Communications choice 5.'])
         recipient = input("To: ").strip()
     contacts = app.current_profile.get("address_book", {})
     if recipient.upper() in contacts:

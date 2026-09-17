@@ -1,0 +1,192 @@
+[
+  {
+    "label": "Amiga Forum",
+    "word": "AMIGAFORUM",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg",
+    "target": "commodore"
+  },
+  {
+    "label": "Apple Users Group",
+    "word": "MAUG",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg",
+    "target": "appleii"
+  },
+  {
+    "label": "Atari Forums",
+    "word": "SIGATARI",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg",
+    "target": "atarist"
+  },
+  {
+    "label": "Commodore Users Network",
+    "word": "CBMNET",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg",
+    "target": "commodore"
+  },
+  {
+    "label": "Computer Club Forum",
+    "word": "CLUB",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "DEC Users Network",
+    "word": "DECUNET",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "Epson Forum",
+    "word": "EPSON",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "Kaypro Forum",
+    "word": "KAYPRO",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "OMNI OnLine",
+    "word": "OMNI",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "OS9 Operating System Forum",
+    "word": "OS9",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "Tandy Users Network",
+    "word": "TANDYNET",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "Texas Instruments Forum",
+    "word": "TIFORUM",
+    "group": "hardware",
+    "source": "IMG_3287.jpeg"
+  },
+  {
+    "label": "Ashton-Tate Forum",
+    "word": "ASHTON",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Autodesk Forum",
+    "word": "ADESK",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Borland International Forum",
+    "word": "BORLAND",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Computer Art",
+    "word": "ARTSIG",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Computer Consultants Forum",
+    "word": "CONSULT",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "CP/M User Group",
+    "word": "CPMSIG",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Digital Research Forum",
+    "word": "DRFORUM",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Forth Forum",
+    "word": "FORTH",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "LOGO Forum",
+    "word": "LOGOFORUM",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "LOTUS Forum",
+    "word": "LOTUS",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Microsoft Forum",
+    "word": "MSOFT",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Pascal Forum",
+    "word": "MUSUS",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Programmers Forum",
+    "word": "PROGSIG",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Software Publishing Forum",
+    "word": "SPCFORUM",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Whole Earth Software Forum",
+    "word": "WHOLEEARTH",
+    "group": "software",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "AI Expert Magazine",
+    "word": "AIE",
+    "group": "publications",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "ANTIC ONLINE",
+    "word": "ANTIC",
+    "group": "publications",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "Apples Online",
+    "word": "AOL",
+    "group": "publications",
+    "source": "IMG_3288.jpeg"
+  },
+  {
+    "label": "COMPUTER LANGUAGE Magazine",
+    "word": "CLM",
+    "group": "publications",
+    "source": "IMG_3288.jpeg"
+  }
+]

@@ -127,6 +127,7 @@ def sell(app, asset_id, price):
 
 
 def service(app):
+    app.ansi_scroll('GO SETUP selects an owned computer and attaches accessories.', 0.01)
     app.text_page("shopping", "OWNED EQUIPMENT AND SUPPORT", inventory_lines(app))
     asset_id = input("Equipment ID, or RETURN ! ").strip().upper()
     if not asset_id:

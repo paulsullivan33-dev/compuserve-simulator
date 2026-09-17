@@ -1,18 +1,38 @@
 {
   "main": {
-    "title": "CompuServe Information Service",
+    "title": "",
+    "page": "TOP",
+    "poster": true,
+    "source": "IMG_3286.jpeg",
     "options": {
-      "1": "Electronic Mail",
-      "2": "Forums",
-      "3": "CB Simulator",
-      "4": "News Services",
-      "5": "Business & Financial",
-      "6": "Travel Services",
-      "7": "Reference Data Bases",
-      "8": "Comp-U-Store & Classifieds",
-      "9": "Games and Entertainment",
-      "10": "User Information"
-    }
+      "1": "Instructions/User Information",
+      "2": "Find a Topic",
+      "3": "Communications/Bulletin Bds.",
+      "4": "News/Weather/Sports",
+      "5": "Travel",
+      "6": "The Electronic MALL/Shopping",
+      "7": "Money Matters/Markets",
+      "8": "Entertainment/Games",
+      "9": "Home/Health/Family",
+      "10": "Reference/Education",
+      "11": "Computers/Technology",
+      "12": "Business/Other Interests"
+    },
+    "targets": {
+      "1": "poster_help",
+      "2": "poster_topics",
+      "3": "poster_communicate",
+      "4": "poster_news",
+      "5": "poster_travel",
+      "6": "poster_shopping",
+      "7": "poster_money",
+      "8": "poster_games",
+      "9": "poster_home",
+      "10": "poster_reference",
+      "11": "poster_computers",
+      "12": "poster_business"
+    },
+    "prompt": "Enter choice number !"
   },
   "mail": {
     "title": "EasyPlex Electronic Mail",
@@ -35,18 +55,7 @@
       "7": "Commodore and Amiga Forum",
       "8": "Apple II Forum",
       "9": "Atari ST Forum",
-      "10": "DOS Software Forum",
-      "11": "Veterans Forum",
-      "12": "Roots & Branches Genealogy Forum",
-      "13": "Guitar & Music Forum",
-      "14": "Tech Talk Forum",
-      "15": "Space & Astronomy Forum",
-      "16": "Cooking Forum",
-      "17": "Aviation Forum",
-      "18": "Comics & Sci-Fi Forum",
-      "19": "Health & Fitness Forum",
-      "20": "Pets & Animals Forum",
-      "21": "Model Railroading Forum"
+      "10": "DOS Software Forum"
     }
   },
   "cb": {
@@ -57,8 +66,7 @@
       "3": "Enter Channel 3",
       "4": "Private Messages",
       "5": "CB Help & Commands",
-      "6": "Channel Directory / Who Is On",
-      "7": "Enter Channel 4 - Eliza's Office"
+      "6": "Channel Directory / Who Is On"
     }
   },
   "news": {
@@ -70,14 +78,7 @@
       "4": "Science News",
       "5": "December 1988 News Edition",
       "6": "Update Current News",
-      "7": "Online Weekly Magazine",
-      "8": "Sports & TV",
-      "9": "Entertainment",
-      "10": "Weather Wire",
-      "11": "Books & Magazines",
-      "12": "1988 Year in Review",
-      "13": "1988 Holiday Shopping Guide",
-      "14": "Christmas in the Sim"
+      "7": "Online Weekly Magazine"
     }
   },
   "finance": {
@@ -126,8 +127,7 @@
       "2": "Electronic Classifieds",
       "3": "Consumer Product Information",
       "4": "Shopping Instructions",
-      "5": "Owned Equipment and Support",
-      "6": "Trading Post Classifieds"
+      "5": "Owned Equipment and Support"
     }
   },
   "games": {
@@ -138,10 +138,7 @@
       "3": "Trivia Tournament",
       "4": "Game Instructions",
       "5": "Player Records",
-      "6": "Online Adventure League",
-      "7": "Night Shift: Earth Station",
-      "8": "Daily Crossword",
-      "9": "Classic Games Arcade"
+      "6": "Online Adventure League"
     }
   },
   "support": {
@@ -232,5 +229,807 @@
       "1": "Test 1",
       "2": "test 2"
     }
+  },
+  "poster_communicate": {
+    "title": "COMMUNICATIONS/BULLETIN\nBOARDS",
+    "page": "COMMUNICATE",
+    "poster": true,
+    "source": "IMG_3291.jpeg",
+    "options": {
+      "1": "EasyPlex Electronic Mail",
+      "2": "CB Simulator",
+      "3": "Forums (SIGs)",
+      "4": "National Bulletin Board",
+      "5": "Directory of Subscribers",
+      "6": "Feedback to CompuServe",
+      "7": "CB Society",
+      "8": "Access (Public File Area)",
+      "9": "Hallmark Color Mail"
+    },
+    "targets": {
+      "1": "poster_mail",
+      "2": "poster_cb",
+      "3": "poster_forums",
+      "4": "poster_bulletin",
+      "5": "poster_subscribers",
+      "6": "poster_feedback"
+    }
+  },
+  "poster_news": {
+    "title": "NEWS/WEATHER/SPORTS",
+    "page": "NEWS",
+    "poster": true,
+    "source": "IMG_3292.jpeg",
+    "options": {
+      "1": "Sports",
+      "2": "Weather",
+      "3": "Executive News Service ($E)",
+      "4": "USA TODAY Update HOTLINE",
+      "5": "USA TODAY DECISIONLINE ($)",
+      "6": "The Washington Post ($)",
+      "7": "St. Louis Post-Dispatch",
+      "8": "AP Videotex",
+      "9": "Business News",
+      "10": "Newsletters",
+      "11": "Hollywood Hotline ($)"
+    },
+    "targets": {
+      "2": "weather"
+    }
+  },
+  "poster_shopping": {
+    "title": "THE ELECTRONIC MALL/SHOPPING",
+    "page": "SHOPPING",
+    "poster": true,
+    "source": "IMG_3294.jpeg",
+    "options": {
+      "1": "The Electronic MALL (tm)\nCompuServe's Electronic\nMALL saves time and money.",
+      "2": "Comp-u-store OnLine (tm)",
+      "3": "CompuServe's software\nexchange",
+      "4": "Order From CompuServe",
+      "5": "Electronic Bounce Back",
+      "6": "Other Shopping Services"
+    },
+    "targets": {
+      "1": "poster_mall",
+      "2": "poster_cus",
+      "3": "poster_softex",
+      "4": "poster_order",
+      "5": "poster_ebb",
+      "6": "poster_other_shop"
+    }
+  },
+  "poster_money": {
+    "title": "MONEY MATTERS & MARKETS",
+    "page": "MONEY",
+    "poster": true,
+    "source": "IMG_3295.jpeg",
+    "options": {
+      "1": "Market Quotes/Highlights",
+      "2": "Company Information",
+      "3": "Banking/Brokerage Services",
+      "4": "Earnings/Economic Projections",
+      "5": "Micro Software Interfaces",
+      "6": "Personal Finance/Insurance",
+      "7": "Financial Forums",
+      "8": "MicroQuote II ($)",
+      "9": "Business News",
+      "10": "Instructions/Fees"
+    },
+    "targets": {}
+  },
+  "poster_games": {
+    "title": "ENTERTAINMENT/GAMES",
+    "page": "GAMES",
+    "poster": true,
+    "source": "IMG_3296.jpeg",
+    "options": {
+      "1": "Introduction to CompuServe\nGames",
+      "2": "Adventure Games",
+      "3": "Board/Parlor Games",
+      "4": "Fantasy Role-Playing Games",
+      "5": "Multiplayer Games",
+      "6": "Simulation/Sports Games",
+      "7": "Trivia/Thought Games",
+      "8": "War Games",
+      "9": "Entertainment\nNews/Information",
+      "10": "Forums",
+      "11": "Order Games Manual"
+    },
+    "targets": {
+      "10": "gamers"
+    }
+  },
+  "poster_home": {
+    "title": "HOME/HEALTH/FAMILY",
+    "page": "HOME",
+    "poster": true,
+    "source": "IMG_3297.jpeg",
+    "options": {
+      "1": "CompuServe's Comet Watch '86",
+      "2": "Food/Wine",
+      "3": "Personal Finance/Banking",
+      "4": "Health/Fitness",
+      "5": "The Electronic MALL/Shopping",
+      "6": "Special Interest Forums",
+      "7": "Hobbies",
+      "8": "Arts/Music/Literature",
+      "9": "Reference Material"
+    },
+    "targets": {
+      "3": "finance",
+      "5": "poster_shopping",
+      "6": "forums",
+      "9": "poster_reference"
+    }
+  },
+  "poster_computers": {
+    "title": "COMPUTERS AND TECHNOLOGY",
+    "page": "COMPUTERS",
+    "poster": true,
+    "source": "IMG_3298.jpeg",
+    "options": {
+      "1": "Software Forums",
+      "2": "Hardware Forums",
+      "3": "Magazines/Elect. Newsstand",
+      "4": "Science/Technology",
+      "5": "CompuServe's Softex",
+      "6": "Data Processing/MIS",
+      "7": "Personal File Area",
+      "8": "Research/Reference",
+      "9": "VIDTEX Information"
+    },
+    "targets": {
+      "4": "poster_science",
+      "8": "poster_reference",
+      "1": "poster_software",
+      "2": "poster_hardware",
+      "3": "poster_magazines",
+      "5": "poster_softex"
+    }
+  },
+  "poster_business": {
+    "title": "BUSINESS/OTHER INTERESTS",
+    "page": "BUSINESS",
+    "poster": true,
+    "source": "IMG_3299.jpeg",
+    "options": {
+      "1": "Aviation",
+      "2": "Business Management",
+      "3": "Data Processing/MIS",
+      "4": "Media Services",
+      "5": "Engineering/Technology",
+      "6": "Health Professions",
+      "7": "Legal Services",
+      "8": "Market Quotes/Highlights",
+      "9": "Other Interests"
+    },
+    "targets": {}
+  },
+  "poster_index": {
+    "title": "PHOTOGRAPHED POSTER MENUS",
+    "page": "POSTER",
+    "poster": true,
+    "options": {
+      "1": "Instructions/User Information",
+      "2": "Find a Topic",
+      "3": "Communications/Bulletin Bds.",
+      "4": "News/Weather/Sports",
+      "5": "Travel",
+      "6": "The Electronic MALL/Shopping",
+      "7": "Money Matters/Markets",
+      "8": "Entertainment/Games",
+      "9": "Home/Health/Family",
+      "10": "Reference/Education",
+      "11": "Computers/Technology",
+      "12": "Business/Other Interests"
+    },
+    "targets": {
+      "1": "poster_help",
+      "2": "poster_topics",
+      "3": "poster_communicate",
+      "4": "poster_news",
+      "5": "poster_travel",
+      "6": "poster_shopping",
+      "7": "poster_money",
+      "8": "poster_games",
+      "9": "poster_home",
+      "10": "poster_reference",
+      "11": "poster_computers",
+      "12": "poster_business"
+    }
+  },
+  "poster_help": {
+    "title": "INSTRUCTIONS/USER INFORMATION",
+    "page": "HELP",
+    "poster": true,
+    "source": "IMG_3289.jpeg",
+    "options": {
+      "1": "Tour/Find a Topic",
+      "2": "Online Today",
+      "3": "Command Summary/How to Use",
+      "4": "What's New",
+      "5": "Telephone Access Numbers",
+      "6": "Feedback to CompuServe",
+      "7": "Change Your User Profile",
+      "8": "Billing Information",
+      "9": "Order From CompuServe",
+      "10": "Rules of Operation",
+      "11": "Directory of Subscribers"
+    },
+    "targets": {
+      "1": "poster_tour",
+      "4": "new",
+      "9": "poster_order",
+      "6": "poster_feedback",
+      "11": "poster_subscribers"
+    }
+  },
+  "poster_topics": {
+    "title": "FIND A TOPIC",
+    "page": "INDEX",
+    "poster": true,
+    "source": "IMG_3290.jpeg",
+    "options": {
+      "1": "Search for Topics of Interest",
+      "2": "List ALL Indexed Topics",
+      "3": "Explanation of Index"
+    },
+    "targets": {}
+  },
+  "poster_tour": {
+    "title": "",
+    "page": "",
+    "poster": true,
+    "source": "IMG_3289.jpeg",
+    "options": {
+      "1": "Tour",
+      "2": "Find a Topic"
+    },
+    "targets": {
+      "2": "poster_topics"
+    },
+    "header": false
+  },
+  "poster_travel": {
+    "title": "TRAVEL AND LEISURE",
+    "page": "TRAVEL",
+    "poster": true,
+    "source": "IMG_3302.jpeg",
+    "options": {
+      "1": "Whats New In Travel",
+      "2": "Air Information/Reservations",
+      "3": "Hotel Information",
+      "4": "Car Information",
+      "5": "Tours and Cruises",
+      "6": "U.S. Domestic Information",
+      "7": "International Information",
+      "8": "Travel Potpourri",
+      "9": "Forums",
+      "10": "Aviation"
+    },
+    "targets": {
+      "1": "poster_travel_news",
+      "2": "poster_air",
+      "3": "poster_hotel"
+    }
+  },
+  "poster_reference": {
+    "title": "REFERENCE",
+    "page": "REFERENCE",
+    "poster": true,
+    "source": "IMG_3301.jpeg",
+    "options": {
+      "1": "Academic Am. Encyclopedia ($)",
+      "2": "U.S. Government Publications",
+      "3": "Demographics ($E)",
+      "4": "Directory of Public Officials ($)",
+      "5": "Microsearch",
+      "6": "Services for Educators",
+      "7": "Services for the Handicapped",
+      "8": "Services for Students/Parents",
+      "9": "Educational Games/Forums"
+    },
+    "targets": {
+      "1": "poster_aae",
+      "2": "poster_gpo"
+    },
+    "section_headings": {
+      "6": "EDUCATION"
+    }
+  },
+  "poster_travel_news": {
+    "title": "WHAT'S NEW IN TRAVEL",
+    "page": "",
+    "header": false,
+    "poster": true,
+    "source": "IMG_3302.jpeg",
+    "intro": [
+      "Menu options 1-4 and 6 change",
+      "every two weeks."
+    ],
+    "options": {
+      "5": "How to Use Travel Services",
+      "7": "Feedback"
+    },
+    "targets": {}
+  },
+  "poster_air": {
+    "title": "AIR INFORMATION/RESERVATIONS",
+    "page": "TRA-4",
+    "poster": true,
+    "source": "IMG_3303.jpeg",
+    "options": {
+      "1": "OAG Electronic Edition",
+      "2": "Travelshopper"
+    },
+    "targets": {},
+    "service": "TRAVELSHOPPER"
+  },
+  "poster_hotel": {
+    "title": "HOTEL INFORMATION",
+    "page": "TRA-5",
+    "poster": true,
+    "source": "IMG_3303.jpeg",
+    "options": {
+      "1": "ABC Worldwide Hotel Guide",
+      "2": "SUN AND SAND Vacations",
+      "3": "American Express (R)",
+      "4": "Worldwide Property Guide"
+    },
+    "targets": {},
+    "section_headings": {
+      "4": "ADVANCE"
+    }
+  },
+  "poster_gpo": {
+    "title": "GOVERNMENT PUBLICATIONS",
+    "page": "GPO-1",
+    "poster": true,
+    "source": "IMG_3304.jpeg",
+    "options": {
+      "1": "Government Publications\nCatalog and Ordering\nInformation",
+      "2": "Valuable Consumer\nInformation Articles from\nGovernment Publications",
+      "3": "Feedback/Comments to the\nInformation Provider",
+      "4": "FBI Ten Most Wanted"
+    },
+    "targets": {}
+  },
+  "poster_aae": {
+    "title": "",
+    "page": "AAE-1",
+    "poster": true,
+    "source": "IMG_3304.jpeg",
+    "options": {},
+    "targets": {},
+    "centered_intro": [
+      "Welcome to the Electronic",
+      "edition of the",
+      "ACADEMIC AMERICAN",
+      "ENCYCLOPEDIA",
+      "Copyright @ 1986"
+    ],
+    "intro": [
+      "",
+      "* more than 30,000 entries",
+      "* over 9 million words",
+      "* updated 4 times each year"
+    ],
+    "prompt": "Press <CR> for more !",
+    "continue_on_enter": true
+  },
+  "poster_software": {
+    "title": "SOFTWARE FORUMS",
+    "page": "PCS-10",
+    "poster": true,
+    "source": "IMG_3305.jpeg",
+    "options": {
+      "1": "Ashton-Tate",
+      "2": "Borland International",
+      "3": "CP/M Forum",
+      "4": "Digital Research Forum",
+      "5": "Forth Forum/Creative Solutions",
+      "6": "ICCA Forum",
+      "7": "LOGO Forum",
+      "8": "LDOS/TRSDOS",
+      "9": "World of Lotus (W)",
+      "10": "MicroSoft Users Group"
+    },
+    "targets": {
+      "1": "quick:ASHTON",
+      "2": "quick:BORLAND",
+      "3": "quick:CPMSIG",
+      "4": "quick:DRFORUM",
+      "5": "quick:FORTH",
+      "7": "quick:LOGOFORUM",
+      "9": "quick:LOTUS",
+      "10": "quick:MSOFT"
+    },
+    "prompt": "Enter choice or <CR> for more !",
+    "next_page": "poster_software_more"
+  },
+  "poster_software_more": {
+    "title": "SOFTWARE FORUMS (Continued)",
+    "page": "PCS-4",
+    "poster": true,
+    "source": "IMG_3305.jpeg",
+    "options": {
+      "11": "MicroPro Forum",
+      "12": "OS9 Operating System",
+      "13": "Pascal (MUSUS)",
+      "14": "PowerSoft's Users Group",
+      "15": "Programmers' Forum",
+      "16": "Whole Earth Software Forum"
+    },
+    "targets": {
+      "12": "quick:OS9",
+      "13": "quick:MUSUS",
+      "15": "quick:PROGSIG",
+      "16": "quick:WHOLEEARTH"
+    },
+    "prompt": "Last menu page, enter choice !",
+    "previous_page": "poster_software"
+  },
+  "poster_hardware": {
+    "title": "HARDWARE FORUMS",
+    "page": "PCS-20",
+    "poster": true,
+    "source": "IMG_3306.jpeg",
+    "options": {
+      "1": "Apple Users Group (MAUG)",
+      "2": "Atari Forum",
+      "3": "Commodore Forums",
+      "4": "Computer Club Forum",
+      "5": "DEC PC Forum",
+      "6": "EpsOnLine",
+      "7": "Heath Users Group (HUG)",
+      "8": "HP Series 100 Forum"
+    },
+    "targets": {
+      "1": "quick:MAUG",
+      "2": "quick:SIGATARI",
+      "3": "quick:CBMNET",
+      "4": "quick:CLUB"
+    },
+    "prompt": "Enter choice or <CR> for more !",
+    "next_page": "poster_hardware_more"
+  },
+  "poster_hardware_more": {
+    "title": "HARDWARE FORUMS (Continued)",
+    "page": "PCS-6",
+    "poster": true,
+    "source": "IMG_3306.jpeg",
+    "options": {
+      "9": "IBM Users Network",
+      "10": "Interex/Hewlett-Packard",
+      "11": "Kaypro Forum",
+      "12": "OSI Forum",
+      "13": "PDP-11 Users Group",
+      "14": "Panasonic Users Group"
+    },
+    "targets": {
+      "11": "quick:KAYPRO"
+    },
+    "related_targets": {
+      "9": "ibmhw"
+    },
+    "prompt": "Enter choice or <CR> for more !",
+    "next_page": "poster_hardware_last",
+    "previous_page": "poster_hardware"
+  },
+  "poster_hardware_last": {
+    "title": "HARDWARE FORUMS (Continued)",
+    "page": "PCS-8",
+    "poster": true,
+    "source": "IMG_3307.jpeg",
+    "options": {
+      "15": "TRS-80 Model 100 Forum",
+      "16": "TRS-80 Professional Forum",
+      "17": "TRS-80 COCO Users Group",
+      "18": "Telecommunications Forum",
+      "19": "Texas Instruments Forum",
+      "20": "VAX Forum"
+    },
+    "targets": {
+      "19": "quick:TIFORUM"
+    },
+    "prompt": "Last menu page, enter choice !",
+    "previous_page": "poster_hardware_more"
+  },
+  "poster_magazines": {
+    "title": "MAGAZINES/ELECTRONIC\nNEWSSTAND",
+    "page": "MAGAZINES",
+    "poster": true,
+    "source": "IMG_3307.jpeg",
+    "options": {
+      "1": "Antic Magazine",
+      "2": "Apples Online",
+      "3": "Commodore Newsletter",
+      "4": "Computer Language Magazine",
+      "5": "Digital Research Inc.",
+      "6": "Dr. Dobb's Journal",
+      "7": "Electronic Publishing Forums",
+      "8": "Microsearch",
+      "9": "Online Today",
+      "10": "Family Computing Magazine",
+      "11": "Tandy Newsletter"
+    },
+    "targets": {
+      "1": "quick:ANTIC",
+      "2": "quick:AOL",
+      "4": "quick:CLM"
+    }
+  },
+  "poster_science": {
+    "title": "SCIENCE/TECHNOLOGY",
+    "page": "PCS-40",
+    "poster": true,
+    "source": "IMG_3308.jpeg",
+    "options": {
+      "1": "CompuServe's Comet Watch '86",
+      "2": "DECISIONLINE/Technology",
+      "3": "Ham Radio Forum (HamNet)",
+      "4": "Naked Eye Astronomy",
+      "5": "Science Education Forum",
+      "6": "Computer Art Forum",
+      "7": "Consumer Electronics Forum",
+      "8": "Orchestra 90 Music Forum",
+      "9": "DECISIONLINE/\nTelecommunications"
+    },
+    "targets": {
+      "3": "hamnet",
+      "6": "quick:ARTSIG"
+    },
+    "related_targets": {
+      "5": "science"
+    },
+    "prompt": "Enter choice or <CR> for more !",
+    "next_page": "poster_science_more"
+  },
+  "poster_science_more": {
+    "title": "SCIENCE/TECHNOLOGY (Continued)",
+    "page": "PCS-41",
+    "poster": true,
+    "source": "IMG_3308.jpeg",
+    "options": {
+      "11": "Sci-Fi and Fantasy",
+      "12": "Space Forum",
+      "13": "Technical Writers & Editors",
+      "14": "Online Computer Connection"
+    },
+    "targets": {},
+    "prompt": "Last menu page, enter choice !",
+    "previous_page": "poster_science"
+  },
+  "poster_mall": {
+    "title": "",
+    "page": "MALL",
+    "poster": true,
+    "source": "IMG_3309.jpeg",
+    "options": {
+      "1": "Intro/Ordering Instructions",
+      "2": "Talk to the Mall Manager",
+      "3": "This Week's MALL NEWS",
+      "4": "Merchant Directory",
+      "5": "Product Index",
+      "6": "Enter The Mall"
+    },
+    "targets": {},
+    "service": "The Electronic Mall",
+    "intro": [
+      "  __/ __/ THE",
+      "__/ __/ ELECTRONIC",
+      "        MALL",
+      ""
+    ]
+  },
+  "poster_cus": {
+    "title": "COMP-U-STORE ONLINE SHOPPING\nSERVICE",
+    "page": "CUS-1",
+    "poster": true,
+    "source": "IMG_3309.jpeg",
+    "options": {
+      "1": "Description of the Service",
+      "2": "Browsing for Non-Members",
+      "3": "Comp-u-store Membership",
+      "4": "Shopping & Ordering for\nMembers",
+      "5": "Canadian Comp-u-store users"
+    },
+    "targets": {}
+  },
+  "poster_softex": {
+    "title": "EXCHANGE",
+    "page": "SOFTEX",
+    "poster": true,
+    "source": "IMG_3310.jpeg",
+    "options": {
+      "1": "Instructions",
+      "2": "Enter CompuServe's Electronic\nsoftware exchange"
+    },
+    "targets": {}
+  },
+  "poster_order": {
+    "title": "ORDER FROM COMPUSERVE",
+    "page": "ORD-1",
+    "poster": true,
+    "source": "IMG_3311.jpeg",
+    "options": {
+      "1": "Read Ordering Instructions",
+      "2": "View Descriptions/Place Order",
+      "3": "Check on orders already placed",
+      "4": "How to order Braille guides"
+    },
+    "targets": {}
+  },
+  "poster_ebb": {
+    "title": "",
+    "page": "EBB-1",
+    "poster": true,
+    "source": "IMG_3312.jpeg",
+    "options": {
+      "1": "EBB Instructions",
+      "2": "Online Today Display Ads",
+      "3": "Print Edition Reviews",
+      "4": "Shopper's Guide Classifieds"
+    },
+    "targets": {},
+    "centered_intro": [
+      "ONLINE TODAY ADVERTISERS",
+      "ELECTRONIC BOUNCE BACK (EBB)",
+      ""
+    ],
+    "section_headings": {
+      "4": ""
+    }
+  },
+  "poster_other_shop": {
+    "title": "OTHER SHOPPING SERVICES",
+    "page": "SHO-10",
+    "poster": true,
+    "source": "IMG_3312.jpeg",
+    "options": {
+      "1": "Savings-Scan",
+      "2": "New Car Showroom"
+    },
+    "targets": {}
+  },
+  "poster_mail": {
+    "title": "",
+    "page": "",
+    "poster": true,
+    "header": false,
+    "source": "IMG_3314.jpeg",
+    "options": {
+      "2": "COMPOSE a new message",
+      "3": "UPLOAD a message",
+      "4": "USE a file from PER area",
+      "5": "ADDRESS Book",
+      "6": "SET options"
+    },
+    "targets": {},
+    "section_headings": {
+      "5": ""
+    },
+    "label": "EasyPlex Electronic Mail",
+    "centered_intro": [
+      "*** mail message ***",
+      ""
+    ]
+  },
+  "poster_cb": {
+    "title": "CITIZENS BAND SIMULATOR",
+    "page": "CB-10",
+    "poster": true,
+    "header": true,
+    "source": "IMG_3315.jpg",
+    "options": {
+      "1": "Instructions",
+      "2": "CB Etiquette",
+      "3": "CB Band A (Mainframe A)",
+      "4": "CB Band B (Mainframe B)",
+      "5": "CBIG Special Interest Group",
+      "6": "CB Society: Cupcake's Column",
+      "7": "CB Pictures"
+    },
+    "targets": {},
+    "service": "CB Information",
+    "section_headings": {
+      "5": ""
+    }
+  },
+  "poster_forums": {
+    "title": "",
+    "page": "FORUMS",
+    "poster": true,
+    "header": true,
+    "source": "IMG_3316.jpeg",
+    "options": {
+      "1": "Aviation Forums",
+      "2": "Education Forums",
+      "3": "Science/Technology",
+      "4": "Entertainment/Games Forums",
+      "5": "Financial Forums",
+      "6": "Hardware Forums",
+      "7": "Media/Electronic Publishing",
+      "8": "Home/Health/Family Forums",
+      "9": "Professional Forums",
+      "10": "Software Forums",
+      "11": "Sports Forums",
+      "12": "Travel Forums"
+    },
+    "targets": {
+      "3": "poster_science",
+      "6": "poster_hardware",
+      "10": "poster_software"
+    },
+    "related_targets": {
+      "4": "gamers"
+    }
+  },
+  "poster_subscribers": {
+    "title": "SUBSCRIBER DIRECTORY",
+    "page": "",
+    "poster": true,
+    "header": false,
+    "source": "IMG_3317.jpeg",
+    "options": {
+      "1": "Explanation",
+      "2": "Search by Category",
+      "3": "Add/Modify Your Information",
+      "4": "Delete Your Current Info"
+    },
+    "targets": {}
+  },
+  "poster_bulletin": {
+    "title": "NATIONAL BULLETIN BOARD",
+    "page": "",
+    "poster": true,
+    "header": false,
+    "source": "IMG_3317.jpeg",
+    "options": {},
+    "targets": {},
+    "intro": [
+      "The information appearing in this",
+      "bulletin board is provided by",
+      "persons who are not affiliated with",
+      "CompuServe. Persons using such",
+      "information do so at their own risk.",
+      "Any person who elects to provide",
+      "information agrees by doing so to",
+      "indemnify and hold CompuServe",
+      "harmless from all claims with",
+      "respect to the information provided.",
+      "CompuServe reserves the right to",
+      "remove any information."
+    ],
+    "prompt": "Press <CR> !",
+    "continue_on_enter": true
+  },
+  "poster_feedback": {
+    "title": "",
+    "page": "",
+    "poster": true,
+    "header": false,
+    "source": "IMG_3318.jpeg",
+    "options": {},
+    "targets": {},
+    "intro": [
+      "Welcome to FEEDBACK! We",
+      "appreciate any comments, ideas,",
+      "problems or suggestions you send",
+      "along to us. Your connect time is",
+      "credited while you are in",
+      "FEEDBACK, although you will be",
+      "charged for communication",
+      "surcharges. You'll be told upon",
+      "exiting FEEDBACK when connect",
+      "charges resume. The Customer",
+      "Service Representative will answer",
+      "via EasyPlex Electronic Mail as",
+      "quickly as possible."
+    ],
+    "prompt": "Press <CR> for more !",
+    "continue_on_enter": true,
+    "label": "Feedback"
   }
 }

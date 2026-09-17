@@ -35,7 +35,7 @@ def authenticate(app, user_id):
         if not set_password(app, profile):
             app.profiles.pop(user_id, None)
             return False
-        app.cis_dynamic.schedule_event(app, "mail", {"to": user_id, "from": "COMPUSERVE", "subject": "WELCOME TO COMPUSERVE", "body": "Welcome to the CompuServe Information Service. Enter GO COMMAND for commands, GO NEW for current activity, or choose User Information option 10 for a guided first-call tour. Your Calendar, Notebook, Download Center, achievements, travel arrangements, catalog orders, and fictional portfolio remain available on later calls."})
+        app.cis_dynamic.schedule_event(app, "mail", {"to": user_id, "from": "COMPUSERVE", "subject": "WELCOME TO COMPUSERVE", "body": "Welcome to the CompuServe Information Service. Enter GO COMMAND for commands, GO NEW for current activity, or enter GO HELP, choose 1 Tour/Find a Topic, then 1 Tour for a guided first-call tour. Your Calendar, Notebook, Download Center, achievements, travel arrangements, catalog orders, and fictional portfolio remain available on later calls."})
         return True
     if profile.get("disabled"):
         app.ansi_scroll("Account disabled. Contact the SysOp.", 0.01)

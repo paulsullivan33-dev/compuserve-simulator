@@ -10,8 +10,8 @@ import cis_dynamic
 
 CATALOG_PATH = Path(__file__).resolve().with_name("store_catalog.json")
 CATALOG = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
-if len(CATALOG) != 36 or len({item["sku"] for item in CATALOG}) != 36:
-    raise RuntimeError("Comp-U-Store catalog must contain 36 unique items.")
+if not CATALOG or len({item["sku"] for item in CATALOG}) != len(CATALOG):
+    raise RuntimeError("Comp-U-Store catalog must contain unique item numbers.")
 
 COMPATIBILITY = {
     "IBM PC/XT": {1101, 1102, 1103, 1201, 1202, 1204, 1301, 1303, 1304, 1401, 1402, 1403, 1404, 1501, 1502, 1503, 1504, 1505, 1506, 1601, 1602, 1603, 1701, 1702, 1703, 1704, 1801, 1802, 1803, 1804, 1805, 1806},
@@ -20,6 +20,22 @@ COMPATIBILITY = {
     "COMMODORE 64": {1101, 1102, 1104, 1202, 1301, 1303, 1304, 1401, 1403, 1404, 1601, 1602, 1703},
     "TRS-80 MODEL I/III": {1101, 1102, 1104, 1202, 1204, 1301, 1303, 1304, 1401, 1403, 1404, 1601, 1602, 1703},
 }
+# New bundle families use explicit accessory lists, not PC hardware assumptions.
+COMPATIBILITY['COMMODORE 64'] = {1301, 1303, 1703}
+COMPATIBILITY['MACINTOSH PLUS'] = {1101, 1102, 1203, 1302, 1604, 1703}
+COMPATIBILITY['MACINTOSH SE'] = {1101, 1102, 1203, 1302, 1703}
+COMPATIBILITY['AMIGA 500'] = {1101, 1102, 1302, 1703}
+COMPATIBILITY.update({
+    'APPLE IIE': {1101, 1102, 1301, 1703},
+    'APPLE IIGS': {1101, 1102, 1301, 1302, 1703},
+    'ATARI 1040ST': {1101, 1102, 1302, 1703, 2113},
+    'TANDY 1000 HX': {1101, 1102, 1302, 1703},
+    'TANDY 102': {1703},
+})
+for _product in CATALOG:
+    for _system in _product.get('systems', []) + ([_product['system']] if 'system' in _product else []):
+        COMPATIBILITY.setdefault(_system, set()).add(_product['sku'])
+
 REVIEWS = {
     1101: ("ModemMan", "Reliable on noisy evening calls; the front-panel lamps make diagnosis much easier."),
     1102: ("PacketPete", "Fast enough to make a long library transfer practical, provided the serial port is configured properly."),
@@ -58,12 +74,20 @@ def effective_price(product):
 
 def compatible_products(system):
     normalized = system.strip().upper()
+    if not normalized:
+        return None, []
+    product = find_product(normalized)
+    if product and product.get('system'):
+        normalized = product['system']
     key = next((name for name in COMPATIBILITY if name == normalized or normalized in name), None)
     return (key, [item for item in CATALOG if item["sku"] in COMPATIBILITY[key]]) if key else (None, [])
 
 def product_details(product):
     price = effective_price(product)
     lines = [product["name"], product["description"], "", f'CATALOG PRICE ${product["price"]:.2f}']
+    if product.get('configuration'):
+        lines.extend(['', 'INCLUDED CONFIGURATION', *['  ' + part for part in product['configuration']],
+                      '', 'Use K and this computer item number to browse compatible products.'])
     if price != product["price"]:
         lines.append(f'DECEMBER SPECIAL ${price:.2f}')
     lines.extend([f'SHIPPING     ${product["shipping"]:.2f}', f'AVAILABILITY {stock_status(product["sku"])}', f'CATEGORY     {product["category"]}'])

@@ -1,7 +1,7 @@
 """Library file transfer persistence helpers."""
 
-import shutil
 import cis_communities
+import cis_hardware
 from cis_web_files import offer_download
 from pathlib import Path
 
@@ -76,25 +76,45 @@ executable software.
 }
 
 
-def materialize_download(app, file, protocol):
-    download_dir = app.BASE_DIR / "downloads"
-    download_dir.mkdir(exist_ok=True)
-    destination = download_dir / Path(file["name"]).name
+def download_bytes(app, file):
+    """Prepare the exact payload before enforcing capacity and transfer time."""
     stored_path = file.get("stored_path")
     community_content = cis_communities.download_content(file)
-    if stored_path and (app.BASE_DIR / stored_path).exists():
-        shutil.copy2(app.BASE_DIR / stored_path, destination)
-    elif community_content is not None:
-        destination.write_bytes(community_content.encode('ascii'))
-        file['bytes'] = destination.stat().st_size
-    elif file["name"] in GENERATED_DOCUMENTS:
-        destination.write_text(GENERATED_DOCUMENTS[file["name"]], encoding="ascii", errors="replace")
-        file["bytes"] = destination.stat().st_size
-    else:
-        heading = (f'CompuServe IBMHW Library File #{file["number"]}\r\n{file["name"]}\r\n{file["description"]}\r\n').encode("ascii", errors="replace")
-        destination.write_bytes((heading + b"\x1a" * file["bytes"])[:file["bytes"]])
+    if stored_path:
+        source = (app.BASE_DIR / stored_path).resolve()
+        if not source.is_relative_to(app.BASE_DIR.resolve()):
+            raise ValueError('Stored library file is outside the data directory.')
+        if source.exists():
+            return source.read_bytes()
+    if community_content is not None:
+        return community_content.encode('ascii')
+    if file["name"] in GENERATED_DOCUMENTS:
+        return GENERATED_DOCUMENTS[file["name"]].encode('ascii', errors='replace')
+    if 'text_content' in file:
+        return file['text_content'].encode('utf-8')
+    heading = (f'CompuServe Library File #{file.get("number", "")}\r\n{file["name"]}\r\n{file["description"]}\r\n').encode('ascii', errors='replace')
+    return (heading + b'\x1a' * file['bytes'])[:file['bytes']]
+
+
+def materialize_download(app, file, protocol):
+    payload = download_bytes(app, file)
+    download_dir = app.BASE_DIR / 'downloads'
+    download_dir.mkdir(exist_ok=True)
+    destination = download_dir / Path(file['name']).name
+    plan = cis_hardware.record_download(app, file, len(payload), protocol,
+                                        writer=lambda: destination.write_bytes(payload))
+    if plan.get('error'):
+        raise ValueError(plan['error'])
+    file['bytes'] = len(payload)
     file["downloads"] += 1
-    app.save_json_atomic("library_files.json", app.library_files)
+    if file.get('public_id'):
+        def update(data):
+            for record in data.get('communications', {}).get('public_files', []):
+                if record['public_id'] == file['public_id']:
+                    record['downloads'] += 1
+        app.update_json_atomic('dynamic_state.json', {}, update)
+    else:
+        app.save_json_atomic("library_files.json", app.library_files)
     if getattr(app, "current_user_id", None):
         app.cis_dynamic.record_activity(app, app.current_user_id, "LIBRARY", f'Downloaded {file["name"]} using {protocol}.', {"number": file["number"], "protocol": protocol})
     offer_download(destination)

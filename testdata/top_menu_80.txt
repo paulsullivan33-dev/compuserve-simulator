@@ -1,15 +1,14 @@
-CompuServe|CIS-1
-CompuServe Information Service
-------------------------------
-1  Electronic Mail
-2  Forums
-3  CB Simulator
-4  News Services
-5  Business & Financial
-6  Travel Services
-7  Reference Data Bases
-8  Comp-U-Store & Classifieds
-9  Games and Entertainment
-10  User Information
+CompuServe|TOP
 
-M  Return to previous menu
+ 1  Instructions/User Information
+ 2  Find a Topic
+ 3  Communications/Bulletin Bds.
+ 4  News/Weather/Sports
+ 5  Travel
+ 6  The Electronic MALL/Shopping
+ 7  Money Matters/Markets
+ 8  Entertainment/Games
+ 9  Home/Health/Family
+10  Reference/Education
+11  Computers/Technology
+12  Business/Other Interests
