@@ -1,5 +1,6 @@
 import io
 from contextlib import ExitStack
+from datetime import datetime, timedelta
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +38,39 @@ class ExpansionTests(unittest.TestCase):
         for sku in (2010, 2011, 2012, 2013, 2014):
             self.assertTrue(cis_store.find_product(sku)['configuration'])
             self.assertTrue(any(p['category'] == 'COMPUTER ACCESSORIES' for p in cis_store.compatible_products(str(sku))[1]))
+
+    def test_purchase_delivery_setup_and_download_journey(self):
+        day = datetime(1988, 12, 15, 12)
+        with patch.object(app.cis_dynamic, 'simulation_datetime', return_value=day), patch.object(app.cis_dynamic, 'timeline_now', return_value=0):
+            for sku in (2001, 1102, 1201, 2117):
+                cis_store.add_to_cart(app, sku)
+            order = cis_store.checkout(app)
+        self.assertEqual(order['status'], 'RECEIVED')
+        self.assertEqual(cis_ownership.equipment(app), [])
+        with patch.object(app.cis_dynamic, 'simulation_datetime', return_value=day + timedelta(days=11)), patch.object(app.cis_dynamic, 'timeline_now', return_value=11 * 24 * 60):
+            app.cis_dynamic.process_events(app)
+            app.cis_dynamic.process_events(app)
+        self.assertEqual(app.load_json('orders.json')[0]['status'], 'DELIVERED')
+        owned = {item['sku']: item for item in cis_ownership.equipment(app)}
+        self.assertEqual(len(owned), 4)
+        self.assertTrue(any('DELIVERED' in m['subject'] for m in app.load_json('easyplex.json')))
+        hardware.activate(app, owned[2001]['id'])
+        self.assertIn('not compatible', hardware.attach(app, owned[2117]['id']))
+        for sku in (1102, 1201):
+            self.assertIn('Attached', hardware.attach(app, owned[sku]['id']))
+        self.assertEqual(app.connection_baud, 2400)
+        file = dict(name='UTILITY.TXT', text_content='DOS utility notes', platforms=['DOS'], number=500, downloads=0)
+        path = cis_library.materialize_download(app, file, 'B')
+        self.assertEqual(path.read_text(), 'DOS utility notes')
+        used = hardware.snapshot(app)['used']
+        for bad, reason in [
+            (dict(file, name='MAC.TXT', platforms=['MAC']), 'does not match'),
+            (dict(file, name='FULL.TXT', text_content='x' * hardware.snapshot(app)['capacity']), 'Disk full'),
+        ]:
+            with self.assertRaisesRegex(ValueError, reason):
+                cis_library.materialize_download(app, bad, 'B')
+            self.assertFalse((app.BASE_DIR / 'downloads' / bad['name']).exists())
+            self.assertEqual(hardware.snapshot(app)['used'], used)
 
     def test_active_machine_persists_and_is_member_scoped(self):
         assets = self.deliver(2014)
