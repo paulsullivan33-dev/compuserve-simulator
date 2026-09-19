@@ -1,5 +1,5 @@
 {
-  "id": "computer-communities-1988-v4",
+  "id": "computer-communities-1988-v5",
   "provenance": "Original fictional conversations, reviews, and files created for this simulation; not recovered CompuServe archives.",
   "forums": {
     "commodore": {
@@ -70,6 +70,10 @@
         "3": [
           "dos_projects",
           "Utilities and Projects"
+        ],
+        "4": [
+          "dos_apps",
+          "Applications Desk"
         ]
       },
       "library": "dos_library"
@@ -2280,6 +2284,177 @@
       "subject": "Shortwave broadcast listening -- winter evenings",
       "body": "New in this forum: a Broadcast Listening section with December 1988 shortwave schedules for the BBC World Service, the Voice of America, and Deutsche Welle, aimed at us here in North America. The BBC evening service booms in on 6175 and 5975 kHz after dark, VOA's English relays to the Caribbean carry fine across the Gulf states, and Deutsche Welle runs English to North America in the wee hours on 49 and 31 meters. Every entry is marked verified or estimated, with sources in the schedule listing -- see menu option 4 on the forum board. What are you hearing on the broadcast bands this week? Post your logs! 73, N5SYS.",
       "parent": null
+    },
+    {
+      "content_id": "community:37:0",
+      "section": "dos_apps",
+      "date": "12/05/88",
+      "author": "DBaseDan",
+      "subject": "dBASE IV: worth the $799 upgrade from III Plus?",
+      "body": "Ashton-Tate finally shipped dBASE IV in October and my dealer is quoting $799 for the full upgrade from III Plus. The new query builder and the improved report writer look great in the ads, but I keep hearing IV needs a full 640K just to breathe and crawls on a plain 286. My whole shop runs III Plus on PC/ATs with 512K and it is paid for. Has anyone here actually installed the production IV and run it day to day? I would love to hear real numbers before I spend shop money.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:1",
+      "section": "dos_apps",
+      "date": "12/07/88",
+      "author": "MacroMaven",
+      "subject": "1-2-3 macro library: auto-run menus with backslash-zero",
+      "body": "I finally got my Lotus 1-2-3 2.01 macros under control by putting all of them in one template sheet and calling them with menu branches. My favorite trick: name the auto-execute macro backslash-zero so it fires the moment the sheet loads, then have it paint a custom menu bar for the user. The @DSUM and @VLOOKUP functions saved me hours on the monthly ledger, and @VLOOKUP against a 2,000-row table is instant on my 386. Happy to upload the macro sheet if anyone wants it. What are your must-have @functions?",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:2",
+      "section": "dos_apps",
+      "date": "12/09/88",
+      "author": "PascalPaul",
+      "subject": "Turbo Pascal 5.0 units are a lifesaver",
+      "body": "After three years of Turbo Pascal 3.0 include files, the unit system in 5.0 feels like a miracle. I broke my BBS door game into five units, one for the serial driver, one for the message base, and so on, and compile time dropped from 90 seconds to about 12. The integrated debugger with watch expressions is worth the upgrade price all by itself. One gotcha: units compiled with 5.0 will NOT link with 4.0 units, so recompile everything from source. If you are still on 3.x, jump straight to 5.0.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:3",
+      "section": "dos_apps",
+      "date": "12/11/88",
+      "author": "CeeHacker",
+      "subject": "Turbo C 2.0 memory models explained (tiny vs huge)",
+      "body": "I have been fighting Turbo C 2.0 memory models on my 640K AT and I think I finally get it. Tiny is fine for small COM toys, small gives you 64K code and 64K data which covers most utilities, and large is what you want when your data blows past 64K. My serial port sniffer kept crashing until I switched to large model and allocated the capture buffer with farmalloc instead of malloc. The integrated debugger caught the near-pointer wrap in about two minutes once I knew to look for it. Hope this saves somebody the weekend I lost.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:4",
+      "section": "dos_apps",
+      "date": "12/13/88",
+      "author": "CadMan88",
+      "subject": "AutoCAD Release 10 on a 386DX-16: first impressions",
+      "body": "Our office just moved from Release 9 on an AT to Release 10 on a 16 MHz 386 with 4 MB and the difference is night and day. REGEN on our big floor plan went from four minutes to under forty seconds, and the new extended entity data actually survives a round trip through DXF now. The 386 protected-mode version needs extended memory management and it does NOT like TSRs hanging around, so boot clean. Word of warning: Release 10 wants a math coprocessor for the 3D stuff, so budget for the 387. Still, if you draft for a living, this is the upgrade.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:5",
+      "section": "dos_apps",
+      "date": "12/15/88",
+      "author": "DosDude",
+      "subject": "DR DOS 3.41 vs MS-DOS 4.01: my two-week shootout",
+      "body": "I have been dual-booting DR DOS 3.41 and MS-DOS 4.01 on my 286 for two weeks and DR wins on my desk. DR leaves me noticeably more free RAM than DOS 4.01 with the same drivers loaded, and 4.01 feels clumsy next to DR's clean handling of large partitions. The dealbreaker for DOS 4.01: it ate two of my WordPerfect temp files during a shell-out, something DR never did once. Your mileage may vary, but Digital Research has the better DOS right now in my opinion.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:6",
+      "section": "dos_apps",
+      "date": "12/03/88",
+      "author": "WinWatcher",
+      "subject": "Windows/286 2.1: actually usable, with caveats",
+      "body": "Against my better judgment I installed Windows/286 2.1 on my 12 MHz AT with 2 MB of RAM and I am shocked at how usable it is. PageMaker and Excel both run fine, and switching between them beats rebooting off floppies any day. The catch: you really want the full 2 MB, and EGA at 640x350 is readable but VGA is much kinder on the eyes. Printer setup through the Control Panel took me an hour the first time but now it just works. Anybody running the 386 version with real expanded memory?",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:7",
+      "section": "dos_apps",
+      "date": "12/17/88",
+      "author": "TypeSetter",
+      "subject": "WordPerfect 5.0: which printer driver for the LaserJet II?",
+      "body": "WordPerfect 5.0 printer support is a maze and I need a sanity check before I buy. My office is getting an HP LaserJet Series II and I am torn between the standard HPLASER driver and the downloadable soft-font setup everyone in the magazine reviews raves about. The driver disk that ships with 5.0 covers the Series II at 300 dpi, but the reviews say the extra font packs are what make memos look typeset. For those of you printing on the Series II daily: did the extra font disks pay for themselves? I am also curious about the Epson LQ driver for my home dot-matrix.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:8",
+      "section": "dos_apps",
+      "date": "12/19/88",
+      "author": "MultiTasker",
+      "subject": "DESQview 2.2: BBS plus spreadsheet plus comms at once",
+      "body": "Quarterdeck DESQview 2.2 has completely changed how I use my 386. I keep my BBS running in one window, Lotus 1-2-3 in a second, and my terminal program dialed into CompuServe in a third, all at once on one machine. The trick was giving the BBS 384K, Lotus 256K, and leaving the rest for DOS and the comm program, with EMS 4.0 handling the juggling. My SysOp duties used to need two machines; now one 386 with DESQview does it all. If you multitask under DOS, this is the money that actually delivers.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:9",
+      "section": "dos_apps",
+      "date": "12/21/88",
+      "author": "ShopOwnerSam",
+      "subject": "Re: dBASE IV: worth the $799 upgrade from III Plus?",
+      "body": "I run a 12-person machine shop and we faced the same call last month, Dan. We stayed on dBASE III Plus because every one of our custom order-entry screens would need retesting under IV, and III Plus on our ATs is paid for and rock solid. That said, if you are starting fresh with no legacy code, IV's query tools and the applications generator are genuinely easier for non-programmers. My rule of thumb: upgrade for new projects, leave working systems alone. Also keep an eye on FoxBASE Plus if raw speed matters more than the Ashton-Tate name.",
+      "parent": "community:37:0"
+    },
+    {
+      "content_id": "community:37:10",
+      "section": "dos_projects",
+      "date": "12/06/88",
+      "author": "KayproKid",
+      "subject": "Moving Kaypro II files to my PC over serial",
+      "body": "I finally retired my Kaypro II but twenty floppy disks of WordStar documents were not going quietly. The fix was embarrassingly simple: a null-modem cable between the Kaypro serial port and COM1 on my PC/XT, both ends set to 9600 baud. On the Kaypro I ran MODEM7 with the XMODEM protocol, and on the PC side my terminal program received everything cleanly with no errors across all twenty disks. Total cost was one twelve-dollar cable from Radio Shack. For anyone else with CP/M disks gathering dust: XMODEM over a null modem still works perfectly in 1988.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:11",
+      "section": "dos_projects",
+      "date": "12/14/88",
+      "author": "EightBitFan",
+      "subject": "CP/M: still the best OS for getting work done?",
+      "body": "Call me a dinosaur, but my Osborne 1 still boots faster and crashes less than my boss's brand-new PS/2. CP/M 2.2 with WordStar 3.3 and SuperCalc does everything my consulting invoices need, on hardware I bought back in 1982. I know MS-DOS won the war and my next machine will be a PC clone, but there is something pure about an OS that fits in a tiny footprint. Any other CP/M holdouts still dialing in from real 8-bit iron? I would love to swap notes on keeping these machines alive.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:12",
+      "section": "tech_os",
+      "date": "12/10/88",
+      "author": "CoCoNutz",
+      "subject": "OS-9 Level II on the CoCo 3: real multitasking?",
+      "body": "I took the plunge on OS-9 Level II for my 512K CoCo 3 and I am stunned at how much real operating system you get for the money. True multitasking, a hierarchical directory structure, and windows that actually overlap, all on a 6809 processor. I have a terminal window open to my BBS, an editor in another window, and a compile running in the background, all at once. The learning curve is steep if all you know is Color BASIC, but the manual is excellent. Any other OS-9 users want to trade C compiler tips?",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:13",
+      "section": "tech_os",
+      "date": "12/18/88",
+      "author": "OsDebater",
+      "subject": "CP/M vs MS-DOS: did we pick the wrong winner?",
+      "body": "I have been running CP/M-86 and MS-DOS 3.3 side by side on my AT this month and the comparison is closer than the magazines admit. CP/M's PIP and STAT are crude next to DOS copy and disk-check tools, but CP/M's system-call interface is cleaner than DOS interrupt 21h and always has been. What killed CP/M was not technology, it was IBM's pricing: steep money for CP/M-86 versus pocket change for DOS on the original PC, and Digital Research never recovered. Gary Kildall deserved better than to be a footnote. Fight me: was DOS really the better OS, or just the cheaper one with IBM's logo?",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:14",
+      "section": "tech_pc",
+      "date": "12/12/88",
+      "author": "StackSlinger",
+      "subject": "Anyone still writing Forth in 1988?",
+      "body": "I picked up a public-domain Forth for my PC last month on a dare and I have not been this excited about a language since my first BASIC program. The whole thing is a stack, a dictionary, and raw attitude: define a word, compile it, run it, all interactively. I wrote a serial-port data logger in about 60 lines that would have taken 300 in Turbo C. The downside is that nobody else can read my code, including me three days later. Is there any Forth community left out there, or am I the last stack jockey on CompuServe?",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:15",
+      "section": "tech_pc",
+      "date": "12/22/88",
+      "author": "CLanguageCarl",
+      "subject": "Re: Turbo Pascal 5.0 units are a lifesaver",
+      "body": "No argument that 5.0's units and debugger are sweet, but you are hitting the ceiling Pascal was designed with. I ported my BBS door from Turbo Pascal to Turbo C 2.0 last summer and the pointer arithmetic alone let me cut the message-base code nearly in half. C gives you the machine: inline assembly, direct port input and output, and no nanny telling you your data structures are unsafe. Pascal teaches you discipline; C lets you ship. If your project is growing past a few units, try rewriting one module in C and see which one you reach for next.",
+      "parent": "community:37:2"
+    },
+    {
+      "content_id": "community:37:16",
+      "section": "appleii_projects",
+      "date": "12/04/88",
+      "author": "OrchardOwner",
+      "subject": "AppleWorks 2.0 database: tracking my orchard inventory",
+      "body": "I finally moved my apple orchard records off index cards and into the AppleWorks 2.0 database module on my IIe. Twelve categories and 400 rows of trees with variety, planting year, and yield, all sortable and printable after about ten minutes of setup. The category limit sounded small until I realized I only needed twelve. Printing the harvest report to my ImageWriter took one menu command. For a IIe owner who thought databases were mainframe magic, this is the killer app of the year.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:17",
+      "section": "appleii_basic",
+      "date": "12/16/88",
+      "author": "BasicBen",
+      "subject": "Applesoft speed tricks: integer variables and cursor moves",
+      "body": "My Applesoft arcade game was crawling at 3 frames per second until I learned two tricks from a magazine. First: use integer variables with the percent suffix for all your loop counters, because Applesoft does floating-point math by default and it is far slower than integer math. Second: build your score display with cursor positioning calls instead of reprinting the whole screen. My frame rate jumped to a playable 12 fps on a stock IIe with no accelerator. The third trick is free: REM statements cost parse time, so strip them before you share the program.",
+      "parent": null
+    },
+    {
+      "content_id": "community:37:18",
+      "section": "appleii_disks",
+      "date": "12/20/88",
+      "author": "DiskDriveDiva",
+      "subject": "Adding a 3.5 inch drive to my IIc: worth it?",
+      "body": "My IIc's 5.25 drive is full and I am eyeing a 3.5 inch drive for Christmas. Eight hundred K on one disk versus 143K means my AppleWorks files finally fit without disk-swapping gymnastics. The catch I keep reading about: the IIc needs a newer ROM for full 3.5 support, and mine has the original ROM. Has anyone done the ROM upgrade, or should I just daisy-chain a second 5.25 drive for half the money? Advice from anyone who has lived with the 3.5 on a IIc would be much appreciated.",
+      "parent": null
     }
   ],
   "files": [
@@ -2738,6 +2913,86 @@
       ],
       "reviews": [],
       "content": "TV GUIDE, DECEMBER 1988\n=======================\n\nFall season winners and losers -- who survived the ratings.\n\nFiled under TV Guide -- December 1988.\n"
+    },
+    {
+      "content_id": "community-file:DBASE-TIPS.TXT",
+      "library": "dos_library",
+      "name": "DBASE-TIPS.TXT",
+      "description": "dBASE III Plus and dBASE IV tips: indexing, speed, backups, reports.",
+      "date": "12/08/88",
+      "version": "1.0",
+      "system": "MS-DOS 3.3, dBASE III Plus / dBASE IV",
+      "instructions": "Download and read with any text viewer, or TYPE the file at the DOS prompt.",
+      "history": [
+        "1.0: Initial release."
+      ],
+      "reviews": [
+        {
+          "author": "DBaseDan",
+          "text": "The REINDEX reminder alone saved my customer file."
+        }
+      ],
+      "content": "dBASE TIPS AND TRICKS\nCompiled from the Applications Desk forum, December 1988\nApplies to dBASE III Plus 1.1 and dBASE IV 1.0\n\n1. INDEXING\n   - Always INDEX ON last+first TO nameidx before SEEKing on\n     compound keys. A SEEK on an unindexed field does a slow\n     sequential scan.\n   - Rebuild indexes monthly with REINDEX. Deleted records\n     leave dead space that REINDEX reclaims.\n\n2. SPEED\n   - SET TALK OFF at the top of every program. Screen chatter\n     is the number one cause of slow batch jobs.\n   - Use SCAN...ENDSCAN instead of DO WHILE .NOT. EOF() loops.\n     It is faster and harder to get wrong.\n   - Memo fields are slow. Keep them out of browsed tables.\n\n3. BACKUPS\n   - COPY TO backup.dbf before any PACK or ZAP. There is no\n     undo for ZAP.\n   - Keep one generation of .DBF, .DBT, and .NDX files on a\n     separate floppy every Friday.\n\n4. dBASE IV NOTES\n   - IV needs 640K and prefers a hard disk. Do not try to run\n     it from two floppies; you will regret it.\n   - The query builder writes real .PRG code you can study.\n     Generate a query, then read the code it made.\n   - III Plus programs mostly run under IV, but retest any\n     code that uses undocumented tricks.\n\n5. REPORTS\n   - Build reports with the report form designer, then tweak\n     the form by hand for fine control of page breaks.\n   - Eject to a fresh page before printing labels so the\n     first label lands where it should.\n"
+    },
+    {
+      "content_id": "community-file:LOTUS123.TXT",
+      "library": "dos_library",
+      "name": "LOTUS123.TXT",
+      "description": "Lotus 1-2-3 Release 2.x macro, @function, and printing tips.",
+      "date": "12/11/88",
+      "version": "1.0",
+      "system": "MS-DOS 3.3, Lotus 1-2-3 Release 2.x",
+      "instructions": "Read online or download; keep beside your keyboard while building sheets.",
+      "history": [
+        "1.0: Initial release."
+      ],
+      "reviews": [
+        {
+          "author": "MacroMaven",
+          "text": "The backslash-zero auto-run trick is worth the download alone."
+        }
+      ],
+      "content": "LOTUS 1-2-3 RELEASE 2.x TIPS\nFrom the Applications Desk forum, December 1988\n\nMACROS\n- Store macros in a range named \\A through \\Z. Pressing\n  ALT plus the letter runs the macro instantly.\n- Name a macro \\0 (backslash zero) to auto-run it when the\n  worksheet loads. Great for painting custom menus.\n- Use {MENUBRANCH menu-name} to build your own menu bar.\n  Users never have to learn slash commands.\n- {GETLABEL \"Prompt:\",location} pauses a macro for input.\n  Always follow it with error checking.\n- Step through a macro with STEP mode (ALT-F2) when it\n  misbehaves. You will find the bad line in minutes.\n\n@FUNCTIONS WORTH MEMORIZING\n- @SUM, @AVG, @MIN, @MAX: the bread and butter of ranges.\n- @VLOOKUP(key,table-range,col): instant lookups in big\n  tables. Faster than nested @IF chains.\n- @DSUM(database,field,criteria): database math without\n  leaving the sheet.\n- @PMT(principal,rate,terms): loan payments in one cell.\n- @DATE(88,12,25), @NOW, @TODAY: date math that works\n  across year boundaries.\n- @IF(test,true,false): nest up to 7 deep in Release 2.01.\n  Keep them readable or you will regret it.\n\nKEYBOARD SHORTCUTS\n- F1: Help. F2: Edit cell. F3: Point to named ranges.\n- F5: GOTO a cell or named range. F9: Recalculate now.\n- F10: Draw a graph from highlighted data.\n- ALT-F4: Undo your last disaster. Use it often.\n\nPRINTING\n- Set print ranges before you set margins, or the margins\n  will surprise you.\n- Printer setup strings let you send raw escape codes to\n  your printer for condensed type.\n"
+    },
+    {
+      "content_id": "community-file:TURBOC.TXT",
+      "library": "dos_library",
+      "name": "TURBOC.TXT",
+      "description": "Turbo C 2.0 memory models, far pointers, debugger, and compiler switches.",
+      "date": "12/15/88",
+      "version": "1.0",
+      "system": "MS-DOS 3.3, Turbo C 2.0",
+      "instructions": "Read alongside the Turbo C manual; the memory model table is the core of it.",
+      "history": [
+        "1.0: Initial release."
+      ],
+      "reviews": [
+        {
+          "author": "CeeHacker",
+          "text": "Finally, a plain-English explanation of the huge model."
+        }
+      ],
+      "content": "TURBO C 2.0 SURVIVAL GUIDE\nFrom the Applications Desk forum, December 1988\n\nMEMORY MODELS\n- tiny: COM programs, everything in one 64K segment.\n- small: 64K code + 64K data. The default. Fine for most\n  utilities and games.\n- medium: big code, small data. Good for large programs\n  with modest data needs.\n- compact: small code, big data. Data pointers are far.\n- large: big code, big data. Use for anything serious.\n- huge: like large, but single data items may exceed 64K.\n- Rule of thumb: start with small, move to large when the\n  linker complains or malloc starts failing.\n\nFAR POINTERS\n- In large model, malloc still returns near pointers for\n  small blocks. Use farmalloc and farfree for buffers\n  over 64K.\n- Mixing near and far pointers is the number one crash\n  cause. The debugger data inspector shows which is which.\n\nDEBUGGER TIPS\n- Set watches on suspect variables and single-step with\n  the trace-into and step-over keys.\n- Enable null-pointer checking in the debugger options.\n  It catches wild writes fast.\n- Keep a link map file around for post-mortem debugging.\n\nCOMPILER SWITCHES\n- -O: optimize for speed. Disable optimization when\n  debugging, since optimizers hide bugs.\n- -w: show all warnings. Fix every warning before you\n  ship. Warnings are bugs wearing a disguise.\n- -N: stack checking. Leave it on until the code is\n  proven, then turn it off for speed.\n\nSERIAL PORT I/O\n- Use bioscom or direct port input/output on the COM1\n  and COM2 base addresses.\n- Always check the line-status register before reading.\n  Polling a dead port hangs the machine.\n"
+    },
+    {
+      "content_id": "community-file:ACAD-KEYS.TXT",
+      "library": "dos_library",
+      "name": "ACAD-KEYS.TXT",
+      "description": "AutoCAD Release 10 command and function-key quick reference.",
+      "date": "12/19/88",
+      "version": "1.0",
+      "system": "MS-DOS 3.3, AutoCAD Release 10",
+      "instructions": "Print on your dot-matrix printer and tape it to the monitor.",
+      "history": [
+        "1.0: Initial release."
+      ],
+      "reviews": [
+        {
+          "author": "CadMan88",
+          "text": "The CTRL-C cancel tip paid for itself the first day."
+        }
+      ],
+      "content": "AUTOCAD RELEASE 10 KEYBOARD REFERENCE\nFrom the Applications Desk forum, December 1988\n\nDRAWING COMMANDS\n- LINE: draw line segments. Enter coordinates or pick\n  points. C closes back to the start point.\n- CIRCLE: center point plus radius, diameter, or 2/3\n  point methods.\n- ARC: eleven ways to draw an arc. Start, Center, End is\n  the one to learn first.\n- PLINE: polyline with width. Essential for borders and\n  filled shapes.\n- TEXT and DTEXT: DTEXT shows each line as you type it.\n- INSERT: place a block. Use an asterisk to explode on\n  insertion.\n\nEDITING COMMANDS\n- ERASE, COPY, MOVE, ROTATE, SCALE: the big five.\n- TRIM and EXTEND: clean up intersections fast.\n- FILLET and CHAMFER: round or bevel corners.\n- ARRAY: rectangular or polar copies in one command.\n- MIRROR: mirror entities across a centerline. Check the\n  text-mirror setting so labels stay readable.\n- STRETCH: move vertices with a crossing window select.\n\nDISPLAY CONTROL\n- ZOOM E: extents. ZOOM W: window. ZOOM P: previous.\n- PAN: slide the view without changing zoom.\n- REDRAW: clean the screen. REGEN: rebuild from the\n  database. Slower, but fixes display glitches.\n- CTRL-C: cancel any command instantly. Memorize this.\n\nFUNCTION KEYS (Release 10 defaults)\n- F1: flip to the text screen and back.\n- F6: coordinate display toggle.\n- F7: grid on/off. F8: ortho on/off.\n- F9: snap on/off. F10: tablet on/off.\n\nHARDWARE NOTES\n- Release 10 loves a 386 with a math coprocessor. The\n  protected-mode version needs extended memory and a\n  clean boot with no TSRs.\n- A digitizing tablet beats a mouse for serious tracing.\n  Configure it with the TABLET command.\n"
     }
   ]
 }

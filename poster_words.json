@@ -31,162 +31,189 @@
     "label": "Computer Club Forum",
     "word": "CLUB",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "tech"
   },
   {
     "label": "DEC Users Network",
     "word": "DECUNET",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "tech"
   },
   {
     "label": "Epson Forum",
     "word": "EPSON",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "tech"
   },
   {
     "label": "Kaypro Forum",
     "word": "KAYPRO",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "tech"
   },
   {
     "label": "OMNI OnLine",
     "word": "OMNI",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "science"
   },
   {
     "label": "OS9 Operating System Forum",
     "word": "OS9",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "tech"
   },
   {
     "label": "Tandy Users Network",
     "word": "TANDYNET",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "tech"
   },
   {
     "label": "Texas Instruments Forum",
     "word": "TIFORUM",
     "group": "hardware",
-    "source": "IMG_3287.jpeg"
+    "source": "IMG_3287.jpeg",
+    "target": "tech"
   },
   {
     "label": "Ashton-Tate Forum",
     "word": "ASHTON",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "dos"
   },
   {
     "label": "Autodesk Forum",
     "word": "ADESK",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "dos"
   },
   {
     "label": "Borland International Forum",
     "word": "BORLAND",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "dos"
   },
   {
     "label": "Computer Art",
     "word": "ARTSIG",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "Computer Consultants Forum",
     "word": "CONSULT",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "CP/M User Group",
     "word": "CPMSIG",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "dos"
   },
   {
     "label": "Digital Research Forum",
     "word": "DRFORUM",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "dos"
   },
   {
     "label": "Forth Forum",
     "word": "FORTH",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "LOGO Forum",
     "word": "LOGOFORUM",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "LOTUS Forum",
     "word": "LOTUS",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "dos"
   },
   {
     "label": "Microsoft Forum",
     "word": "MSOFT",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "dos"
   },
   {
     "label": "Pascal Forum",
     "word": "MUSUS",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "Programmers Forum",
     "word": "PROGSIG",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "Software Publishing Forum",
     "word": "SPCFORUM",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "Whole Earth Software Forum",
     "word": "WHOLEEARTH",
     "group": "software",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "tech"
   },
   {
     "label": "AI Expert Magazine",
     "word": "AIE",
     "group": "publications",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "magazine"
   },
   {
     "label": "ANTIC ONLINE",
     "word": "ANTIC",
     "group": "publications",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "magazine"
   },
   {
     "label": "Apples Online",
     "word": "AOL",
     "group": "publications",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "appleii"
   },
   {
     "label": "COMPUTER LANGUAGE Magazine",
     "word": "CLM",
     "group": "publications",
-    "source": "IMG_3288.jpeg"
+    "source": "IMG_3288.jpeg",
+    "target": "magazine"
   }
 ]

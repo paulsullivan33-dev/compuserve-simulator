@@ -239,17 +239,28 @@ class ComputerCommunityTests(unittest.TestCase):
             files = cis_storage.load_json(directory, 'library_files.json')
             self.assertEqual(forums['member_section'], original['member_section'])
             self.assertEqual(files['member_library'][0]['downloads'], 37)
-            seeded_files = {}
-            for entry in cis_books.seed_files():
-                seeded_files[entry['library']] = seeded_files.get(entry['library'], 0) + 1
+            # Expectations derive from the pack itself so the pack can grow.
+            pack_sections = {}
+            for message in cis_communities.PACK['messages']:
+                pack_sections.setdefault(message['section'], []).append(message)
             for forum in cis_communities.FORUMS.values():
                 for section, _ in forum['sections'].values():
                     messages = forums[section]
-                    self.assertEqual(len(messages), 3)
-                    self.assertTrue(all(m['parent_id'] == messages[0]['id'] for m in messages[1:]))
-                    self.assertGreater(messages[0]['id'], 900000)
-                self.assertEqual(len(files[forum['library']]),
-                                 4 + seeded_files.get(forum['library'], 0))
+                    expected = pack_sections[section]
+                    self.assertEqual(len(messages), len(expected))
+                    installed_ids = {m['content_id']: m['id'] for m in messages}
+                    for message, source in zip(messages, expected):
+                        self.assertEqual(message['content_id'], source['content_id'])
+                        self.assertGreater(message['id'], 900000)
+                        if source['parent'] is None:
+                            self.assertIsNone(message['parent_id'])
+                        else:
+                            self.assertEqual(message['parent_id'],
+                                             installed_ids[source['parent']])
+                lib = forum['library']
+                expected_files = [f for f in cis_communities.PACK['files']
+                                  if f['library'] == lib]
+                self.assertEqual(len(files[lib]), len(expected_files))
             # Deleted seeded posts stay deleted after installation; counts survive.
             forums['dos_basic'].pop()
             files['dos_library'][0]['downloads'] = 12
@@ -1287,7 +1298,7 @@ class NavigationTests(unittest.TestCase):
         self.assertIn('poster_topics', visited)
         self.assertEqual(visited[-1], 'main')
 
-    def test_quick_search_opens_related_forum_and_marks_unimplemented_words(self):
+    def test_quick_search_opens_related_forum_for_wired_words(self):
         import cis_poster
         with patch.object(compuserve, 'clear'), patch.object(compuserve, 'header_bar'), \
              patch.object(compuserve, 'ansi_scroll'), patch.object(compuserve, 'text_page') as page, \
@@ -1296,9 +1307,11 @@ class NavigationTests(unittest.TestCase):
             cis_poster.directory(compuserve, ['main'])
         forum.assert_called_once_with('commodore')
         self.assertIn('Opening a related existing simulation:', page.call_args.args[2])
-        with patch.object(compuserve, 'text_page') as page:
+        with patch.object(compuserve, 'text_page') as page, \
+             patch.object(compuserve, 'forum_service') as forum:
             self.assertTrue(compuserve.open_go_destination(compuserve.resolve_go_destination('ASHTON'), ['main']))
-        self.assertIn('This historical service has not yet been recreated.', page.call_args.args[2])
+        forum.assert_called_once_with('dos')
+        self.assertIn('Opening a related existing simulation:', page.call_args.args[2])
 
     def test_quick_directory_pagination_empty_search_and_recovery(self):
         import cis_poster
@@ -1852,6 +1865,97 @@ class NavigationTests(unittest.TestCase):
                 timeout=10,
             )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class ContentPack8Tests(unittest.TestCase):
+    """Pack 8: poster quick words all wired; DOS Applications Desk content."""
+
+    def test_all_poster_words_have_targets(self):
+        words = json.loads((REPO_ROOT / "poster_words.json").read_text(encoding="utf-8"))
+        untargeted = [w["word"] for w in words if not w.get("target")]
+        self.assertEqual(untargeted, [])
+
+    def test_quick_word_targets_are_openable_destinations(self):
+        words = json.loads((REPO_ROOT / "poster_words.json").read_text(encoding="utf-8"))
+        for word in words:
+            target = word["target"]
+            self.assertTrue(
+                target in compuserve.FORUM_CATALOG or target == "magazine",
+                f"GO {word['word']} -> {target}",
+            )
+
+    def test_every_quick_screen_target_resolves_to_a_wired_word(self):
+        words = {
+            w["word"]: w.get("target")
+            for w in json.loads((REPO_ROOT / "poster_words.json").read_text(encoding="utf-8"))
+        }
+        for key, screen in compuserve.screens.items():
+            if not screen.get("poster"):
+                continue
+            for choice, target in screen.get("targets", {}).items():
+                if target.startswith("quick:"):
+                    self.assertIn(target[6:], words, f"{key}[{choice}]")
+                    self.assertTrue(words[target[6:]], f"{key}[{choice}] -> {target}")
+
+    def test_open_word_routes_to_target_forum(self):
+        import cis_poster
+        with patch.object(compuserve, "text_page") as page, \
+             patch.object(compuserve, "forum_service") as forum:
+            self.assertTrue(cis_poster.open_word(compuserve, "BORLAND", ["main"]))
+        forum.assert_called_once_with("dos")
+        self.assertIn("Opening a related existing simulation:", page.call_args.args[2])
+
+    def test_no_poster_choice_or_word_reports_unimplemented(self):
+        import cis_poster
+        for key, screen in compuserve.screens.items():
+            if not screen.get("poster"):
+                continue
+            for choice in screen.get("options", {}):
+                self.assertNotEqual(
+                    cis_poster.selection_status(compuserve, key, choice),
+                    "unimplemented", f"{key}[{choice}]",
+                )
+        for record in cis_poster.records(compuserve):
+            if record["word"]:
+                self.assertNotIn("unimplemented", record["status"], record["word"])
+
+    def test_pack_id_bumped_to_v5(self):
+        self.assertEqual(cis_communities.PACK["id"], "computer-communities-1988-v5")
+
+    def test_dos_forum_has_applications_desk_section(self):
+        self.assertEqual(
+            cis_communities.FORUMS["dos"]["sections"]["4"],
+            ["dos_apps", "Applications Desk"],
+        )
+
+    def test_pack8_messages_wellformed(self):
+        new = [m for m in cis_communities.PACK["messages"]
+               if m["content_id"].startswith("community:37:")]
+        self.assertGreater(len(new), 10)
+        valid_sections = set()
+        for forum in compuserve.FORUM_CATALOG.values():
+            for _, (sec_id, _) in forum["sections"].items():
+                valid_sections.add(sec_id)
+        for message in new:
+            self.assertIn(message["section"], valid_sections, message["content_id"])
+            month, day, year = message["date"].split("/")
+            self.assertEqual((month, year), ("12", "88"), message["content_id"])
+            self.assertTrue(1 <= int(day) <= 31, message["content_id"])
+            text = (message["subject"] + "\n" + message["body"]).lower()
+            for bad in ("windows 95", "windows 98", "pentium", "usb",
+                        "wi-fi", "wifi", "linux", "world wide web"):
+                self.assertNotIn(bad, text, message["content_id"])
+
+    def test_pack8_files_install_into_dos_library(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base_dir = Path(directory)
+            self.assertTrue(cis_communities.install(base_dir))
+            files = cis_storage.load_json(base_dir, "library_files.json")
+            names = {f["name"] for f in files["dos_library"]}
+            for expected in ("DBASE-TIPS.TXT", "LOTUS123.TXT", "TURBOC.TXT", "ACAD-KEYS.TXT"):
+                self.assertIn(expected, names)
+            forums = cis_storage.load_json(base_dir, "forums.json")
+            self.assertGreater(len(forums["dos_apps"]), 0)
 
 
 class PersistenceTests(unittest.TestCase):
