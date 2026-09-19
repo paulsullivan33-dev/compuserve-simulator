@@ -287,13 +287,20 @@ def bowls_lines(day: Optional[date] = None) -> List[str]:
 
 
 def entertainment_menu_lines(day: Optional[date] = None) -> List[Tuple[str, List[str]]]:
-    """All three sections as (title, lines) pairs for the menu wire-up."""
-    return [
+    """Sections as (title, lines) pairs for the menu wire-up.
+
+    Christmas Music is seasonal: it appears only during December, like
+    the holiday CB topics (cf. cis_christmas.christmas_cb_topics).
+    """
+    d = _day(day)
+    sections = [
         ("Billboard Hot 100", chart_lines(day)),
         ("Movies", movies_lines(day)),
         ("Bowl Previews", bowls_lines(day)),
-        ("Christmas Music", cis_christmas.christmas_music_lines(day)),
     ]
+    if d.month == 12:
+        sections.append(("Christmas Music", cis_christmas.christmas_music_lines(day)))
+    return sections
 
 
 def entertainment_service(app) -> List[Tuple[str, List[str]]]:

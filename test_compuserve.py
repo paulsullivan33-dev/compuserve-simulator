@@ -3853,6 +3853,14 @@ class EntertainmentTests(unittest.TestCase):
         for _title, lines in sections:
             self.assertTrue(lines)
 
+    def test_christmas_music_seasonal(self):
+        december = cis_entertainment.entertainment_menu_lines(date(1988, 12, 15))
+        self.assertIn("Christmas Music", [t for t, _ in december])
+        june = cis_entertainment.entertainment_menu_lines(date(1988, 6, 15))
+        titles = [t for t, _ in june]
+        self.assertNotIn("Christmas Music", titles)
+        self.assertEqual(titles, ["Billboard Hot 100", "Movies", "Bowl Previews"])
+
     def test_chart_number_one_by_week(self):
         early = "\n".join(cis_entertainment.chart_lines(date(1988, 12, 5)))
         self.assertIn("Chicago", early)

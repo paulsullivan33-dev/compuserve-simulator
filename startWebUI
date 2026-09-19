@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Start the Classic CompuServe web terminal (Linux).
+#
+# FastAPI and uvicorn are optional dependencies, so this launcher provides
+# them ephemerally with `uv run --with` -- nothing is installed into the
+# project. The pins match [project.optional-dependencies] web in
+# pyproject.toml.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+if command -v uv >/dev/null 2>&1; then
+    UV=uv
+elif [ -x "$HOME/.local/bin/uv" ]; then
+    UV="$HOME/.local/bin/uv"
+else
+    echo "uv is not installed. Install it from https://docs.astral.sh/uv/" >&2
+    exit 1
+fi
+
+HOST="${CIS_WEB_HOST:-127.0.0.1}"
+PORT="${CIS_WEB_PORT:-8000}"
+echo "Starting Classic CompuServe at http://$HOST:$PORT"
+echo "Press Ctrl+C to stop it."
+
+exec "$UV" run --python 3.11 \
+    --with "fastapi>=0.115,<1" \
+    --with "uvicorn[standard]>=0.34,<1" \
+    web_app.py
