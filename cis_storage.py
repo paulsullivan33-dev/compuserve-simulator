@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+import threading
 from contextlib import contextmanager, closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -54,6 +55,28 @@ def _connect(base_dir):
 
 def _serialize(data):
     return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
+
+_write_locks_guard = threading.Lock()
+_write_locks = {}
+
+
+def _write_lock(base_dir):
+    """Return the process-wide reentrant lock for one database file.
+
+    SQLite serializes writers on its own, but threads racing BEGIN IMMEDIATE
+    against each other can still exhaust the busy timeout under load and
+    surface "database is locked". Holding this lock across each
+    read-modify-write transaction removes that in-process contention
+    entirely; the busy timeout remains as the backstop for other processes.
+    """
+    key = str(Path(base_dir).resolve() / DATABASE_FILENAME)
+    with _write_locks_guard:
+        lock = _write_locks.get(key)
+        if lock is None:
+            lock = threading.RLock()
+            _write_locks[key] = lock
+        return lock
 
 
 def _backup_database(base_dir, destination):
@@ -180,17 +203,18 @@ def update_json_atomic(base_dir, filename, default, mutator):
     if filename not in MUTABLE_DATA_FILES:
         raise ValueError(f"Transactional updates require a mutable document: {filename}")
     base_dir = Path(base_dir)
-    migrate_json_to_sqlite(base_dir, (filename,))
-    with _connect(base_dir) as database:
-        database.execute("BEGIN IMMEDIATE")
-        row = database.execute("SELECT payload FROM documents WHERE filename = ?", (filename,)).fetchone()
-        data = json.loads(row[0]) if row else default
-        result = mutator(data)
-        database.execute(
-            "INSERT INTO documents(filename, payload, updated_at) VALUES (?, ?, ?) "
-            "ON CONFLICT(filename) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at",
-            (filename, _serialize(data), datetime.now(timezone.utc).isoformat(timespec="seconds")),
-        )
+    with _write_lock(base_dir):
+        migrate_json_to_sqlite(base_dir, (filename,))
+        with _connect(base_dir) as database:
+            database.execute("BEGIN IMMEDIATE")
+            row = database.execute("SELECT payload FROM documents WHERE filename = ?", (filename,)).fetchone()
+            data = json.loads(row[0]) if row else default
+            result = mutator(data)
+            database.execute(
+                "INSERT INTO documents(filename, payload, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(filename) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at",
+                (filename, _serialize(data), datetime.now(timezone.utc).isoformat(timespec="seconds")),
+            )
     return result
 
 
@@ -198,21 +222,22 @@ def install_content_pack(base_dir, pack_id, mutators):
     """Install additive content once, atomically with its completion marker."""
     if not set(mutators) <= MUTABLE_DATA_FILES:
         raise ValueError('Content packs can only update mutable documents')
-    migrate_json_to_sqlite(base_dir, mutators)
-    with _connect(base_dir) as database:
-        database.execute('BEGIN IMMEDIATE')
-        marker = 'content-pack:' + pack_id
-        if database.execute('SELECT value FROM metadata WHERE key = ?', (marker,)).fetchone():
-            return False
-        for filename, mutator in mutators.items():
-            row = database.execute('SELECT payload FROM documents WHERE filename = ?', (filename,)).fetchone()
-            data = mutator(json.loads(row[0]) if row else {})
-            database.execute(
-                'INSERT INTO documents(filename, payload, updated_at) VALUES (?, ?, ?) '
-                'ON CONFLICT(filename) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at',
-                (filename, _serialize(data), datetime.now(timezone.utc).isoformat(timespec='seconds')),
-            )
-        database.execute('INSERT INTO metadata(key, value) VALUES (?, ?)', (marker, 'installed'))
+    with _write_lock(base_dir):
+        migrate_json_to_sqlite(base_dir, mutators)
+        with _connect(base_dir) as database:
+            database.execute('BEGIN IMMEDIATE')
+            marker = 'content-pack:' + pack_id
+            if database.execute('SELECT value FROM metadata WHERE key = ?', (marker,)).fetchone():
+                return False
+            for filename, mutator in mutators.items():
+                row = database.execute('SELECT payload FROM documents WHERE filename = ?', (filename,)).fetchone()
+                data = mutator(json.loads(row[0]) if row else {})
+                database.execute(
+                    'INSERT INTO documents(filename, payload, updated_at) VALUES (?, ?, ?) '
+                    'ON CONFLICT(filename) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at',
+                    (filename, _serialize(data), datetime.now(timezone.utc).isoformat(timespec='seconds')),
+                )
+            database.execute('INSERT INTO metadata(key, value) VALUES (?, ?)', (marker, 'installed'))
     return True
 
 
