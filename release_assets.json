@@ -137,6 +137,7 @@
     "smoke_test.py",
     "start_compuserve.cmd",
     "start_web.cmd",
+    "startWebUI",
     "store_catalog.json",
     "telnet_app.py",
     "terminal_config.json",

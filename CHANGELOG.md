@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.18.0 - 2026-09-18
+
+- Fixed the intermittent `test_concurrent_market_trades_do_not_lose_positions`
+  failure: `cis_storage.py` now holds a process-wide per-database-file
+  `threading.RLock` across full read-modify-write transactions in
+  `update_json_atomic` and `install_content_pack`, so threads queue in Python
+  instead of contending on SQLite's write lock.
+- Split the 766-line `USER_GUIDE.md` into 15 per-service pages under `docs/`
+  (getting-started, accounts, commands, easyplex, forums, news, magazine,
+  business, travel, shopping, communications, games, reference, personal,
+  sysop); the guide is now a slim index and all 24 sections are preserved.
+- Extended `CONTRIBUTING.md` with the branch workflow, the gh.py
+  no-merge-commits rule, Linux/`uv` run and test commands, content-pack ID
+  bumping, simulator conventions, docs guidance, and releases/tags.
+- Content pack 8: wired all 27 remaining poster quick-reference words
+  (ASHTON, BORLAND, LOTUS, KAYPRO, EPSON, AOL, ...) to real destinations via
+  `poster_words.json` targets, fixing the 22 numbered poster choices that
+  routed into them; added the DOS forum's Applications Desk section with 10
+  December 1988 seed posts, 9 more seed posts, and 4 new DOS library files
+  (pack id bumped to `computer-communities-1988-v5`).
+- Changed the page pause from 16 to 24 lines: a new `PAGE_PAUSE_LINES`
+  constant in `compuserve.py` drives the `ansi_scroll` "More!" trigger, both
+  news readers, and the connection-setup prompt.
+- Gated the Entertainment menu's Christmas Music section on December (the
+  same `month == 12` rule as the holiday CB topics); the dedicated
+  `GO CHRISTMAS` destination is unchanged.
+- Added an executable Linux `startWebUI` launcher that provides the optional
+  FastAPI/uvicorn dependencies ephemerally via `uv run --with`.
+
 ## 1.17.0 - 2026-09-16
 
 - Marked fixed period services as the December 1988 archive, separate from

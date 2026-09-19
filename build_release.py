@@ -27,6 +27,16 @@ def release_files():
     return [Path(name) for name in policy(BASE_DIR)['files']]
 
 
+def _is_executable(relative: Path) -> bool:
+    """Whether a shipped file should keep its executable bit in the archive."""
+    if relative.suffix.lower() == ".sh":
+        return True
+    try:
+        return bool((BASE_DIR / relative).stat().st_mode & 0o111)
+    except OSError:
+        return False
+
+
 def build_release():
     """Create the ZIP and embed hashes for every shipped file."""
     DIST_DIR.mkdir(exist_ok=True)
@@ -45,7 +55,7 @@ def build_release():
         for relative in files:
             info = zipfile.ZipInfo(relative.as_posix(), FIXED_TIMESTAMP)
             info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = (0o755 if relative.suffix.lower() == ".sh" else 0o644) << 16
+            info.external_attr = (0o755 if _is_executable(relative) else 0o644) << 16
             archive.writestr(info, contents[relative], compresslevel=9)
         info = zipfile.ZipInfo("RELEASE_MANIFEST.json", FIXED_TIMESTAMP)
         info.compress_type = zipfile.ZIP_DEFLATED
