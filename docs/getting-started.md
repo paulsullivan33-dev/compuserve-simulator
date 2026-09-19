@@ -143,7 +143,7 @@ Available presets:
 - `MAC`: 80 columns, 2400 baud, screen display.
 
 The detailed configuration also controls modem dialing, connection quality, sound,
-16-line pauses, automatic News updates, and fast output mode. Fast mode removes the
+24-line pauses, automatic News updates, and fast output mode. Fast mode removes the
 simulated character delay while preserving the historical screen layout.
 
 Daily service content varies deterministically while remaining within December 1988.

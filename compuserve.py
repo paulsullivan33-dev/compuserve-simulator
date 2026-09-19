@@ -119,6 +119,9 @@ startup_options = {
     "refresh_news": False,
 }
 transmitted_line_count = 0
+
+# Lines of output before the "More!" page pause triggers (a full terminal screen).
+PAGE_PAUSE_LINES = 24
 session_state = SessionState()
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -260,8 +263,8 @@ def clear():
 def reset_page_pause():
     """Reset the page-pause line count at a user prompt.
 
-    Called by cis_session.read_input so the 16-line pause only triggers when a
-    single block of output exceeds 16 lines, not on a cumulative total.
+    Called by cis_session.read_input so the 24-line pause only triggers when a
+    single block of output exceeds 24 lines, not on a cumulative total.
     """
     global transmitted_line_count
     transmitted_line_count = 0
@@ -288,7 +291,7 @@ def ansi_scroll(text, delay=0.01):
             with capture_path.open("a", encoding="utf-8") as capture:
                 capture.write(line + "\n")
         page_pause = current_profile.get("page_pause", startup_options["page_pause"])
-        if page_pause and transmitted_line_count % 16 == 0:
+        if page_pause and transmitted_line_count % PAGE_PAUSE_LINES == 0:
             input("More ! ")
     return True
 
@@ -341,7 +344,7 @@ def startup_configuration():
         skip = input("Skip modem dialing [Y/N]: ").strip().upper()
         connection = input("Connection [clean/variable]: ").strip().lower()
         sound = input("Modem sound [Y/N]: ").strip().upper()
-        paging = input("Pause every 16 lines [Y/N]: ").strip().upper()
+        paging = input(f"Pause every {PAGE_PAUSE_LINES} lines [Y/N]: ").strip().upper()
         refresh = input("Refresh current news after login [Y/N]: ").strip().upper()
         fast = input("Fast output mode [Y/N]: ").strip().upper()
         if baud.isdigit() and int(baud) in BAUD_RATES:
@@ -1680,7 +1683,7 @@ def news_section(category):
     news_data = load_json("news.json", default={})
     articles = news_data.get(category, [])
     metadata = news_data.get("_meta", {})
-    page_size = 16
+    page_size = PAGE_PAUSE_LINES
     page = 0
     while True:
         clear()
@@ -1731,7 +1734,7 @@ def news_article(article, category):
     lines = []
     for paragraph in body.splitlines() or [body]:
         lines.extend(textwrap.wrap(" ".join(paragraph.split()), width=76) or [""])
-    page_size = 16
+    page_size = PAGE_PAUSE_LINES
     page = 0
     while True:
         clear()

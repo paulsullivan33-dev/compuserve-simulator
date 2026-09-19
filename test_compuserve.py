@@ -5603,9 +5603,9 @@ class PagePauseTests(unittest.TestCase):
         compuserve.reset_page_pause()
         self.assertEqual(compuserve.transmitted_line_count, 0)
 
-    def test_pause_after_sixteen_lines_without_prompt(self):
+    def test_pause_after_twenty_four_lines_without_prompt(self):
         prompts = []
-        self._scroll(20, prompts)
+        self._scroll(30, prompts)
         more = [p for p in prompts if p == "More ! "]
         self.assertEqual(len(more), 1)
 
