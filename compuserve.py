@@ -537,11 +537,27 @@ def modem_dial_in():
 # --- Profiles ---------------------------------------------------------------
 
 
+# Markers the telnet gateway translates into IAC WILL/WONT ECHO so remote
+# clients stop their local echo while a password is typed. NUL-delimited so
+# they can never collide with real output; only emitted for remote terminals.
+ECHO_SUPPRESS_MARKER = "\x00[ECHOOFF]\x00"
+ECHO_RESTORE_MARKER = "\x00[ECHOON]\x00"
+
+
 def password_input(prompt="Password: "):
     """Read a secret from the console or the web terminal's masked input."""
     if os.environ.get("CIS_WEB_TERMINAL") == "1" or os.environ.get("CIS_REMOTE_TERMINAL") == "1":
         import builtins
-        return builtins.input(prompt)
+        remote = os.environ.get("CIS_REMOTE_TERMINAL") == "1"
+        if remote:
+            sys.stdout.write(ECHO_SUPPRESS_MARKER)
+            sys.stdout.flush()
+        try:
+            return builtins.input(prompt)
+        finally:
+            if remote:
+                sys.stdout.write(ECHO_RESTORE_MARKER)
+                sys.stdout.flush()
     return getpass.getpass(prompt)
 
 

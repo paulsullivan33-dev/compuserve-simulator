@@ -153,6 +153,54 @@ async def serve_terminal(reader, writer):
         SESSION_SLOTS.release()
 
 
+# Echo-control markers emitted by the sim around password prompts.
+# Translated here into telnet option negotiation so remote clients stop
+# their local echo while a secret is typed (like real telnetd).
+_ECHO_OFF_MARKER = b"\x00[ECHOOFF]\x00"
+_ECHO_ON_MARKER = b"\x00[ECHOON]\x00"
+_IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
+_IAC_WONT_ECHO = b"\xff\xfc\x01"  # server stops echoing: client, echo again
+
+
+class _EchoTranslator:
+    """Strip echo-control markers from sim output, yielding IAC negotiation.
+
+    Markers can straddle read-chunk boundaries, so a trailing partial marker
+    is held back until the next feed(). Call flush() at end of stream.
+    """
+
+    def __init__(self):
+        self._pending = b""
+
+    def feed(self, chunk):
+        """Return (forward_bytes, iac_bytes) for one chunk of sim output."""
+        data = self._pending + chunk
+        self._pending = b""
+        forward = bytearray()
+        iac = bytearray()
+        index = 0
+        end = len(data)
+        while index < end:
+            if data.startswith(_ECHO_OFF_MARKER, index):
+                iac += _IAC_WILL_ECHO
+                index += len(_ECHO_OFF_MARKER)
+            elif data.startswith(_ECHO_ON_MARKER, index):
+                iac += _IAC_WONT_ECHO
+                index += len(_ECHO_ON_MARKER)
+            elif data[index:index + 1] == b"\x00" and end - index < len(_ECHO_OFF_MARKER):
+                self._pending = data[index:]  # split marker; wait for more
+                break
+            else:
+                forward.append(data[index])
+                index += 1
+        return bytes(forward), bytes(iac)
+
+    def flush(self):
+        """Return any held-back bytes (only a truncated marker can remain)."""
+        pending, self._pending = self._pending, b""
+        return pending
+
+
 async def _handle_session(reader, writer, peer):
     session_id = uuid.uuid4().hex
     client_ip = _peer_ip(peer)
@@ -176,10 +224,18 @@ async def _handle_session(reader, writer, peer):
     )
 
     disconnect_reason = "unknown"
+    echo = _EchoTranslator()
 
     async def output():
         while chunk := await process.stdout.read(512):
-            writer.write(chunk.replace(b"\n", b"\r\n"))
+            forward, iac = echo.feed(chunk)
+            if iac:
+                writer.write(iac)
+            if forward:
+                writer.write(forward.replace(b"\n", b"\r\n"))
+            await writer.drain()
+        if tail := echo.flush():
+            writer.write(tail.replace(b"\n", b"\r\n"))
             await writer.drain()
 
     async def input_lines():

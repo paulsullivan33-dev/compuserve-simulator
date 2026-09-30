@@ -1,5 +1,6 @@
 """Tests for the telnet/sim activity log (cis_activity + event wiring)."""
 import asyncio
+import io
 import json
 import os
 import tempfile
@@ -9,6 +10,7 @@ from unittest.mock import Mock, patch
 
 import cis_activity
 import cis_accounts
+import compuserve
 import telnet_app
 
 
@@ -117,6 +119,44 @@ class ActivityLogTest(unittest.TestCase):
     def test_peer_ip(self):
         self.assertEqual(telnet_app._peer_ip(("1.2.3.4", 1234)), "1.2.3.4")
         self.assertIsNone(telnet_app._peer_ip(None))
+
+
+class PasswordEchoTest(unittest.TestCase):
+    def test_echo_translator_strips_markers_and_emits_iac(self):
+        tr = telnet_app._EchoTranslator()
+        fwd, iac = tr.feed(b"hello " + telnet_app._ECHO_OFF_MARKER + b"world")
+        self.assertEqual(fwd, b"hello world")
+        self.assertEqual(iac, b"\xff\xfb\x01")  # IAC WILL ECHO
+        fwd, iac = tr.feed(b"done" + telnet_app._ECHO_ON_MARKER)
+        self.assertEqual(fwd, b"done")
+        self.assertEqual(iac, b"\xff\xfc\x01")  # IAC WONT ECHO
+
+    def test_echo_translator_handles_split_marker(self):
+        tr = telnet_app._EchoTranslator()
+        fwd, iac = tr.feed(b"abc\x00[ECHO")
+        self.assertEqual((fwd, iac), (b"abc", b""))
+        fwd, iac = tr.feed(b"OFF]\x00def")
+        self.assertEqual(fwd, b"def")
+        self.assertEqual(iac, b"\xff\xfb\x01")
+
+    def test_password_input_suppresses_echo_for_remote_terminal(self):
+        buf = io.StringIO()
+        env = {"CIS_REMOTE_TERMINAL": "1", "CIS_WEB_TERMINAL": ""}
+        with patch.dict(os.environ, env), \
+             patch.object(compuserve.sys, "stdout", buf), \
+             patch("builtins.input", return_value="s3cret") as mock_input:
+            self.assertEqual(compuserve.password_input("Password: "), "s3cret")
+        mock_input.assert_called_once_with("Password: ")
+        out = buf.getvalue()
+        self.assertTrue(out.startswith(compuserve.ECHO_SUPPRESS_MARKER))
+        self.assertTrue(out.endswith(compuserve.ECHO_RESTORE_MARKER))
+
+    def test_password_input_uses_getpass_locally(self):
+        env = {"CIS_REMOTE_TERMINAL": "", "CIS_WEB_TERMINAL": ""}
+        with patch.dict(os.environ, env), \
+             patch("getpass.getpass", return_value="pw") as mock_getpass:
+            self.assertEqual(compuserve.password_input(), "pw")
+        mock_getpass.assert_called_once_with("Password: ")
 
 
 if __name__ == "__main__":
