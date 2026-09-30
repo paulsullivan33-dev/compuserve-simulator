@@ -1,19 +1,27 @@
 # compuserve-telnet.service — systemd unit for the CompuServe simulator
 # telnet gateway (telnet_app.py), sandboxed for internet exposure.
 #
+# ===== BEFORE APPLYING: edit the 4 lines marked ADJUST-1 through ADJUST-4 =====
+# How to find the correct values on the server:
+#   ADJUST-1 : your login name. Run `whoami` and use what it prints.
+#   ADJUST-2/3/4 : the repo location. cd into the repo directory, run `pwd`,
+#                  and use what it prints (all three must be the same path).
+#   If `which python3` prints something other than /usr/bin/python3,
+#   use that path in the ExecStart line instead.
+#
 # INSTALL (on the server, as root):
-#   1. Edit the three ADJUST lines below to match your user and repo path.
+#   1. Make the four ADJUST edits described above.
 #   2. sudo cp compuserve-telnet.service /etc/systemd/system/
 #   3. sudo systemctl daemon-reload
 #   4. sudo systemctl enable --now compuserve-telnet
 #   5. sudo ufw allow 2323/tcp        # only if ufw is active
-#   6. sudo ufw limit 2323/tcp       # rate-limit new connections (recommended)
+#   6. sudo ufw limit 2323/tcp        # rate-limit new connections (recommended)
 #
 # CHECK:
 #   sudo systemctl status compuserve-telnet
 #   sudo journalctl -u compuserve-telnet -f
 #
-# If the service fails to start, the most likely cause is a path below
+# If the service fails to start, the most likely cause is an ADJUST line
 # not matching your machine — check `journalctl` for the error.
 
 [Unit]
@@ -22,12 +30,10 @@ After=network.target
 
 [Service]
 Type=simple
-# --- ADJUST: your login user and repo location ---
-User=paul
-WorkingDirectory=/home/paul/Compuserve-simulator
-ExecStart=/usr/bin/python3 /home/paul/Compuserve-simulator/telnet_app.py
-# --- ADJUST: repo path again (the sim's SQLite db lives here) ---
-ReadWritePaths=/home/paul/Compuserve-simulator
+User=paul                                            # ADJUST-1: your login name (`whoami`)
+WorkingDirectory=/home/paul/Compuserve-simulator     # ADJUST-2: repo path (`pwd` inside the repo)
+ExecStart=/usr/bin/python3 /home/paul/Compuserve-simulator/telnet_app.py   # ADJUST-3: same repo path
+ReadWritePaths=/home/paul/Compuserve-simulator       # ADJUST-4: same repo path again
 Environment=CIS_TELNET_PORT=2323
 Environment=CIS_TELNET_MAX_SESSIONS=20
 Environment=CIS_TELNET_IDLE_TIMEOUT=900
