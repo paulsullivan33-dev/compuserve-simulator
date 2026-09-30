@@ -120,6 +120,24 @@ class ActivityLogTest(unittest.TestCase):
         self.assertEqual(telnet_app._peer_ip(("1.2.3.4", 1234)), "1.2.3.4")
         self.assertIsNone(telnet_app._peer_ip(None))
 
+    def test_input_reason_maps_abrupt_disconnect(self):
+        async def go():
+            async def boom(*args, **kwargs):
+                raise ConnectionResetError("client vanished")
+            async def ok(*args, **kwargs):
+                return "client_closed"
+            with patch.object(telnet_app, "forward_telnet_input", side_effect=boom):
+                self.assertEqual(
+                    await telnet_app._input_reason(None, None, None, "s", None),
+                    "client_error",
+                )
+            with patch.object(telnet_app, "forward_telnet_input", side_effect=ok):
+                self.assertEqual(
+                    await telnet_app._input_reason(None, None, None, "s", None),
+                    "client_closed",
+                )
+        asyncio.run(go())
+
 
 class PasswordEchoTest(unittest.TestCase):
     def test_echo_translator_strips_markers_and_emits_iac(self):

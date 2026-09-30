@@ -122,6 +122,20 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
     return "session_ended"
 
 
+async def _input_reason(reader, writer, process, session_id, peer):
+    """forward_telnet_input's reason, or "client_error" if it dies abruptly.
+
+    An abrupt client drop (connection reset) raises out of the reader instead
+    of returning cleanly; map that to a real reason so the activity log never
+    shows "unknown".
+    """
+    try:
+        return await forward_telnet_input(reader, writer, process, session_id, peer)
+    except Exception:
+        LOGGER.exception("input forwarder failed session=%s", session_id)
+        return "client_error"
+
+
 def _peer_ip(peer):
     """Best-effort client IP from an asyncio peername."""
     if isinstance(peer, (tuple, list)) and peer:
@@ -240,14 +254,14 @@ async def _handle_session(reader, writer, peer):
 
     async def input_lines():
         nonlocal disconnect_reason
-        disconnect_reason = await forward_telnet_input(reader, writer, process, session_id, peer)
+        disconnect_reason = await _input_reason(reader, writer, process, session_id, peer)
 
     output_task = asyncio.create_task(output())
     input_task = asyncio.create_task(input_lines())
     wait_task = asyncio.create_task(process.wait())
     tasks = {output_task, input_task, wait_task}
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-    if wait_task in done:
+    if disconnect_reason == "unknown" and (wait_task in done or process.returncode is not None):
         disconnect_reason = "session_ended"  # sim exited on its own (e.g. failed login)
     for task in pending:
         task.cancel()
