@@ -881,7 +881,53 @@ class NavigationTests(unittest.TestCase):
             compuserve.current_user_id, compuserve.current_handle, compuserve.current_profile = original
 
     def test_telnet_negotiation_is_removed(self):
-        self.assertEqual(telnet_app.strip_telnet_commands(b"\xff\xfb\x01HELLO\r\n"), b"HELLO\r\n")
+        cleaned, leftover = telnet_app.strip_telnet_commands(b"\xff\xfb\x01HELLO\r\n")
+        self.assertEqual(cleaned, b"HELLO\r\n")
+        self.assertEqual(leftover, b"")
+
+    def test_telnet_subnegotiation_is_removed(self):
+        # IAC SB TTYPE ... IAC SE must vanish entirely, not leak "PUTTY" as input
+        cleaned, leftover = telnet_app.strip_telnet_commands(
+            b"\xff\xfa\x18\x00PUTTY\xff\xf0hi\r\n"
+        )
+        self.assertEqual(cleaned, b"hi\r\n")
+        self.assertEqual(leftover, b"")
+
+    def test_telnet_escaped_iac_is_literal(self):
+        cleaned, leftover = telnet_app.strip_telnet_commands(b"a\xff\xffb")
+        self.assertEqual(cleaned, b"a\xffb")
+        self.assertEqual(leftover, b"")
+
+    def test_telnet_incomplete_sequence_waits(self):
+        cleaned, leftover = telnet_app.strip_telnet_commands(b"hi\xff")
+        self.assertEqual(cleaned, b"hi")
+        self.assertEqual(leftover, b"\xff")
+        cleaned, leftover = telnet_app.strip_telnet_commands(leftover + b"\xfb\x01")
+        self.assertEqual(cleaned, b"")
+        self.assertEqual(leftover, b"")
+
+    def test_telnet_negotiation_does_not_swallow_enter(self):
+        # The first Enter after connect-time negotiation must reach the sim.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"\xff\xfb\x1f\xff\xfb\x14")  # WILL NAWS, WILL TTYPE
+            reader.feed_data(b"\r\n")  # user presses Enter
+            reader.feed_eof()
+
+            writes = []
+
+            class FakeStdin:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            await telnet_app.forward_telnet_input(reader, Mock(), process, "s", ("127.0.0.1", 1))
+            return writes
+
+        self.assertEqual(asyncio.run(scenario()), [b"\n"])
 
     def test_split_telnet_line_endings(self):
         self.assertEqual(telnet_app.split_telnet_line(b"hi\r\nrest"), (b"hi", b"rest"))

@@ -29,16 +29,40 @@ SESSION_SLOTS = None
 
 
 def strip_telnet_commands(data):
-    """Remove basic IAC negotiation sequences from a terminal input stream."""
+    """Remove telnet IAC negotiation sequences from a byte stream.
+
+    Handles WILL/WONT/DO/DONT, subnegotiations (IAC SB ... IAC SE), and
+    escaped IAC IAC. Returns (cleaned, leftover): any trailing incomplete
+    sequence is returned as leftover so the caller can prepend it to the
+    next chunk instead of mis-parsing it.
+    """
     result = bytearray()
     index = 0
-    while index < len(data):
-        if data[index] == 255:
-            index += 3
-        else:
-            result.append(data[index])
+    end = len(data)
+    while index < end:
+        byte = data[index]
+        if byte != 255:  # IAC
+            result.append(byte)
             index += 1
-    return bytes(result)
+            continue
+        if index + 1 >= end:
+            break  # incomplete sequence; wait for more data
+        command = data[index + 1]
+        if command == 255:  # IAC IAC: escaped literal 255
+            result.append(255)
+            index += 2
+        elif command == 250:  # IAC SB: skip through IAC SE
+            term = data.find(b"\xff\xf0", index + 2)
+            if term == -1:
+                break  # incomplete subnegotiation; wait for more data
+            index = term + 2
+        elif command in (251, 252, 253, 254):  # WILL/WONT/DO/DONT + option byte
+            if index + 2 >= end:
+                break  # option byte not here yet; wait for more data
+            index += 3
+        else:  # other two-byte commands (NOP, DM, BRK, IP, AO, AYT, EC, EL, GA, SE)
+            index += 2
+    return bytes(result), bytes(data[index:])
 
 
 def split_telnet_line(buf):
@@ -60,8 +84,14 @@ def split_telnet_line(buf):
 
 
 async def forward_telnet_input(reader, writer, process, session_id, peer):
-    """Forward client keystrokes to the terminal subprocess, one line at a time."""
-    buf = b""
+    """Forward client keystrokes to the terminal subprocess, one line at a time.
+
+    Negotiation bytes are stripped from the raw stream before line
+    splitting, so they can never swallow the terminator of the user's
+    first Enter keypress.
+    """
+    raw_buf = b""
+    line_buf = b""
     while process.returncode is None:
         try:
             chunk = await asyncio.wait_for(reader.read(1024), timeout=IDLE_TIMEOUT)
@@ -73,17 +103,16 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
             break
         if not chunk:
             break  # client disconnected
-        buf += chunk
+        raw_buf += chunk
+        cleaned, raw_buf = strip_telnet_commands(raw_buf)
+        line_buf += cleaned
         while True:
-            line, buf = split_telnet_line(buf)
+            line, line_buf = split_telnet_line(line_buf)
             if line is None:
                 break
-            data = strip_telnet_commands(line)[:MAX_LINE]
-            if data or not line:
-                # Bare Enter (empty line) still counts as a keypress;
-                # pure negotiation bytes with no text are skipped.
-                process.stdin.write(data + b"\n")
-                await process.stdin.drain()
+            # Bare Enter (empty line) still counts as a keypress.
+            process.stdin.write(line[:MAX_LINE] + b"\n")
+            await process.stdin.drain()
 
 
 async def _reject_busy(writer, peer):
