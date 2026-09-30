@@ -41,6 +41,51 @@ def strip_telnet_commands(data):
     return bytes(result)
 
 
+def split_telnet_line(buf):
+    """Split the first telnet line off buf.
+
+    Telnet clients end lines with CRLF, CR NUL, CR, or LF (RFC 854).
+    Returns (line, rest); line is None when no terminator is buffered yet.
+    A trailing bare CR waits for the next byte in case CRLF/CR NUL follows.
+    """
+    for index, byte in enumerate(buf):
+        if byte == 0x0D:  # CR
+            if index + 1 >= len(buf):
+                return None, buf
+            rest_at = index + 2 if buf[index + 1] in (0x0A, 0x00) else index + 1
+            return bytes(buf[:index]), bytes(buf[rest_at:])
+        if byte == 0x0A:  # LF
+            return bytes(buf[:index]), bytes(buf[index + 1:])
+    return None, buf
+
+
+async def forward_telnet_input(reader, writer, process, session_id, peer):
+    """Forward client keystrokes to the terminal subprocess, one line at a time."""
+    buf = b""
+    while process.returncode is None:
+        try:
+            chunk = await asyncio.wait_for(reader.read(1024), timeout=IDLE_TIMEOUT)
+        except asyncio.TimeoutError:
+            LOGGER.info("terminal idle timeout session=%s client=%s", session_id, peer)
+            with suppress(Exception):
+                writer.write(b"\r\nIdle too long. Disconnecting. Goodbye!\r\n")
+                await writer.drain()
+            break
+        if not chunk:
+            break  # client disconnected
+        buf += chunk
+        while True:
+            line, buf = split_telnet_line(buf)
+            if line is None:
+                break
+            data = strip_telnet_commands(line)[:MAX_LINE]
+            if data or not line:
+                # Bare Enter (empty line) still counts as a keypress;
+                # pure negotiation bytes with no text are skipped.
+                process.stdin.write(data + b"\n")
+                await process.stdin.drain()
+
+
 async def _reject_busy(writer, peer):
     LOGGER.warning("session rejected (server busy) client=%s", peer)
     with suppress(Exception):
@@ -88,20 +133,7 @@ async def _handle_session(reader, writer, peer):
             await writer.drain()
 
     async def input_lines():
-        while process.returncode is None:
-            try:
-                raw = await asyncio.wait_for(reader.readline(), timeout=IDLE_TIMEOUT)
-            except asyncio.TimeoutError:
-                LOGGER.info("terminal idle timeout session=%s client=%s", session_id, peer)
-                with suppress(Exception):
-                    writer.write(b"\r\nIdle too long. Disconnecting. Goodbye!\r\n")
-                    await writer.drain()
-                break
-            data = strip_telnet_commands(raw)[:MAX_LINE]
-            if not data:
-                break
-            process.stdin.write(data.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
-            await process.stdin.drain()
+        await forward_telnet_input(reader, writer, process, session_id, peer)
 
     tasks = {asyncio.create_task(output()), asyncio.create_task(input_lines()), asyncio.create_task(process.wait())}
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)

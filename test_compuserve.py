@@ -1,5 +1,6 @@
 import json
 import io
+import asyncio
 import os
 import re
 import types
@@ -881,6 +882,37 @@ class NavigationTests(unittest.TestCase):
 
     def test_telnet_negotiation_is_removed(self):
         self.assertEqual(telnet_app.strip_telnet_commands(b"\xff\xfb\x01HELLO\r\n"), b"HELLO\r\n")
+
+    def test_split_telnet_line_endings(self):
+        self.assertEqual(telnet_app.split_telnet_line(b"hi\r\nrest"), (b"hi", b"rest"))
+        self.assertEqual(telnet_app.split_telnet_line(b"hi\r\x00rest"), (b"hi", b"rest"))
+        self.assertEqual(telnet_app.split_telnet_line(b"hi\rrest"), (b"hi", b"rest"))
+        self.assertEqual(telnet_app.split_telnet_line(b"hi\nrest"), (b"hi", b"rest"))
+        self.assertEqual(telnet_app.split_telnet_line(b"partial"), (None, b"partial"))
+        # trailing bare CR waits for the next byte (CRLF vs CR NUL)
+        self.assertEqual(telnet_app.split_telnet_line(b"hi\r"), (None, b"hi\r"))
+
+    def test_telnet_cr_nul_input_is_forwarded(self):
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"\r\x00")
+            reader.feed_data(b"hello\r\n")
+            reader.feed_eof()
+
+            writes = []
+
+            class FakeStdin:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            await telnet_app.forward_telnet_input(reader, Mock(), process, "s", ("127.0.0.1", 1))
+            return writes
+
+        self.assertEqual(asyncio.run(scenario()), [b"\n", b"hello\n"])
 
     def test_concurrent_live_messages_are_not_lost(self):
         with tempfile.TemporaryDirectory() as directory:
