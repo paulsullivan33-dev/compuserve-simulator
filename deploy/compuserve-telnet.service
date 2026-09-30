@@ -7,7 +7,8 @@
 #   ADJUST-2/3/4 : the repo location. cd into the repo directory, run `pwd`,
 #                  and use what it prints (all three must be the same path).
 #   If `which python3` prints something other than /usr/bin/python3,
-#   use that path in the ExecStart line instead.
+#   use that path in the ExecStart line instead. If you run the sim
+#   from a virtualenv, use <repo>/.venv/bin/python instead.
 #
 # INSTALL (on the server, as root):
 #   1. Make the four ADJUST edits described above.
