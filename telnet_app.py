@@ -1,4 +1,11 @@
-"""Small Telnet-style TCP gateway for period terminal clients."""
+"""Small Telnet-style TCP gateway for period terminal clients.
+
+Hardened for internet exposure:
+  * MAX_SESSIONS caps concurrent connections (each one spawns a
+    compuserve.py subprocess, so uncapped connections = trivial DoS).
+  * IDLE_TIMEOUT disconnects clients that send nothing for a while,
+    so abandoned connections can't accumulate forever.
+"""
 
 import asyncio
 import logging
@@ -12,6 +19,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 MAX_LINE = 4096
 LOGGER = logging.getLogger("compuserve.telnet")
+
+# Tunables (env-overridable).
+MAX_SESSIONS = int(os.environ.get("CIS_TELNET_MAX_SESSIONS", "20"))
+IDLE_TIMEOUT = float(os.environ.get("CIS_TELNET_IDLE_TIMEOUT", "900"))  # seconds
+
+# Created in main() so it binds to the running loop.
+SESSION_SLOTS = None
 
 
 def strip_telnet_commands(data):
@@ -27,8 +41,30 @@ def strip_telnet_commands(data):
     return bytes(result)
 
 
+async def _reject_busy(writer, peer):
+    LOGGER.warning("session rejected (server busy) client=%s", peer)
+    with suppress(Exception):
+        writer.write(b"Sorry, the system is busy. Please try again later.\r\n")
+        await writer.drain()
+    writer.close()
+    with suppress(Exception):
+        await writer.wait_closed()
+
+
 async def serve_terminal(reader, writer):
     peer = writer.get_extra_info("peername")
+    try:
+        await asyncio.wait_for(SESSION_SLOTS.acquire(), timeout=5)
+    except asyncio.TimeoutError:
+        await _reject_busy(writer, peer)
+        return
+    try:
+        await _handle_session(reader, writer, peer)
+    finally:
+        SESSION_SLOTS.release()
+
+
+async def _handle_session(reader, writer, peer):
     session_id = uuid.uuid4().hex
     LOGGER.info("terminal connected session=%s client=%s", session_id, peer)
     process = await asyncio.create_subprocess_exec(
@@ -53,7 +89,15 @@ async def serve_terminal(reader, writer):
 
     async def input_lines():
         while process.returncode is None:
-            data = strip_telnet_commands(await reader.readline())[:MAX_LINE]
+            try:
+                raw = await asyncio.wait_for(reader.readline(), timeout=IDLE_TIMEOUT)
+            except asyncio.TimeoutError:
+                LOGGER.info("terminal idle timeout session=%s client=%s", session_id, peer)
+                with suppress(Exception):
+                    writer.write(b"\r\nIdle too long. Disconnecting. Goodbye!\r\n")
+                    await writer.drain()
+                break
+            data = strip_telnet_commands(raw)[:MAX_LINE]
             if not data:
                 break
             process.stdin.write(data.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
@@ -76,10 +120,13 @@ async def serve_terminal(reader, writer):
 
 
 async def main():
+    global SESSION_SLOTS
+    SESSION_SLOTS = asyncio.Semaphore(MAX_SESSIONS)
     host = os.environ.get("CIS_TELNET_HOST", "0.0.0.0")
     port = int(os.environ.get("CIS_TELNET_PORT", "2323"))
     server = await asyncio.start_server(serve_terminal, host, port)
-    print(f"Classic CompuServe terminal listening on {host}:{port}")
+    print(f"Classic CompuServe terminal listening on {host}:{port} "
+          f"(max_sessions={MAX_SESSIONS} idle_timeout={IDLE_TIMEOUT}s)")
     async with server:
         await server.serve_forever()
 
