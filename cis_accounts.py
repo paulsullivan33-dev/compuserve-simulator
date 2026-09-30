@@ -1,5 +1,8 @@
 """Account creation, password management, and authentication."""
+import os
 import re
+
+import cis_activity
 
 from cis_session import read_input as input
 
@@ -57,6 +60,17 @@ def next_user_id(app):
     return f"{digits[:5]},{digits[5:]}"
 
 
+def _activity(app, kind, user_id=None, detail=None):
+    """Record an auth-related event in the activity log (never raises)."""
+    cis_activity.log_event(
+        kind,
+        session_id=getattr(app, "live_session_id", None),
+        client_ip=os.environ.get("CIS_CLIENT_IP") or None,
+        user_id=user_id,
+        detail=detail,
+    )
+
+
 def register_new_account(app):
     """Give a first-time visitor a User ID and let them set a password.
 
@@ -69,8 +83,10 @@ def register_new_account(app):
     app.profiles[user_id] = profile
     if not set_password(app, profile):
         app.profiles.pop(user_id, None)
+        _activity(app, "register_abandoned", user_id=user_id)
         return None
     _send_welcome_mail(app, user_id)
+    _activity(app, "register", user_id=user_id, detail={"method": "new"})
     return user_id
 
 
@@ -83,26 +99,32 @@ def authenticate(app, user_id):
         app.profiles[user_id] = profile
         if not set_password(app, profile):
             app.profiles.pop(user_id, None)
+            _activity(app, "register_abandoned", user_id=user_id)
             return False
         _send_welcome_mail(app, user_id)
+        _activity(app, "register", user_id=user_id, detail={"method": "unknown_id"})
         return True
     if profile.get("disabled"):
+        _activity(app, "login_denied", user_id=user_id, detail={"reason": "disabled"})
         app.ansi_scroll("Account disabled. Contact the SysOp.", 0.01)
         return False
     if profile.get("locked"):
+        _activity(app, "login_denied", user_id=user_id, detail={"reason": "locked"})
         app.ansi_scroll("Account locked. Contact the SysOp.", 0.01)
         return False
     if not profile.get("password_hash"):
         app.ansi_scroll("A local password must be established for this legacy account.", 0.01)
         return set_password(app, profile)
-    for _ in range(3):
+    for attempt in range(1, 4):
         if app.verify_password(app.password_input("Password: "), profile["password_hash"]):
             profile["failed_logins"] = 0
             app.save_profiles()
             return True
+        _activity(app, "login_failed", user_id=user_id, detail={"attempt": attempt})
         app.ansi_scroll("Invalid password.", 0.01)
     profile["failed_logins"] = profile.get("failed_logins", 0) + 3
     profile["locked"] = True
     app.save_profiles()
+    _activity(app, "account_locked", user_id=user_id)
     app.ansi_scroll("Account locked after three failed attempts.", 0.01)
     return False

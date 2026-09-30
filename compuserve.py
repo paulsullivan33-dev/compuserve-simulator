@@ -37,6 +37,7 @@ from cis_web_files import offer_download
 import cis_mail
 import cis_billing
 import cis_accounts
+import cis_activity
 import cis_communities
 import cis_phones
 import cis_forums
@@ -623,6 +624,14 @@ def login_screen():
         save_profiles()
     if cis_hardware.snapshot(sys.modules[__name__]):
         cis_hardware.apply_settings(sys.modules[__name__])
+    # Log before the "Access granted" scroll: the baud-rate delay means a
+    # client can disconnect mid-scroll, skipping anything logged after it.
+    cis_activity.log_event(
+        "login",
+        session_id=live_session_id,
+        client_ip=os.environ.get("CIS_CLIENT_IP") or None,
+        user_id=user_id,
+    )
     ansi_scroll("Access granted", 0.01)
     waiting = mail_waiting_count(user_id)
     if waiting and current_profile.get("mail_notice", True):

@@ -11,9 +11,12 @@ import asyncio
 import logging
 import os
 import sys
+import time
 import uuid
 from contextlib import suppress
 from pathlib import Path
+
+import cis_activity
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -89,6 +92,9 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
     Negotiation bytes are stripped from the raw stream before line
     splitting, so they can never swallow the terminator of the user's
     first Enter keypress.
+
+    Returns the reason input forwarding stopped: "idle_timeout",
+    "client_closed", or "session_ended".
     """
     raw_buf = b""
     line_buf = b""
@@ -100,9 +106,9 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
             with suppress(Exception):
                 writer.write(b"\r\nIdle too long. Disconnecting. Goodbye!\r\n")
                 await writer.drain()
-            break
+            return "idle_timeout"
         if not chunk:
-            break  # client disconnected
+            return "client_closed"  # client disconnected
         raw_buf += chunk
         cleaned, raw_buf = strip_telnet_commands(raw_buf)
         line_buf += cleaned
@@ -113,10 +119,19 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
             # Bare Enter (empty line) still counts as a keypress.
             process.stdin.write(line[:MAX_LINE] + b"\n")
             await process.stdin.drain()
+    return "session_ended"
+
+
+def _peer_ip(peer):
+    """Best-effort client IP from an asyncio peername."""
+    if isinstance(peer, (tuple, list)) and peer:
+        return str(peer[0])
+    return None
 
 
 async def _reject_busy(writer, peer):
     LOGGER.warning("session rejected (server busy) client=%s", peer)
+    cis_activity.log_event("session_rejected_busy", client_ip=_peer_ip(peer))
     with suppress(Exception):
         writer.write(b"Sorry, the system is busy. Please try again later.\r\n")
         await writer.drain()
@@ -140,7 +155,10 @@ async def serve_terminal(reader, writer):
 
 async def _handle_session(reader, writer, peer):
     session_id = uuid.uuid4().hex
+    client_ip = _peer_ip(peer)
+    started = time.monotonic()
     LOGGER.info("terminal connected session=%s client=%s", session_id, peer)
+    cis_activity.log_event("session_connected", session_id=session_id, client_ip=client_ip)
     process = await asyncio.create_subprocess_exec(
         sys.executable, "-u", str(BASE_DIR / "compuserve.py"),
         cwd=BASE_DIR,
@@ -152,9 +170,12 @@ async def _handle_session(reader, writer, peer):
             "CIS_REMOTE_TERMINAL": "1",
             "CIS_TRANSPORT": "TELNET",
             "CIS_SESSION_ID": session_id,
+            "CIS_CLIENT_IP": client_ip or "",
             "CIS_ANSI": os.environ.get("CIS_TELNET_ANSI", "1"),
         },
     )
+
+    disconnect_reason = "unknown"
 
     async def output():
         while chunk := await process.stdout.read(512):
@@ -162,10 +183,16 @@ async def _handle_session(reader, writer, peer):
             await writer.drain()
 
     async def input_lines():
-        await forward_telnet_input(reader, writer, process, session_id, peer)
+        nonlocal disconnect_reason
+        disconnect_reason = await forward_telnet_input(reader, writer, process, session_id, peer)
 
-    tasks = {asyncio.create_task(output()), asyncio.create_task(input_lines()), asyncio.create_task(process.wait())}
+    output_task = asyncio.create_task(output())
+    input_task = asyncio.create_task(input_lines())
+    wait_task = asyncio.create_task(process.wait())
+    tasks = {output_task, input_task, wait_task}
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    if wait_task in done:
+        disconnect_reason = "session_ended"  # sim exited on its own (e.g. failed login)
     for task in pending:
         task.cancel()
     await asyncio.gather(*pending, return_exceptions=True)
@@ -177,7 +204,14 @@ async def _handle_session(reader, writer, peer):
             process.kill()
     writer.close()
     await writer.wait_closed()
+    duration = round(time.monotonic() - started, 1)
     LOGGER.info("terminal disconnected session=%s client=%s", session_id, peer)
+    cis_activity.log_event(
+        "session_disconnected",
+        session_id=session_id,
+        client_ip=client_ip,
+        detail={"duration_s": duration, "reason": disconnect_reason},
+    )
 
 
 async def main():

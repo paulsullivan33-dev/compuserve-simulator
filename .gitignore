@@ -13,3 +13,4 @@ compuserve.db
 compuserve.db-shm
 compuserve.db-wal
 build/
+activity.log
