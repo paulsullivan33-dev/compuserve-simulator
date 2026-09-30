@@ -1,23 +1,34 @@
 name: Pylint
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        # Must match the project's supported versions (requires-python >=3.10
+        # in pyproject.toml, same as the test workflow). Linting on older
+        # interpreters produces bogus syntax-error failures.
+        python-version: ["3.10", "3.13"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint
+        # Install the project with its dependencies so pylint can resolve
+        # third-party imports (fastapi, etc.) instead of reporting
+        # import-errors for them.
+        python -m pip install -e ".[dev,web]"
+        python -m pip install pylint
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py')
+        # Errors only: this codebase has its own style (ruff config in
+        # pyproject.toml) and default pylint flags thousands of convention
+        # nitpicks. The error level catches real bugs -- undefined names,
+        # bad call signatures, syntax errors -- without the noise.
+        pylint --disable=all --enable=E $(git ls-files '*.py')
