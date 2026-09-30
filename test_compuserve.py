@@ -960,6 +960,113 @@ class NavigationTests(unittest.TestCase):
 
         self.assertEqual(asyncio.run(scenario()), [b"\n", b"hello\n"])
 
+    def test_telnet_input_flood_disconnects(self):
+        # A client that never sends a line terminator must not grow the
+        # gateway's input buffer without bound.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"A" * (telnet_app.MAX_BUFFERED_INPUT + 1024))
+            reader.feed_eof()
+
+            writes = []
+
+            class FakeWriter:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            class FakeStdin:
+                def write(self, data):
+                    pass
+
+                async def drain(self):
+                    pass
+
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            reason = await telnet_app.forward_telnet_input(
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1))
+            return reason, writes
+
+        reason, writes = asyncio.run(scenario())
+        self.assertEqual(reason, "input_flood")
+        self.assertTrue(any(b"Input overflow" in w for w in writes))
+
+    def test_telnet_subnegotiation_flood_disconnects(self):
+        # Same bound applies to an unterminated IAC SB subnegotiation,
+        # which is otherwise held as leftover between chunks.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"\xff\xfa" + b"B" * (telnet_app.MAX_BUFFERED_INPUT + 1024))
+            reader.feed_eof()
+
+            class FakeWriter:
+                def write(self, data):
+                    pass
+
+                async def drain(self):
+                    pass
+
+            class FakeStdin:
+                def write(self, data):
+                    pass
+
+                async def drain(self):
+                    pass
+
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            return await telnet_app.forward_telnet_input(
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1))
+
+        self.assertEqual(asyncio.run(scenario()), "input_flood")
+
+    def test_telnet_per_ip_session_cap(self):
+        async def scenario():
+            telnet_app.SESSION_SLOTS = asyncio.Semaphore(20)
+            telnet_app.IP_SESSIONS.clear()
+            try:
+                release = asyncio.Event()
+
+                async def fake_handle(reader, writer, peer):
+                    await release.wait()
+
+                def make_writer():
+                    writer = Mock()
+                    writer.get_extra_info = Mock(return_value=("1.2.3.4", 5555))
+                    writer.write = Mock()
+
+                    async def drain():
+                        pass
+
+                    async def wait_closed():
+                        pass
+
+                    writer.drain = drain
+                    writer.wait_closed = wait_closed
+                    return writer
+
+                writers = [make_writer() for _ in range(4)]
+                with patch.object(telnet_app, "_handle_session", fake_handle):
+                    tasks = [asyncio.create_task(telnet_app.serve_terminal(Mock(), w))
+                             for w in writers[:3]]
+                    await asyncio.sleep(0.1)  # let the first three register
+                    await telnet_app.serve_terminal(Mock(), writers[3])
+                    rejected_writes = writers[3].write.call_args_list
+                    release.set()
+                    await asyncio.gather(*tasks)
+                return rejected_writes, dict(telnet_app.IP_SESSIONS)
+            finally:
+                telnet_app.SESSION_SLOTS = None
+                telnet_app.IP_SESSIONS.clear()
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, {"CIS_ACTIVITY_LOG": os.path.join(directory, "a.log")}):
+                rejected_writes, remaining = asyncio.run(scenario())
+        self.assertTrue(any(b"Too many connections" in call.args[0]
+                            for call in rejected_writes))
+        self.assertEqual(remaining, {})
+
     def test_concurrent_live_messages_are_not_lost(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

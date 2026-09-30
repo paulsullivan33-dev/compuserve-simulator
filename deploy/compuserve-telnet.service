@@ -40,6 +40,7 @@ ExecStart=/usr/bin/python3 /home/paul/Compuserve-simulator/telnet_app.py
 ReadWritePaths=/home/paul/Compuserve-simulator
 Environment=CIS_TELNET_PORT=2323
 Environment=CIS_TELNET_MAX_SESSIONS=20
+Environment=CIS_TELNET_MAX_SESSIONS_PER_IP=3
 Environment=CIS_TELNET_IDLE_TIMEOUT=900
 
 Restart=on-failure

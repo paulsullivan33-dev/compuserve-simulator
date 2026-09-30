@@ -3,8 +3,12 @@
 Hardened for internet exposure:
   * MAX_SESSIONS caps concurrent connections (each one spawns a
     compuserve.py subprocess, so uncapped connections = trivial DoS).
+  * MAX_SESSIONS_PER_IP caps concurrent connections from one address,
+    so a single client can't crowd out everyone else.
   * IDLE_TIMEOUT disconnects clients that send nothing for a while,
     so abandoned connections can't accumulate forever.
+  * MAX_BUFFERED_INPUT drops clients that stream bytes without ever
+    sending a line terminator (unbounded input buffers = memory DoS).
 """
 
 import asyncio
@@ -21,14 +25,22 @@ import cis_activity
 
 BASE_DIR = Path(__file__).resolve().parent
 MAX_LINE = 4096
+# A client that never sends a line terminator (or never terminates a
+# telnet subnegotiation) must not be able to grow the input buffers
+# without bound. No legitimate terminal does this.
+MAX_BUFFERED_INPUT = 65536
 LOGGER = logging.getLogger("compuserve.telnet")
 
 # Tunables (env-overridable).
 MAX_SESSIONS = int(os.environ.get("CIS_TELNET_MAX_SESSIONS", "20"))
+MAX_SESSIONS_PER_IP = int(os.environ.get("CIS_TELNET_MAX_SESSIONS_PER_IP", "3"))
 IDLE_TIMEOUT = float(os.environ.get("CIS_TELNET_IDLE_TIMEOUT", "900"))  # seconds
 
 # Created in main() so it binds to the running loop.
 SESSION_SLOTS = None
+
+# client_ip -> active session count, for the per-IP cap.
+IP_SESSIONS = {}
 
 
 def strip_telnet_commands(data):
@@ -94,7 +106,7 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
     first Enter keypress.
 
     Returns the reason input forwarding stopped: "idle_timeout",
-    "client_closed", or "session_ended".
+    "client_closed", "input_flood", or "session_ended".
     """
     raw_buf = b""
     line_buf = b""
@@ -112,6 +124,12 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
         raw_buf += chunk
         cleaned, raw_buf = strip_telnet_commands(raw_buf)
         line_buf += cleaned
+        if len(raw_buf) > MAX_BUFFERED_INPUT or len(line_buf) > MAX_BUFFERED_INPUT:
+            LOGGER.warning("terminal input flood session=%s client=%s", session_id, peer)
+            with suppress(Exception):
+                writer.write(b"\r\nInput overflow. Disconnecting.\r\n")
+                await writer.drain()
+            return "input_flood"
         while True:
             line, line_buf = split_telnet_line(line_buf)
             if line is None:
@@ -154,17 +172,41 @@ async def _reject_busy(writer, peer):
         await writer.wait_closed()
 
 
+async def _reject_over_ip_limit(writer, peer, client_ip):
+    LOGGER.warning("session rejected (per-IP limit) client=%s", peer)
+    cis_activity.log_event("session_rejected_per_ip", client_ip=client_ip)
+    with suppress(Exception):
+        writer.write(b"Too many connections from your address. Please try again later.\r\n")
+        await writer.drain()
+    writer.close()
+    with suppress(Exception):
+        await writer.wait_closed()
+
+
 async def serve_terminal(reader, writer):
     peer = writer.get_extra_info("peername")
-    try:
-        await asyncio.wait_for(SESSION_SLOTS.acquire(), timeout=5)
-    except asyncio.TimeoutError:
-        await _reject_busy(writer, peer)
+    client_ip = _peer_ip(peer)
+    if IP_SESSIONS.get(client_ip, 0) >= MAX_SESSIONS_PER_IP:
+        await _reject_over_ip_limit(writer, peer, client_ip)
         return
+    # Counted before any await, so concurrent connects can't race past the cap.
+    IP_SESSIONS[client_ip] = IP_SESSIONS.get(client_ip, 0) + 1
     try:
-        await _handle_session(reader, writer, peer)
+        try:
+            await asyncio.wait_for(SESSION_SLOTS.acquire(), timeout=5)
+        except asyncio.TimeoutError:
+            await _reject_busy(writer, peer)
+            return
+        try:
+            await _handle_session(reader, writer, peer)
+        finally:
+            SESSION_SLOTS.release()
     finally:
-        SESSION_SLOTS.release()
+        remaining = IP_SESSIONS.get(client_ip, 1) - 1
+        if remaining <= 0:
+            IP_SESSIONS.pop(client_ip, None)
+        else:
+            IP_SESSIONS[client_ip] = remaining
 
 
 # Echo-control markers emitted by the sim around password prompts.
