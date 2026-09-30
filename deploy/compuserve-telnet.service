@@ -1,0 +1,52 @@
+# compuserve-telnet.service — systemd unit for the CompuServe simulator
+# telnet gateway (telnet_app.py), sandboxed for internet exposure.
+#
+# INSTALL (on the server, as root):
+#   1. Edit the three ADJUST lines below to match your user and repo path.
+#   2. sudo cp compuserve-telnet.service /etc/systemd/system/
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable --now compuserve-telnet
+#   5. sudo ufw allow 2323/tcp        # only if ufw is active
+#   6. sudo ufw limit 2323/tcp       # rate-limit new connections (recommended)
+#
+# CHECK:
+#   sudo systemctl status compuserve-telnet
+#   sudo journalctl -u compuserve-telnet -f
+#
+# If the service fails to start, the most likely cause is a path below
+# not matching your machine — check `journalctl` for the error.
+
+[Unit]
+Description=CompuServe simulator telnet gateway (sandboxed)
+After=network.target
+
+[Service]
+Type=simple
+# --- ADJUST: your login user and repo location ---
+User=paul
+WorkingDirectory=/home/paul/Compuserve-simulator
+ExecStart=/usr/bin/python3 /home/paul/Compuserve-simulator/telnet_app.py
+# --- ADJUST: repo path again (the sim's SQLite db lives here) ---
+ReadWritePaths=/home/paul/Compuserve-simulator
+Environment=CIS_TELNET_PORT=2323
+Environment=CIS_TELNET_MAX_SESSIONS=20
+Environment=CIS_TELNET_IDLE_TIMEOUT=900
+
+Restart=on-failure
+RestartSec=5
+
+# --- Sandboxing: contain the gateway even if the sim misbehaves ---
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+# Cap damage from connection floods or runaway sessions.
+MemoryMax=1G
+TasksMax=120
+
+[Install]
+WantedBy=multi-user.target
