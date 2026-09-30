@@ -30,10 +30,13 @@ After=network.target
 
 [Service]
 Type=simple
-User=paul                                            # ADJUST-1: your login name (`whoami`)
-WorkingDirectory=/home/paul/Compuserve-simulator     # ADJUST-2: repo path (`pwd` inside the repo)
-ExecStart=/usr/bin/python3 /home/paul/Compuserve-simulator/telnet_app.py   # ADJUST-3: same repo path
-ReadWritePaths=/home/paul/Compuserve-simulator       # ADJUST-4: same repo path again
+# ADJUST-1: your login name — run `whoami` and use what it prints.
+User=paul
+# ADJUST-2/3/4: the repo location — cd into the repo dir, run `pwd`,
+# and use what it prints (all three must be the same path).
+WorkingDirectory=/home/paul/Compuserve-simulator
+ExecStart=/usr/bin/python3 /home/paul/Compuserve-simulator/telnet_app.py
+ReadWritePaths=/home/paul/Compuserve-simulator
 Environment=CIS_TELNET_PORT=2323
 Environment=CIS_TELNET_MAX_SESSIONS=20
 Environment=CIS_TELNET_IDLE_TIMEOUT=900
