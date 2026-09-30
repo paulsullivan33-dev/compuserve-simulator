@@ -383,6 +383,13 @@ class PhoneDirectoryTests(unittest.TestCase):
                 self.assertFalse(compuserve.login_screen())
                 authenticate.assert_called_once_with('70000,0001')
 
+    def test_blank_user_id_is_rejected_not_defaulted(self):
+        with patch('builtins.input', side_effect=['CIS', '', 'bad-id', '70000,0001']), patch.object(compuserve, 'ansi_scroll') as emit, patch.object(compuserve, 'authenticate_account', return_value=False) as authenticate:
+            self.assertFalse(compuserve.login_screen())
+        authenticate.assert_called_once_with('70000,0001')
+        form_msgs = [c.args[0] for c in emit.call_args_list if 'must have the form' in c.args[0]]
+        self.assertEqual(len(form_msgs), 2)
+
 
 class NavigationTests(unittest.TestCase):
     def test_go_unwinds_nested_forum_and_mail_prompts(self):

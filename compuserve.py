@@ -576,10 +576,10 @@ def login_screen():
         if host != "CIS":
             ansi_scroll("Invalid Host Name", 0.01)
         break
-    user_id = input("User ID: ").strip() or "70000,0001"
+    user_id = input("User ID: ").strip()
     while not re.fullmatch(r"\d{5},\d{4}", user_id):
         ansi_scroll("User ID must have the form 70000,0001", 0.01)
-        user_id = input("User ID: ").strip() or "70000,0001"
+        user_id = input("User ID: ").strip()
     if not authenticate_account(user_id):
         return False
     session_state.top_announcements_shown = False
