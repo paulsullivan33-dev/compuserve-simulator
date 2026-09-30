@@ -1,10 +1,15 @@
 """Account creation, password management, and authentication."""
 import os
 import re
+from datetime import datetime, timedelta, timezone
 
 import cis_activity
 
 from cis_session import read_input as input
+
+# Failed-password lockouts expire on their own; a manual sysop unlock
+# (cis_sysop.unlock_account) is only needed to clear one early.
+LOCKOUT_MINUTES = 15
 
 WELCOME_BODY = (
     "Welcome to the CompuServe Information Service. Enter GO COMMAND for commands, "
@@ -34,6 +39,7 @@ def set_password(app, profile, prompt="New password: "):
         app.ansi_scroll(str(exc), 0.01)
         return False
     profile.update({"failed_logins": 0, "locked": False})
+    profile.pop("locked_at", None)
     app.save_profiles()
     return True
 
@@ -90,6 +96,24 @@ def register_new_account(app):
     return user_id
 
 
+def _lockout_expired(profile):
+    """True when a failed-password lock may be lifted without a sysop.
+
+    Locks recorded before lock timestamps existed (or with an unreadable
+    timestamp) are treated as expired so they clear on the next attempt.
+    """
+    locked_at = profile.get("locked_at")
+    if not locked_at:
+        return True
+    try:
+        locked_time = datetime.fromisoformat(locked_at)
+    except (TypeError, ValueError):
+        return True
+    if locked_time.tzinfo is None:
+        locked_time = locked_time.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - locked_time >= timedelta(minutes=LOCKOUT_MINUTES)
+
+
 def authenticate(app, user_id):
     profile = app.profiles.get(user_id)
     if profile is None:
@@ -109,9 +133,17 @@ def authenticate(app, user_id):
         app.ansi_scroll("Account disabled. Contact the SysOp.", 0.01)
         return False
     if profile.get("locked"):
-        _activity(app, "login_denied", user_id=user_id, detail={"reason": "locked"})
-        app.ansi_scroll("Account locked. Contact the SysOp.", 0.01)
-        return False
+        if _lockout_expired(profile):
+            profile["locked"] = False
+            profile.pop("locked_at", None)
+            profile["failed_logins"] = 0
+            app.save_profiles()
+            _activity(app, "account_unlocked", user_id=user_id,
+                      detail={"reason": "lockout_expired"})
+        else:
+            _activity(app, "login_denied", user_id=user_id, detail={"reason": "locked"})
+            app.ansi_scroll("Account locked. Contact the SysOp.", 0.01)
+            return False
     if not profile.get("password_hash"):
         app.ansi_scroll("A local password must be established for this legacy account.", 0.01)
         return set_password(app, profile)
@@ -124,6 +156,7 @@ def authenticate(app, user_id):
         app.ansi_scroll("Invalid password.", 0.01)
     profile["failed_logins"] = profile.get("failed_logins", 0) + 3
     profile["locked"] = True
+    profile["locked_at"] = datetime.now(timezone.utc).isoformat()
     app.save_profiles()
     _activity(app, "account_locked", user_id=user_id)
     app.ansi_scroll("Account locked after three failed attempts.", 0.01)

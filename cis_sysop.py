@@ -12,6 +12,7 @@ def unlock_account(profiles, user_id):
     if not profile:
         return False
     profile["locked"] = False
+    profile.pop("locked_at", None)
     profile["failed_logins"] = 0
     return True
 
@@ -30,6 +31,7 @@ def reset_password(profiles, user_id):
         return False
     profile.pop("password_hash", None)
     profile["locked"] = False
+    profile.pop("locked_at", None)
     profile["failed_logins"] = 0
     return True
 

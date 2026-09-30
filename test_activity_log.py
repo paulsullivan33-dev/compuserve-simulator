@@ -6,6 +6,7 @@ import os
 import tempfile
 import types
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import cis_activity
@@ -81,7 +82,10 @@ class ActivityLogTest(unittest.TestCase):
 
     def test_locked_account_attempt_logs_denied(self):
         app = types.SimpleNamespace(
-            profiles={"70000,0001": {"locked": True}},
+            profiles={"70000,0001": {
+                "locked": True,
+                "locked_at": datetime.now(timezone.utc).isoformat(),
+            }},
             ansi_scroll=Mock(),
             save_profiles=Mock(),
             live_session_id="sess1",
@@ -90,6 +94,60 @@ class ActivityLogTest(unittest.TestCase):
         (event,) = self._lines()
         self.assertEqual(event["event"], "login_denied")
         self.assertEqual(event["detail"], {"reason": "locked"})
+
+    def test_expired_lockout_unlocks_and_logs_event(self):
+        app = types.SimpleNamespace(
+            profiles={"70000,0001": {
+                "password_hash": "x",
+                "locked": True,
+                "failed_logins": 3,
+                "locked_at": (datetime.now(timezone.utc)
+                              - timedelta(minutes=cis_accounts.LOCKOUT_MINUTES + 1)).isoformat(),
+            }},
+            ansi_scroll=Mock(),
+            password_input=Mock(return_value="right"),
+            verify_password=Mock(return_value=True),
+            save_profiles=Mock(),
+            live_session_id="sess1",
+        )
+        self.assertTrue(cis_accounts.authenticate(app, "70000,0001"))
+        profile = app.profiles["70000,0001"]
+        self.assertFalse(profile["locked"])
+        self.assertNotIn("locked_at", profile)
+        self.assertEqual(profile["failed_logins"], 0)
+        events = self._lines()
+        kinds = [e["event"] for e in events]
+        self.assertEqual(kinds, ["account_unlocked"])
+        self.assertEqual(events[0]["detail"], {"reason": "lockout_expired"})
+
+    def test_lockout_without_timestamp_is_treated_as_expired(self):
+        # Locks written before locked_at existed clear on the next attempt.
+        app = types.SimpleNamespace(
+            profiles={"70000,0001": {"password_hash": "x", "locked": True}},
+            ansi_scroll=Mock(),
+            password_input=Mock(return_value="right"),
+            verify_password=Mock(return_value=True),
+            save_profiles=Mock(),
+            live_session_id="sess1",
+        )
+        self.assertTrue(cis_accounts.authenticate(app, "70000,0001"))
+        self.assertFalse(app.profiles["70000,0001"]["locked"])
+        (event,) = self._lines()
+        self.assertEqual(event["event"], "account_unlocked")
+
+    def test_lockout_records_timestamp(self):
+        app = types.SimpleNamespace(
+            profiles={"70000,0001": {"password_hash": "x", "failed_logins": 0}},
+            ansi_scroll=Mock(),
+            password_input=Mock(return_value="wrong"),
+            verify_password=Mock(return_value=False),
+            save_profiles=Mock(),
+            live_session_id="sess1",
+        )
+        self.assertFalse(cis_accounts.authenticate(app, "70000,0001"))
+        locked_at = app.profiles["70000,0001"]["locked_at"]
+        parsed = datetime.fromisoformat(locked_at)
+        self.assertLess(datetime.now(timezone.utc) - parsed, timedelta(minutes=1))
 
     def test_reject_busy_logs_event(self):
         class FakeWriter:
