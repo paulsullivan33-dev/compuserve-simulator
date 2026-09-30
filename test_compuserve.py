@@ -390,6 +390,53 @@ class PhoneDirectoryTests(unittest.TestCase):
         form_msgs = [c.args[0] for c in emit.call_args_list if 'must have the form' in c.args[0]]
         self.assertEqual(len(form_msgs), 2)
 
+    def test_prompt_user_id_new_keyword_registers(self):
+        with patch('builtins.input', side_effect=['NEW']), patch.object(compuserve.cis_accounts, 'register_new_account', return_value='71000,0007') as register, patch.object(compuserve, 'ansi_scroll'):
+            user_id, is_new = compuserve._prompt_user_id()
+        self.assertEqual((user_id, is_new), ('71000,0007', True))
+        register.assert_called_once()
+
+    def test_prompt_user_id_blank_then_new(self):
+        with patch('builtins.input', side_effect=['', 'new']), patch.object(compuserve.cis_accounts, 'register_new_account', return_value='71000,0001'), patch.object(compuserve, 'ansi_scroll') as emit:
+            user_id, is_new = compuserve._prompt_user_id()
+        self.assertEqual((user_id, is_new), ('71000,0001', True))
+        self.assertTrue(any('must have the form' in c.args[0] for c in emit.call_args_list))
+
+    def test_next_user_id_allocates_from_empty_pool(self):
+        app = types.SimpleNamespace(profiles={})
+        self.assertEqual(compuserve.cis_accounts.next_user_id(app), '71000,0001')
+
+    def test_next_user_id_skips_taken_ids(self):
+        app = types.SimpleNamespace(profiles={'70000,0001': {}, '71000,0001': {}, '71000,0002': {}, 'junk': {}})
+        self.assertEqual(compuserve.cis_accounts.next_user_id(app), '71000,0003')
+
+    def _new_account_app(self, passwords):
+        return types.SimpleNamespace(
+            profiles={},
+            connection_baud=1200,
+            SCREEN_WIDTH=80,
+            ansi_scroll=Mock(),
+            password_input=Mock(side_effect=passwords),
+            hash_password=compuserve.hash_password,
+            save_profiles=Mock(),
+            cis_dynamic=types.SimpleNamespace(schedule_event=Mock()),
+        )
+
+    def test_register_new_account_sets_password_and_mails_welcome(self):
+        app = self._new_account_app(['s3cret', 's3cret'])
+        user_id = compuserve.cis_accounts.register_new_account(app)
+        self.assertEqual(user_id, '71000,0001')
+        self.assertTrue(compuserve.verify_password('s3cret', app.profiles[user_id]['password_hash']))
+        app.cis_dynamic.schedule_event.assert_called_once()
+        event = app.cis_dynamic.schedule_event.call_args[0]
+        self.assertEqual(event[1], 'mail')
+        self.assertEqual(event[2]['to'], '71000,0001')
+
+    def test_register_new_account_abandoned_password_leaves_no_profile(self):
+        app = self._new_account_app(['one', 'two'])
+        self.assertIsNone(compuserve.cis_accounts.register_new_account(app))
+        self.assertEqual(app.profiles, {})
+
 
 class NavigationTests(unittest.TestCase):
     def test_go_unwinds_nested_forum_and_mail_prompts(self):

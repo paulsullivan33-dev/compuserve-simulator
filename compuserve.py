@@ -565,6 +565,21 @@ def authenticate_account(user_id):
 
 # --- Login Screen ------------------------------------------------------------
 
+def _prompt_user_id():
+    """Prompt for a User ID, or NEW to register a fresh account.
+
+    Returns (user_id, is_new). user_id is None when the visitor
+    abandoned registration partway through.
+    """
+    while True:
+        raw = input("User ID (or NEW for a new account): ").strip()
+        if raw.upper() == "NEW":
+            return cis_accounts.register_new_account(sys.modules[__name__]), True
+        if re.fullmatch(r"\d{5},\d{4}", raw):
+            return raw, False
+        ansi_scroll("User ID must have the form 70000,0001", 0.01)
+
+
 def login_screen():
     global current_user_id, session_start, connection_baud, SCREEN_WIDTH
     ansi_scroll("Enter CIS to log in, or PHONES for access numbers.", 0.01)
@@ -576,11 +591,10 @@ def login_screen():
         if host != "CIS":
             ansi_scroll("Invalid Host Name", 0.01)
         break
-    user_id = input("User ID: ").strip()
-    while not re.fullmatch(r"\d{5},\d{4}", user_id):
-        ansi_scroll("User ID must have the form 70000,0001", 0.01)
-        user_id = input("User ID: ").strip()
-    if not authenticate_account(user_id):
+    user_id, is_new = _prompt_user_id()
+    if user_id is None:
+        return False
+    if not is_new and not authenticate_account(user_id):
         return False
     session_state.top_announcements_shown = False
     current_user_id = user_id
