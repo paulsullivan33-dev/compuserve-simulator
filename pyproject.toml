@@ -33,6 +33,7 @@ py-modules = [
     "feed_utils",
     "make_sysop",
     "cis_accounts",
+    "cis_activity",
     "cis_adventure_league",
     "cis_announcements",
     "cis_arcade",
