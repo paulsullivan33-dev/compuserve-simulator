@@ -960,6 +960,74 @@ class NavigationTests(unittest.TestCase):
 
         self.assertEqual(asyncio.run(scenario()), [b"\n", b"hello\n"])
 
+    def test_telnet_greeting_sent_before_subprocess_spawn(self):
+        # Spawning the sim subprocess (cold Python + imports) can take ~10s;
+        # the client must see a greeting before that, not a blank screen.
+        async def scenario():
+            events = []
+
+            class FakeWriter:
+                def write(self, data):
+                    events.append(("write", bytes(data)))
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            class FakeStdin:
+                def write(self, data):
+                    pass
+
+                async def drain(self):
+                    pass
+
+            class FakeProcess:
+                returncode = 0
+                stdin = FakeStdin()
+
+                def __init__(self):
+                    self.stdout = asyncio.StreamReader()
+                    self.stdout.feed_eof()
+
+                async def wait(self):
+                    return 0
+
+                def terminate(self):
+                    pass
+
+                def kill(self):
+                    pass
+
+            async def fake_spawn(*args, **kwargs):
+                events.append(("spawn",))
+                return FakeProcess()
+
+            real_spawn = telnet_app.asyncio.create_subprocess_exec
+            real_log = telnet_app.cis_activity.log_event
+            telnet_app.asyncio.create_subprocess_exec = fake_spawn
+            telnet_app.cis_activity.log_event = lambda *a, **k: None
+            try:
+                await telnet_app._handle_session(
+                    asyncio.StreamReader(), FakeWriter(), ("127.0.0.1", 1234)
+                )
+            finally:
+                telnet_app.asyncio.create_subprocess_exec = real_spawn
+                telnet_app.cis_activity.log_event = real_log
+            return events
+
+        events = asyncio.run(scenario())
+        kinds = [kind for kind, *_ in events]
+        self.assertIn("write", kinds)
+        self.assertIn("spawn", kinds)
+        self.assertLess(kinds.index("write"), kinds.index("spawn"))
+        greeting = events[kinds.index("write")][1]
+        self.assertIn(b"Connecting to CompuServe", greeting)
+
     def test_telnet_input_flood_disconnects(self):
         # A client that never sends a line terminator must not grow the
         # gateway's input buffer without bound.

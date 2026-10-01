@@ -263,6 +263,17 @@ async def _handle_session(reader, writer, peer):
     started = time.monotonic()
     LOGGER.info("terminal connected session=%s client=%s", session_id, peer)
     cis_activity.log_event("session_connected", session_id=session_id, client_ip=client_ip)
+    process = None
+    disconnect_reason = "unknown"
+    echo = _EchoTranslator()
+
+    # Greet immediately: spawning the sim subprocess (cold Python +
+    # imports) can take ~10s, and a client staring at a blank screen
+    # that long assumes the connection is dead and hangs up.
+    with suppress(Exception):
+        writer.write(b"\r\nConnecting to CompuServe...\r\n")
+        await writer.drain()
+
     process = await asyncio.create_subprocess_exec(
         sys.executable, "-u", str(BASE_DIR / "compuserve.py"),
         cwd=BASE_DIR,
