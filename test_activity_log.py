@@ -186,12 +186,12 @@ class ActivityLogTest(unittest.TestCase):
                 return "client_closed"
             with patch.object(telnet_app, "forward_telnet_input", side_effect=boom):
                 self.assertEqual(
-                    await telnet_app._input_reason(None, None, None, "s", None),
+                    await telnet_app._input_reason(None, None, None, "s", None, None),
                     "client_error",
                 )
             with patch.object(telnet_app, "forward_telnet_input", side_effect=ok):
                 self.assertEqual(
-                    await telnet_app._input_reason(None, None, None, "s", None),
+                    await telnet_app._input_reason(None, None, None, "s", None, None),
                     "client_closed",
                 )
         asyncio.run(go())
@@ -199,21 +199,26 @@ class ActivityLogTest(unittest.TestCase):
 
 class PasswordEchoTest(unittest.TestCase):
     def test_echo_translator_strips_markers_and_emits_iac(self):
-        tr = telnet_app._EchoTranslator()
+        state = telnet_app._EchoState()
+        tr = telnet_app._EchoTranslator(state)
         fwd, iac = tr.feed(b"hello " + telnet_app._ECHO_OFF_MARKER + b"world")
         self.assertEqual(fwd, b"hello world")
         self.assertEqual(iac, b"\xff\xfb\x01")  # IAC WILL ECHO
+        self.assertFalse(state.enabled)  # server stops echoing the password
         fwd, iac = tr.feed(b"done" + telnet_app._ECHO_ON_MARKER)
         self.assertEqual(fwd, b"done")
-        self.assertEqual(iac, b"\xff\xfc\x01")  # IAC WONT ECHO
+        self.assertEqual(iac, b"")  # no WONT ECHO: server keeps echoing
+        self.assertTrue(state.enabled)
 
     def test_echo_translator_handles_split_marker(self):
-        tr = telnet_app._EchoTranslator()
+        state = telnet_app._EchoState()
+        tr = telnet_app._EchoTranslator(state)
         fwd, iac = tr.feed(b"abc\x00[ECHO")
         self.assertEqual((fwd, iac), (b"abc", b""))
         fwd, iac = tr.feed(b"OFF]\x00def")
         self.assertEqual(fwd, b"def")
         self.assertEqual(iac, b"\xff\xfb\x01")
+        self.assertFalse(state.enabled)
 
     def test_password_input_suppresses_echo_for_remote_terminal(self):
         buf = io.StringIO()

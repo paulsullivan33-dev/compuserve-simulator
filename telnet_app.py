@@ -84,30 +84,43 @@ def split_telnet_line(buf):
     """Split the first telnet line off buf.
 
     Telnet clients end lines with CRLF, CR NUL, CR, or LF (RFC 854).
+    A CR always terminates the line; a LF or NUL immediately following
+    it is consumed as part of the same terminator. Callers pause briefly
+    for a CRLF split across reads before calling, so a trailing CR here
+    is a genuine bare CR (e.g. a C64 RETURN key) and ends the line at
+    once instead of hanging until the next keypress.
     Returns (line, rest); line is None when no terminator is buffered yet.
-    A trailing bare CR waits for the next byte in case CRLF/CR NUL follows.
     """
     for index, byte in enumerate(buf):
         if byte == 0x0D:  # CR
-            if index + 1 >= len(buf):
-                return None, buf
-            rest_at = index + 2 if buf[index + 1] in (0x0A, 0x00) else index + 1
-            return bytes(buf[:index]), bytes(buf[rest_at:])
+            if index + 1 < len(buf) and buf[index + 1] in (0x0A, 0x00):
+                return bytes(buf[:index]), bytes(buf[index + 2:])
+            return bytes(buf[:index]), bytes(buf[index + 1:])
         if byte == 0x0A:  # LF
             return bytes(buf[:index]), bytes(buf[index + 1:])
     return None, buf
 
 
-async def forward_telnet_input(reader, writer, process, session_id, peer):
+async def forward_telnet_input(reader, writer, process, session_id, peer,
+                               echo_state=None):
     """Forward client keystrokes to the terminal subprocess, one line at a time.
 
     Negotiation bytes are stripped from the raw stream before line
     splitting, so they can never swallow the terminator of the user's
     first Enter keypress.
 
+    A chunk ending in CR may be a CRLF/CR NUL split across reads
+    (char-at-a-time clients); wait briefly for the rest before
+    splitting, so a genuine bare CR (C64 RETURN key) still ends the
+    line promptly instead of hanging until the next keypress.
+
+    Keystrokes are echoed back (remote echo) unless echo_state says
+    otherwise, so terminals without local echo can see what they type.
+
     Returns the reason input forwarding stopped: "idle_timeout",
     "client_closed", "input_flood", or "session_ended".
     """
+    echo_state = echo_state or _EchoState()
     raw_buf = b""
     line_buf = b""
     while process.returncode is None:
@@ -121,8 +134,16 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
             return "idle_timeout"
         if not chunk:
             return "client_closed"  # client disconnected
+        if chunk.endswith(b"\r"):
+            # Possible split CRLF/CR NUL: wait briefly for the rest.
+            # A true bare CR completes on timeout.
+            with suppress(asyncio.TimeoutError):
+                chunk += await asyncio.wait_for(reader.read(1024), timeout=0.1)
         raw_buf += chunk
         cleaned, raw_buf = strip_telnet_commands(raw_buf)
+        if cleaned and echo_state.enabled:
+            writer.write(_echo_bytes(cleaned))
+            await writer.drain()
         line_buf += cleaned
         if len(raw_buf) > MAX_BUFFERED_INPUT or len(line_buf) > MAX_BUFFERED_INPUT:
             LOGGER.warning("terminal input flood session=%s client=%s", session_id, peer)
@@ -140,7 +161,7 @@ async def forward_telnet_input(reader, writer, process, session_id, peer):
     return "session_ended"
 
 
-async def _input_reason(reader, writer, process, session_id, peer):
+async def _input_reason(reader, writer, process, session_id, peer, echo_state):
     """forward_telnet_input's reason, or "client_error" if it dies abruptly.
 
     An abrupt client drop (connection reset) raises out of the reader instead
@@ -148,7 +169,8 @@ async def _input_reason(reader, writer, process, session_id, peer):
     shows "unknown".
     """
     try:
-        return await forward_telnet_input(reader, writer, process, session_id, peer)
+        return await forward_telnet_input(reader, writer, process, session_id,
+                                          peer, echo_state)
     except Exception:
         LOGGER.exception("input forwarder failed session=%s", session_id)
         return "client_error"
@@ -215,7 +237,42 @@ async def serve_terminal(reader, writer):
 _ECHO_OFF_MARKER = b"\x00[ECHOOFF]\x00"
 _ECHO_ON_MARKER = b"\x00[ECHOON]\x00"
 _IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
-_IAC_WONT_ECHO = b"\xff\xfc\x01"  # server stops echoing: client, echo again
+
+
+class _EchoState:
+    """Whether the gateway echoes client keystrokes back.
+
+    True normally; the sim's password markers flip it off and on via
+    _EchoTranslator. One instance is shared by a session's input and
+    output tasks.
+    """
+
+    def __init__(self):
+        self.enabled = True
+
+
+def _echo_bytes(data):
+    """Translate input bytes for remote echo.
+
+    Keystrokes are reflected back so clients without local echo (e.g.
+    C64 terminals) see what they type. CR, LF, CRLF, and CR NUL each
+    echo as a single CRLF so the cursor lands on a fresh line.
+    """
+    out = bytearray()
+    i = 0
+    end = len(data)
+    while i < end:
+        byte = data[i]
+        if byte == 0x0D:  # CR: echo CRLF, swallow one following LF/NUL
+            out += b"\r\n"
+            if i + 1 < end and data[i + 1] in (0x0A, 0x00):
+                i += 1
+        elif byte == 0x0A:  # bare LF
+            out += b"\r\n"
+        else:
+            out.append(byte)
+        i += 1
+    return bytes(out)
 
 
 class _EchoTranslator:
@@ -223,10 +280,16 @@ class _EchoTranslator:
 
     Markers can straddle read-chunk boundaries, so a trailing partial marker
     is held back until the next feed(). Call flush() at end of stream.
+
+    ECHO_OFF also clears echo_state.enabled (the server stops echoing the
+    password); ECHO_ON sets it again. The client was told WILL ECHO at
+    connect and keeps its local echo off throughout, so no WONT ECHO is
+    ever sent.
     """
 
-    def __init__(self):
+    def __init__(self, echo_state=None):
         self._pending = b""
+        self._echo_state = echo_state or _EchoState()
 
     def feed(self, chunk):
         """Return (forward_bytes, iac_bytes) for one chunk of sim output."""
@@ -238,10 +301,13 @@ class _EchoTranslator:
         end = len(data)
         while index < end:
             if data.startswith(_ECHO_OFF_MARKER, index):
-                iac += _IAC_WILL_ECHO
+                iac += _IAC_WILL_ECHO  # re-assert: stay quiet, client
+                self._echo_state.enabled = False
                 index += len(_ECHO_OFF_MARKER)
             elif data.startswith(_ECHO_ON_MARKER, index):
-                iac += _IAC_WONT_ECHO
+                # The server keeps echoing after the password, so the
+                # client must keep its local echo off: no WONT ECHO.
+                self._echo_state.enabled = True
                 index += len(_ECHO_ON_MARKER)
             elif data[index:index + 1] == b"\x00" and end - index < len(_ECHO_OFF_MARKER):
                 self._pending = data[index:]  # split marker; wait for more
@@ -265,13 +331,17 @@ async def _handle_session(reader, writer, peer):
     cis_activity.log_event("session_connected", session_id=session_id, client_ip=client_ip)
     process = None
     disconnect_reason = "unknown"
-    echo = _EchoTranslator()
+    echo_state = _EchoState()
+    echo = _EchoTranslator(echo_state)
 
     # Greet immediately: spawning the sim subprocess (cold Python +
     # imports) can take ~10s, and a client staring at a blank screen
     # that long assumes the connection is dead and hangs up.
     with suppress(Exception):
         writer.write(b"\r\nConnecting to CompuServe...\r\n")
+        # We echo keystrokes ourselves (many retro terminals have no
+        # local echo); ask the client to keep its own echo off.
+        writer.write(_IAC_WILL_ECHO)
         await writer.drain()
 
     process = await asyncio.create_subprocess_exec(
@@ -291,7 +361,7 @@ async def _handle_session(reader, writer, peer):
     )
 
     disconnect_reason = "unknown"
-    echo = _EchoTranslator()
+    echo = _EchoTranslator(echo_state)
 
     async def output():
         while chunk := await process.stdout.read(512):
@@ -307,7 +377,8 @@ async def _handle_session(reader, writer, peer):
 
     async def input_lines():
         nonlocal disconnect_reason
-        disconnect_reason = await _input_reason(reader, writer, process, session_id, peer)
+        disconnect_reason = await _input_reason(reader, writer, process,
+                                               session_id, peer, echo_state)
 
     output_task = asyncio.create_task(output())
     input_task = asyncio.create_task(input_lines())

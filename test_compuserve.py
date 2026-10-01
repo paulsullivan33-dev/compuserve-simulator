@@ -20,6 +20,8 @@ from unittest import mock
 import compuserve
 import cis_hamnet
 import cis_nightstation
+
+REPO_ROOT = Path(__file__).resolve().parent
 import cis_sports
 import cis_veterans
 import cis_roots
@@ -924,7 +926,7 @@ class NavigationTests(unittest.TestCase):
                     pass
 
             process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
-            await telnet_app.forward_telnet_input(reader, Mock(), process, "s", ("127.0.0.1", 1))
+            await telnet_app.forward_telnet_input(reader, mock.AsyncMock(), process, "s", ("127.0.0.1", 1))
             return writes
 
         self.assertEqual(asyncio.run(scenario()), [b"\n"])
@@ -935,8 +937,9 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(telnet_app.split_telnet_line(b"hi\rrest"), (b"hi", b"rest"))
         self.assertEqual(telnet_app.split_telnet_line(b"hi\nrest"), (b"hi", b"rest"))
         self.assertEqual(telnet_app.split_telnet_line(b"partial"), (None, b"partial"))
-        # trailing bare CR waits for the next byte (CRLF vs CR NUL)
-        self.assertEqual(telnet_app.split_telnet_line(b"hi\r"), (None, b"hi\r"))
+        # trailing bare CR ends the line at once (callers wait briefly
+        # first in case it's a CRLF split across reads)
+        self.assertEqual(telnet_app.split_telnet_line(b"hi\r"), (b"hi", b""))
 
     def test_telnet_cr_nul_input_is_forwarded(self):
         async def scenario():
@@ -955,10 +958,87 @@ class NavigationTests(unittest.TestCase):
                     pass
 
             process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
-            await telnet_app.forward_telnet_input(reader, Mock(), process, "s", ("127.0.0.1", 1))
+            await telnet_app.forward_telnet_input(reader, mock.AsyncMock(), process, "s", ("127.0.0.1", 1))
             return writes
 
         self.assertEqual(asyncio.run(scenario()), [b"\n", b"hello\n"])
+
+    def test_telnet_bare_cr_forwarded_promptly_and_echoed(self):
+        # C64 RETURN sends a bare CR; it must end the line without
+        # waiting for another keypress, and be echoed back to the client.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"hi\r")  # bare CR, no LF follows
+            reader.feed_eof()
+
+            writes = []
+            echoed = []
+
+            class FakeStdin:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            class FakeWriter:
+                def write(self, data):
+                    echoed.append(bytes(data))
+
+                async def drain(self):
+                    pass
+
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            await telnet_app.forward_telnet_input(
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1),
+                telnet_app._EchoState())
+            return writes, echoed
+
+        writes, echoed = asyncio.run(scenario())
+        self.assertEqual(writes, [b"hi\n"])
+        self.assertEqual(echoed, [b"hi\r\n"])
+
+    def test_telnet_echo_suppressed_when_disabled(self):
+        # Password input must reach the sim but never be echoed back.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"s3cret\r\n")
+            reader.feed_eof()
+
+            writes = []
+            echoed = []
+
+            class FakeStdin:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            class FakeWriter:
+                def write(self, data):
+                    echoed.append(bytes(data))
+
+                async def drain(self):
+                    pass
+
+            state = telnet_app._EchoState()
+            state.enabled = False
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            await telnet_app.forward_telnet_input(
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1), state)
+            return writes, echoed
+
+        writes, echoed = asyncio.run(scenario())
+        self.assertEqual(writes, [b"s3cret\n"])
+        self.assertEqual(echoed, [])
+
+    def test_echo_bytes_translates_terminators(self):
+        self.assertEqual(telnet_app._echo_bytes(b"hi\r\n"), b"hi\r\n")
+        self.assertEqual(telnet_app._echo_bytes(b"hi\r\x00"), b"hi\r\n")
+        self.assertEqual(telnet_app._echo_bytes(b"hi\r"), b"hi\r\n")
+        self.assertEqual(telnet_app._echo_bytes(b"hi\n"), b"hi\r\n")
+        self.assertEqual(telnet_app._echo_bytes(b"hi"), b"hi")
 
     def test_telnet_greeting_sent_before_subprocess_spawn(self):
         # Spawning the sim subprocess (cold Python + imports) can take ~10s;
@@ -3127,7 +3207,6 @@ if __name__ == "__main__":
 
 
 # --- Feature 1: ham radio forum (cis_hamnet) ---
-REPO_ROOT = Path(__file__).resolve().parent
 JSON_PATH = REPO_ROOT / "computer_communities.json"
 
 REQUIRED_FIELDS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
