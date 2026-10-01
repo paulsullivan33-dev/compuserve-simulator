@@ -252,7 +252,12 @@ def page_indicator(screen_key):
 
 def clear():
     mode = current_profile.get("display_mode", startup_options["display_mode"])
-    if os.environ.get("CIS_ANSI") == "1":
+    # Scroll mode means the terminal scrolls instead of clearing: never send
+    # clear-screen escapes, even when the transport claims ANSI support
+    # (e.g. the telnet gateway sets CIS_ANSI=1 for every session, which used
+    # to make the C64 preset's scroll mode emit garbage on real C64s).
+    ansi_ok = os.environ.get("CIS_ANSI") == "1" and mode != "scroll"
+    if ansi_ok:
         sys.stdout.write("\x1b[2J\x1b[H")
         sys.stdout.flush()
     elif mode == "screen":
