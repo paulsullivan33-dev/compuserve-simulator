@@ -371,6 +371,12 @@ def startup_configuration():
         startup_options["columns"] = SCREEN_WIDTH
         save_json_atomic("terminal_config.json", startup_options)
     # Anything else (including RETURN) accepts the current settings as-is.
+    if os.environ.get("CIS_TRANSPORT") == "TELNET":
+        # Terminal type selected: tell the telnet gateway it may now
+        # negotiate WILL ECHO and echo keystrokes (stripped by the gateway,
+        # never shown to the user).
+        sys.stdout.write(TERM_SELECTED_MARKER)
+        sys.stdout.flush()
     # The time-capsule destination is a connection-setup choice too, so it
     # lives here with the other non-service options rather than after login.
     choose_temporal_destination_setup()
@@ -547,6 +553,10 @@ def modem_dial_in():
 # they can never collide with real output; only emitted for remote terminals.
 ECHO_SUPPRESS_MARKER = "\x00[ECHOOFF]\x00"
 ECHO_RESTORE_MARKER = "\x00[ECHOON]\x00"
+# Emitted once the terminal type is selected (after startup configuration).
+# The telnet gateway strips it and only then sends IAC WILL ECHO -- no
+# control characters go out before the terminal is known.
+TERM_SELECTED_MARKER = "\x00[TERMSELECTED]\x00"
 
 
 def password_input(prompt="Password: "):

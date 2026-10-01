@@ -965,7 +965,8 @@ class NavigationTests(unittest.TestCase):
 
     def test_telnet_bare_cr_forwarded_promptly_and_echoed(self):
         # C64 RETURN sends a bare CR; it must end the line without
-        # waiting for another keypress, and be echoed back to the client.
+        # waiting for another keypress, and be echoed back to the client
+        # once the terminal type is selected (echo starts disabled).
         async def scenario():
             reader = asyncio.StreamReader()
             reader.feed_data(b"hi\r")  # bare CR, no LF follows
@@ -989,14 +990,50 @@ class NavigationTests(unittest.TestCase):
                     pass
 
             process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            state = telnet_app._EchoState()
+            state.enabled = True  # as after the sim's TERM_SELECTED marker
             await telnet_app.forward_telnet_input(
-                reader, FakeWriter(), process, "s", ("127.0.0.1", 1),
-                telnet_app._EchoState())
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1), state)
             return writes, echoed
 
         writes, echoed = asyncio.run(scenario())
         self.assertEqual(writes, [b"hi\n"])
         self.assertEqual(echoed, [b"hi\r\n"])
+
+    def test_telnet_no_echo_before_terminal_selected(self):
+        # No control characters and no echo before the terminal type is
+        # selected: keystrokes reach the sim but are not reflected back.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"P\r")
+            reader.feed_eof()
+
+            writes = []
+            echoed = []
+
+            class FakeStdin:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            class FakeWriter:
+                def write(self, data):
+                    echoed.append(bytes(data))
+
+                async def drain(self):
+                    pass
+
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            await telnet_app.forward_telnet_input(
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1),
+                telnet_app._EchoState())  # disabled until TERM_SELECTED
+            return writes, echoed
+
+        writes, echoed = asyncio.run(scenario())
+        self.assertEqual(writes, [b"P\n"])
+        self.assertEqual(echoed, [])
 
     def test_telnet_echo_suppressed_when_disabled(self):
         # Password input must reach the sim but never be echoed back.

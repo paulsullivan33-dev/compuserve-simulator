@@ -198,12 +198,22 @@ class ActivityLogTest(unittest.TestCase):
 
 
 class PasswordEchoTest(unittest.TestCase):
-    def test_echo_translator_strips_markers_and_emits_iac(self):
+    def test_term_selected_enables_echo_and_sends_will_echo(self):
+        state = telnet_app._EchoState()
+        self.assertFalse(state.enabled)  # no echo before terminal selection
+        tr = telnet_app._EchoTranslator(state)
+        fwd, iac = tr.feed(b"ready" + telnet_app._TERM_SELECTED_MARKER + b"menu")
+        self.assertEqual(fwd, b"readymenu")
+        self.assertEqual(iac, b"\xff\xfb\x01")  # IAC WILL ECHO, once
+        self.assertTrue(state.enabled)
+
+    def test_echo_translator_strips_markers_and_toggles_echo(self):
         state = telnet_app._EchoState()
         tr = telnet_app._EchoTranslator(state)
+        # Password markers only flip the flag; WILL ECHO went out earlier.
         fwd, iac = tr.feed(b"hello " + telnet_app._ECHO_OFF_MARKER + b"world")
         self.assertEqual(fwd, b"hello world")
-        self.assertEqual(iac, b"\xff\xfb\x01")  # IAC WILL ECHO
+        self.assertEqual(iac, b"")
         self.assertFalse(state.enabled)  # server stops echoing the password
         fwd, iac = tr.feed(b"done" + telnet_app._ECHO_ON_MARKER)
         self.assertEqual(fwd, b"done")
@@ -217,7 +227,7 @@ class PasswordEchoTest(unittest.TestCase):
         self.assertEqual((fwd, iac), (b"abc", b""))
         fwd, iac = tr.feed(b"OFF]\x00def")
         self.assertEqual(fwd, b"def")
-        self.assertEqual(iac, b"\xff\xfb\x01")
+        self.assertEqual(iac, b"")
         self.assertFalse(state.enabled)
 
     def test_password_input_suppresses_echo_for_remote_terminal(self):

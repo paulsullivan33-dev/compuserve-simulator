@@ -231,24 +231,31 @@ async def serve_terminal(reader, writer):
             IP_SESSIONS[client_ip] = remaining
 
 
-# Echo-control markers emitted by the sim around password prompts.
-# Translated here into telnet option negotiation so remote clients stop
-# their local echo while a secret is typed (like real telnetd).
+# Echo-control markers emitted by the sim. Translated here into telnet option
+# negotiation so remote clients stop their local echo while a secret is
+# typed (like real telnetd). NUL-delimited so they never collide with real
+# output; only emitted for remote terminals.
+#
+# No IAC is sent before the terminal type is selected: the sim emits
+# TERM_SELECTED right after its startup configuration, and only then does
+# the gateway send WILL ECHO and start remote echo. Before that the client
+# is on its own (dumb-terminal behavior).
 _ECHO_OFF_MARKER = b"\x00[ECHOOFF]\x00"
 _ECHO_ON_MARKER = b"\x00[ECHOON]\x00"
+_TERM_SELECTED_MARKER = b"\x00[TERMSELECTED]\x00"
 _IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
 
 
 class _EchoState:
     """Whether the gateway echoes client keystrokes back.
 
-    True normally; the sim's password markers flip it off and on via
-    _EchoTranslator. One instance is shared by a session's input and
-    output tasks.
+    False until the sim reports the terminal type selected (via
+    _EchoTranslator); the sim's password markers then flip it off and on.
+    One instance is shared by a session's input and output tasks.
     """
 
     def __init__(self):
-        self.enabled = True
+        self.enabled = False
 
 
 def _echo_bytes(data):
@@ -281,10 +288,11 @@ class _EchoTranslator:
     Markers can straddle read-chunk boundaries, so a trailing partial marker
     is held back until the next feed(). Call flush() at end of stream.
 
-    ECHO_OFF also clears echo_state.enabled (the server stops echoing the
-    password); ECHO_ON sets it again. The client was told WILL ECHO at
-    connect and keeps its local echo off throughout, so no WONT ECHO is
-    ever sent.
+    TERM_SELECTED (terminal type chosen) sends WILL ECHO and enables the
+    gateway's remote echo; ECHO_OFF clears echo_state.enabled (the server
+    stops echoing the password); ECHO_ON sets it again. The client was told
+    WILL ECHO at terminal selection and keeps its local echo off throughout,
+    so no WONT ECHO is ever sent.
     """
 
     def __init__(self, echo_state=None):
@@ -300,16 +308,18 @@ class _EchoTranslator:
         index = 0
         end = len(data)
         while index < end:
-            if data.startswith(_ECHO_OFF_MARKER, index):
-                iac += _IAC_WILL_ECHO  # re-assert: stay quiet, client
+            if data.startswith(_TERM_SELECTED_MARKER, index):
+                # Terminal type selected: take over echo from here on.
+                iac += _IAC_WILL_ECHO
+                self._echo_state.enabled = True
+                index += len(_TERM_SELECTED_MARKER)
+            elif data.startswith(_ECHO_OFF_MARKER, index):
                 self._echo_state.enabled = False
                 index += len(_ECHO_OFF_MARKER)
             elif data.startswith(_ECHO_ON_MARKER, index):
-                # The server keeps echoing after the password, so the
-                # client must keep its local echo off: no WONT ECHO.
                 self._echo_state.enabled = True
                 index += len(_ECHO_ON_MARKER)
-            elif data[index:index + 1] == b"\x00" and end - index < len(_ECHO_OFF_MARKER):
+            elif data[index:index + 1] == b"\x00" and end - index < len(_TERM_SELECTED_MARKER):
                 self._pending = data[index:]  # split marker; wait for more
                 break
             else:
@@ -336,12 +346,12 @@ async def _handle_session(reader, writer, peer):
 
     # Greet immediately: spawning the sim subprocess (cold Python +
     # imports) can take ~10s, and a client staring at a blank screen
-    # that long assumes the connection is dead and hangs up.
+    # that long assumes the connection is dead and hangs up. Plain text
+    # only -- no control characters are sent before the terminal type is
+    # selected (the sim reports that with TERM_SELECTED, and only then
+    # does the gateway negotiate WILL ECHO).
     with suppress(Exception):
         writer.write(b"\r\nConnecting to CompuServe...\r\n")
-        # We echo keystrokes ourselves (many retro terminals have no
-        # local echo); ask the client to keep its own echo off.
-        writer.write(_IAC_WILL_ECHO)
         await writer.drain()
 
     process = await asyncio.create_subprocess_exec(
