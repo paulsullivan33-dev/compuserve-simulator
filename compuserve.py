@@ -106,7 +106,7 @@ SIMULATION_YEAR = 1988
 SIMULATION_DATE = "12/15/88"
 SCREEN_WIDTH = 80
 BAUD_RATES = {300: 6.00, 1200: 12.00, 2400: 24.00}
-connection_baud = 1200
+connection_baud = 300  # safest baseline; user selects faster via preset
 # Time-capsule date chosen during connection setup, applied to the session
 # after login. Holds a date, None for "Present Day", or _SURPRISE_SENTINEL to
 # resolve a per-user deterministic surprise date once the account is known.

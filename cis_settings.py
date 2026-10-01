@@ -5,7 +5,7 @@ PRESETS = {
 }
 
 DEFAULTS = {
-    "baud": 1200,
+    "baud": 300,
     "columns": 80,
     "display_mode": "scroll",
     "skip_dialing": False,
