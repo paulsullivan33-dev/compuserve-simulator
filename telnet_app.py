@@ -182,6 +182,8 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
                     _debug_bytes("recv-extra", session_id, extra, echo_state)
                 chunk += extra
         raw_buf += chunk
+        if b"\xff" in chunk:
+            echo_state.saw_iac = True  # client speaks TELNET
         cleaned, raw_buf = strip_telnet_commands(raw_buf)
         cleaned = _petscii_to_ascii(cleaned)
         if cleaned != chunk:
@@ -305,6 +307,7 @@ class _EchoState:
     def __init__(self):
         self.enabled = True
         self.term_selected = False
+        self.saw_iac = False  # True if the client sent any TELNET IAC
 
 
 def _echo_bytes(data):
@@ -439,10 +442,17 @@ async def _handle_session(reader, writer, peer):
         while chunk := await process.stdout.read(512):
             forward, iac = echo.feed(chunk)
             if iac:
-                if TELNET_DEBUG:
-                    LOGGER.info("telnet_debug session=%s send-iac hex=%s",
-                                session_id, iac.hex())
-                writer.write(iac)
+                if echo_state.saw_iac:
+                    # Only negotiate with real TELNET clients; raw-socket
+                    # terminals (e.g. C64 UltimateTerm) display IAC bytes
+                    # as garbage and may drop the connection.
+                    if TELNET_DEBUG:
+                        LOGGER.info("telnet_debug session=%s send-iac hex=%s",
+                                    session_id, iac.hex())
+                    writer.write(iac)
+                elif TELNET_DEBUG:
+                    LOGGER.info("telnet_debug session=%s skip-iac (raw client)",
+                                session_id)
             if forward:
                 writer.write(forward.replace(b"\n", b"\r\n"))
             await writer.drain()
