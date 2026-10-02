@@ -3891,6 +3891,10 @@ def main():
     """Run one local or relayed CompuServe terminal session."""
     initialize_database()
     startup_configuration()
+    if os.environ.get("CIS_TRANSPORT") == "TELNET":
+        # Telnet clients get full-speed output; the baud pacing is for
+        # local modem authenticity and just feels broken over the network.
+        startup_options["fast_mode"] = True
     if not startup_options["skip_dialing"] and not modem_dial_in():
         return 0
     if not login_screen():
