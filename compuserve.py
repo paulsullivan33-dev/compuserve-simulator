@@ -294,10 +294,10 @@ def ansi_scroll(text, delay=0.01):
         print()
         transmitted_line_count += 1
         if startup_options.get("fast_mode"):
-            # Tiny inter-line pause so raw-socket terminals (C64
-            # UltimateTerm) can keep up with bursty output; without it
-            # they may drop the connection mid-banner.
-            time.sleep(0.05)
+            # Inter-line pause so raw-socket terminals (C64 UltimateTerm)
+            # can keep up with bursty output; without it they may drop
+            # the connection. 100ms is still snappy (10 lines/sec).
+            time.sleep(0.1)
         if capture_path:
             with capture_path.open("a", encoding="utf-8") as capture:
                 capture.write(line + "\n")
