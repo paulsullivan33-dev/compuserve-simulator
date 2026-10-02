@@ -122,18 +122,27 @@ def _debug_bytes(label, session_id, data, echo_state):
                     session_id, label, data.hex(), data)
 
 
-def _petscii_to_ascii(data):
+def _petscii_to_ascii(data, is_c64=False):
     """Translate C64 PETSCII input bytes to ASCII.
 
     In caps-lock/uppercase mode the C64 sends 0xC1-0xDA for A-Z, which
     are invalid UTF-8 and crash the sim's input() decoder. Map them to
     ASCII 0x41-0x5A. Bytes outside that range pass through unchanged;
     non-C64 terminals never send 0xC1-0xDA, so this is safe.
+
+    When is_c64 is True (C64 preset selected), also map 0x41-0x5A
+    (which the C64 sends for lowercase a-z) to ASCII 0x61-0x7A, and
+    sanitize any other non-ASCII bytes to '?' so the sim's UTF-8
+    decoder never chokes on PETSCII graphics/symbols.
     """
     out = bytearray()
     for byte in data:
         if 0xC1 <= byte <= 0xDA:
             out.append(byte - 0x80)  # PETSCII 'A'-'Z' -> ASCII 'A'-'Z'
+        elif is_c64 and 0x41 <= byte <= 0x5A:
+            out.append(byte + 0x20)  # C64 'a'-'z' -> ASCII 'a'-'z'
+        elif byte > 0x7F:
+            out.append(0x3F)  # '?' — never send invalid UTF-8 to the sim
         else:
             out.append(byte)
     return bytes(out)
@@ -185,7 +194,8 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
         if b"\xff" in chunk:
             echo_state.saw_iac = True  # client speaks TELNET
         cleaned, raw_buf = strip_telnet_commands(raw_buf)
-        cleaned = _petscii_to_ascii(cleaned)
+        is_c64 = echo_state.terminal_preset == "C64"
+        cleaned = _petscii_to_ascii(cleaned, is_c64=is_c64)
         if cleaned != chunk:
             _debug_bytes("cleaned", session_id, cleaned, echo_state)
         if cleaned and echo_state.enabled:
