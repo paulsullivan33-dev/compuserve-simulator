@@ -344,7 +344,9 @@ def startup_configuration():
     action = input("Press RETURN to accept, C to change, or P for preset: ").strip().upper()
     if action == "P":
         ansi_scroll("Presets: C64, IBM, MAC", 0.001)
-        if apply_preset(startup_options, input("Preset: ").strip()):
+        preset_name = input("Preset: ").strip().upper()
+        if apply_preset(startup_options, preset_name):
+            startup_options["preset"] = preset_name
             connection_baud = int(startup_options["baud"])
             SCREEN_WIDTH = int(startup_options["columns"])
             save_json_atomic("terminal_config.json", startup_options)
@@ -379,8 +381,11 @@ def startup_configuration():
     if os.environ.get("CIS_TRANSPORT") == "TELNET":
         # Terminal type selected: tell the telnet gateway it may now
         # negotiate WILL ECHO and echo keystrokes (stripped by the gateway,
-        # never shown to the user).
-        sys.stdout.write(TERM_SELECTED_MARKER)
+        # never shown to the user). Includes the preset name so the gateway
+        # can enable C64 PETSCII translation for output.
+        preset = startup_options.get("preset", "")
+        marker = f"\x00[TERMSELECTED:{preset}]\x00" if preset else TERM_SELECTED_MARKER
+        sys.stdout.write(marker)
         sys.stdout.flush()
     # The time-capsule destination is a connection-setup choice too, so it
     # lives here with the other non-service options rather than after login.

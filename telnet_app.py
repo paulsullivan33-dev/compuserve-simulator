@@ -291,7 +291,27 @@ async def serve_terminal(reader, writer):
 _ECHO_OFF_MARKER = b"\x00[ECHOOFF]\x00"
 _ECHO_ON_MARKER = b"\x00[ECHOON]\x00"
 _TERM_SELECTED_MARKER = b"\x00[TERMSELECTED]\x00"
+_TERM_SELECTED_PREFIX = b"\x00[TERMSELECTED:"
+_TERM_SELECTED_SUFFIX = b"]\x00"
 _IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
+
+
+def _ascii_to_petscii(data):
+    """Translate ASCII output bytes to C64 PETSCII.
+
+    The C64 in Uppercase/Graphics mode misinterprets ASCII: lowercase
+    appears as uppercase, uppercase as graphics. Map ASCII letters to
+    their PETSCII equivalents so the C64 displays correctly.
+    """
+    out = bytearray()
+    for byte in data:
+        if 0x41 <= byte <= 0x5A:  # 'A'-'Z' -> PETSCII 0xC1-0xDA
+            out.append(byte + 0x80)
+        elif 0x61 <= byte <= 0x7A:  # 'a'-'z' -> PETSCII 0x41-0x5A
+            out.append(byte - 0x20)
+        else:
+            out.append(byte)
+    return bytes(out)
 
 
 class _EchoState:
@@ -308,6 +328,7 @@ class _EchoState:
         self.enabled = True
         self.term_selected = False
         self.saw_iac = False  # True if the client sent any TELNET IAC
+        self.terminal_preset = None  # e.g. "C64" after TERM_SELECTED
 
 
 def _echo_bytes(data):
@@ -351,6 +372,27 @@ class _EchoTranslator:
         self._pending = b""
         self._echo_state = echo_state or _EchoState()
 
+    def _parse_term_selected(self, data, index):
+        """Parse TERM_SELECTED marker at index. Returns (preset, length) or None.
+
+        Handles both legacy '\\x00[TERMSELECTED]\\x00' and new
+        '\\x00[TERMSELECTED:PRESET]\\x00' formats.
+        """
+        end = len(data)
+        # Try new format with preset first
+        if data.startswith(_TERM_SELECTED_PREFIX, index):
+            # Find the suffix
+            suffix_start = data.find(_TERM_SELECTED_SUFFIX, index + len(_TERM_SELECTED_PREFIX))
+            if suffix_start == -1:
+                return None  # incomplete, wait for more data
+            preset = data[index + len(_TERM_SELECTED_PREFIX):suffix_start].decode('ascii', 'ignore')
+            length = (suffix_start + len(_TERM_SELECTED_SUFFIX)) - index
+            return (preset, length)
+        # Legacy format without preset
+        if data.startswith(_TERM_SELECTED_MARKER, index):
+            return ("", len(_TERM_SELECTED_MARKER))
+        return None
+
     def feed(self, chunk):
         """Return (forward_bytes, iac_bytes) for one chunk of sim output."""
         data = self._pending + chunk
@@ -360,14 +402,21 @@ class _EchoTranslator:
         index = 0
         end = len(data)
         while index < end:
-            if data.startswith(_TERM_SELECTED_MARKER, index):
-                # Terminal type selected: take over echo from here on.
+            # Check for TERM_SELECTED (with or without preset)
+            if data.startswith(_TERM_SELECTED_PREFIX, index) or data.startswith(_TERM_SELECTED_MARKER, index):
+                result = self._parse_term_selected(data, index)
+                if result is None:
+                    # Incomplete marker, wait for more data
+                    self._pending = data[index:]
+                    break
+                preset, length = result
                 if TELNET_DEBUG:
-                    LOGGER.info("telnet_debug MARKER TERM_SELECTED")
+                    LOGGER.info("telnet_debug MARKER TERM_SELECTED preset=%s", preset)
                 iac += _IAC_WILL_ECHO
                 self._echo_state.enabled = True
                 self._echo_state.term_selected = True
-                index += len(_TERM_SELECTED_MARKER)
+                self._echo_state.terminal_preset = preset or None
+                index += length
             elif data.startswith(_ECHO_OFF_MARKER, index):
                 if TELNET_DEBUG:
                     LOGGER.info("telnet_debug MARKER ECHO_OFF (password start)")
@@ -454,9 +503,15 @@ async def _handle_session(reader, writer, peer):
                     LOGGER.info("telnet_debug session=%s skip-iac (raw client)",
                                 session_id)
             if forward:
+                # C64 in Uppercase/Graphics mode misreads ASCII; translate
+                # to PETSCII so it displays correctly.
+                if echo_state.terminal_preset == "C64":
+                    forward = _ascii_to_petscii(forward)
                 writer.write(forward.replace(b"\n", b"\r\n"))
             await writer.drain()
         if tail := echo.flush():
+            if echo_state.terminal_preset == "C64":
+                tail = _ascii_to_petscii(tail)
             writer.write(tail.replace(b"\n", b"\r\n"))
             await writer.drain()
 
