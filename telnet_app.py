@@ -14,6 +14,7 @@ Hardened for internet exposure:
 import asyncio
 import logging
 import os
+import socket
 import sys
 import time
 import uuid
@@ -374,6 +375,12 @@ async def _handle_session(reader, writer, peer):
     started = time.monotonic()
     LOGGER.info("terminal connected session=%s client=%s", session_id, peer)
     cis_activity.log_event("session_connected", session_id=session_id, client_ip=client_ip)
+    # Disable Nagle's algorithm: interactive keystrokes must not wait for
+    # TCP buffering (causes visible typing lag on retro terminals).
+    with suppress(Exception):
+        sock = writer.get_extra_info("socket")
+        if sock is not None:
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     process = None
     disconnect_reason = "unknown"
     echo_state = _EchoState()
