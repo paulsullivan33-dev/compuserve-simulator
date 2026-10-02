@@ -35,6 +35,10 @@ LOGGER = logging.getLogger("compuserve.telnet")
 MAX_SESSIONS = int(os.environ.get("CIS_TELNET_MAX_SESSIONS", "20"))
 MAX_SESSIONS_PER_IP = int(os.environ.get("CIS_TELNET_MAX_SESSIONS_PER_IP", "3"))
 IDLE_TIMEOUT = float(os.environ.get("CIS_TELNET_IDLE_TIMEOUT", "900"))  # seconds
+# Opt-in per-session protocol trace for troubleshooting (CIS_TELNET_DEBUG=1).
+# Logs raw client bytes, line endings, IAC, echo transitions, and markers.
+# Password bytes are never logged (masked while echo is suppressed).
+TELNET_DEBUG = os.environ.get("CIS_TELNET_DEBUG", "") == "1"
 
 # Created in main() so it binds to the running loop.
 SESSION_SLOTS = None
@@ -101,6 +105,22 @@ def split_telnet_line(buf):
     return None, buf
 
 
+def _debug_bytes(label, session_id, data, echo_state):
+    """Log raw protocol bytes for troubleshooting (CIS_TELNET_DEBUG=1).
+
+    Password bytes are never logged: once the terminal is selected and
+    echo is suppressed, only the byte count is shown.
+    """
+    if not TELNET_DEBUG:
+        return
+    if echo_state.term_selected and not echo_state.enabled:
+        LOGGER.info("telnet_debug session=%s %s <hidden %d bytes>",
+                    session_id, label, len(data))
+    else:
+        LOGGER.info("telnet_debug session=%s %s hex=%s repr=%r",
+                    session_id, label, data.hex(), data)
+
+
 async def forward_telnet_input(reader, writer, process, session_id, peer,
                                echo_state=None):
     """Forward client keystrokes to the terminal subprocess, one line at a time.
@@ -134,13 +154,19 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
             return "idle_timeout"
         if not chunk:
             return "client_closed"  # client disconnected
+        _debug_bytes("recv", session_id, chunk, echo_state)
         if chunk.endswith(b"\r"):
             # Possible split CRLF/CR NUL: wait briefly for the rest.
             # A true bare CR completes on timeout.
             with suppress(asyncio.TimeoutError):
-                chunk += await asyncio.wait_for(reader.read(1024), timeout=0.1)
+                extra = await asyncio.wait_for(reader.read(1024), timeout=0.1)
+                if extra:
+                    _debug_bytes("recv-extra", session_id, extra, echo_state)
+                chunk += extra
         raw_buf += chunk
         cleaned, raw_buf = strip_telnet_commands(raw_buf)
+        if cleaned != chunk:
+            _debug_bytes("cleaned", session_id, cleaned, echo_state)
         if cleaned and echo_state.enabled:
             writer.write(_echo_bytes(cleaned))
             await writer.drain()
@@ -156,6 +182,7 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
             if line is None:
                 break
             # Bare Enter (empty line) still counts as a keypress.
+            _debug_bytes("line->sim", session_id, line, echo_state)
             process.stdin.write(line[:MAX_LINE] + b"\n")
             await process.stdin.drain()
     return "session_ended"
@@ -256,6 +283,7 @@ class _EchoState:
 
     def __init__(self):
         self.enabled = False
+        self.term_selected = False
 
 
 def _echo_bytes(data):
@@ -310,13 +338,20 @@ class _EchoTranslator:
         while index < end:
             if data.startswith(_TERM_SELECTED_MARKER, index):
                 # Terminal type selected: take over echo from here on.
+                if TELNET_DEBUG:
+                    LOGGER.info("telnet_debug MARKER TERM_SELECTED")
                 iac += _IAC_WILL_ECHO
                 self._echo_state.enabled = True
+                self._echo_state.term_selected = True
                 index += len(_TERM_SELECTED_MARKER)
             elif data.startswith(_ECHO_OFF_MARKER, index):
+                if TELNET_DEBUG:
+                    LOGGER.info("telnet_debug MARKER ECHO_OFF (password start)")
                 self._echo_state.enabled = False
                 index += len(_ECHO_OFF_MARKER)
             elif data.startswith(_ECHO_ON_MARKER, index):
+                if TELNET_DEBUG:
+                    LOGGER.info("telnet_debug MARKER ECHO_ON (password end)")
                 self._echo_state.enabled = True
                 index += len(_ECHO_ON_MARKER)
             elif data[index:index + 1] == b"\x00" and end - index < len(_TERM_SELECTED_MARKER):
@@ -377,6 +412,9 @@ async def _handle_session(reader, writer, peer):
         while chunk := await process.stdout.read(512):
             forward, iac = echo.feed(chunk)
             if iac:
+                if TELNET_DEBUG:
+                    LOGGER.info("telnet_debug session=%s send-iac hex=%s",
+                                session_id, iac.hex())
                 writer.write(iac)
             if forward:
                 writer.write(forward.replace(b"\n", b"\r\n"))
