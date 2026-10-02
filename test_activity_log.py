@@ -198,14 +198,15 @@ class ActivityLogTest(unittest.TestCase):
 
 
 class PasswordEchoTest(unittest.TestCase):
-    def test_term_selected_enables_echo_and_sends_will_echo(self):
+    def test_term_selected_sends_will_echo(self):
         state = telnet_app._EchoState()
-        self.assertFalse(state.enabled)  # no echo before terminal selection
+        self.assertTrue(state.enabled)  # echo from connect (text only)
+        self.assertFalse(state.term_selected)
         tr = telnet_app._EchoTranslator(state)
         fwd, iac = tr.feed(b"ready" + telnet_app._TERM_SELECTED_MARKER + b"menu")
         self.assertEqual(fwd, b"readymenu")
         self.assertEqual(iac, b"\xff\xfb\x01")  # IAC WILL ECHO, once
-        self.assertTrue(state.enabled)
+        self.assertTrue(state.term_selected)
 
     def test_echo_translator_strips_markers_and_toggles_echo(self):
         state = telnet_app._EchoState()

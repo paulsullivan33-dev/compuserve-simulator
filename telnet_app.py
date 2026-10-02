@@ -277,13 +277,15 @@ _IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
 class _EchoState:
     """Whether the gateway echoes client keystrokes back.
 
-    False until the sim reports the terminal type selected (via
-    _EchoTranslator); the sim's password markers then flip it off and on.
-    One instance is shared by a session's input and output tasks.
+    True from connect (so terminals without local echo see what they
+    type); the sim's password markers flip it off and on via
+    _EchoTranslator. The IAC WILL ECHO negotiation itself is deferred
+    until the terminal type is selected. One instance is shared by a
+    session's input and output tasks.
     """
 
     def __init__(self):
-        self.enabled = False
+        self.enabled = True
         self.term_selected = False
 
 

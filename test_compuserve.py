@@ -1000,9 +1000,9 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(writes, [b"hi\n"])
         self.assertEqual(echoed, [b"hi\r\n"])
 
-    def test_telnet_no_echo_before_terminal_selected(self):
-        # No control characters and no echo before the terminal type is
-        # selected: keystrokes reach the sim but are not reflected back.
+    def test_telnet_echo_before_terminal_selected_no_iac(self):
+        # Keystrokes echo from connect (no control characters sent), but
+        # the IAC WILL ECHO negotiation waits for terminal selection.
         async def scenario():
             reader = asyncio.StreamReader()
             reader.feed_data(b"P\r")
@@ -1028,12 +1028,12 @@ class NavigationTests(unittest.TestCase):
             process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
             await telnet_app.forward_telnet_input(
                 reader, FakeWriter(), process, "s", ("127.0.0.1", 1),
-                telnet_app._EchoState())  # disabled until TERM_SELECTED
+                telnet_app._EchoState())
             return writes, echoed
 
         writes, echoed = asyncio.run(scenario())
         self.assertEqual(writes, [b"P\n"])
-        self.assertEqual(echoed, [])
+        self.assertEqual(echoed, [b"P\r\n"])  # echo, but no IAC yet
 
     def test_telnet_echo_suppressed_when_disabled(self):
         # Password input must reach the sim but never be echoed back.
