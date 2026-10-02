@@ -122,6 +122,23 @@ def _debug_bytes(label, session_id, data, echo_state):
                     session_id, label, data.hex(), data)
 
 
+def _petscii_to_ascii(data):
+    """Translate C64 PETSCII input bytes to ASCII.
+
+    In caps-lock/uppercase mode the C64 sends 0xC1-0xDA for A-Z, which
+    are invalid UTF-8 and crash the sim's input() decoder. Map them to
+    ASCII 0x41-0x5A. Bytes outside that range pass through unchanged;
+    non-C64 terminals never send 0xC1-0xDA, so this is safe.
+    """
+    out = bytearray()
+    for byte in data:
+        if 0xC1 <= byte <= 0xDA:
+            out.append(byte - 0x80)  # PETSCII 'A'-'Z' -> ASCII 'A'-'Z'
+        else:
+            out.append(byte)
+    return bytes(out)
+
+
 async def forward_telnet_input(reader, writer, process, session_id, peer,
                                echo_state=None):
     """Forward client keystrokes to the terminal subprocess, one line at a time.
@@ -166,6 +183,7 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
                 chunk += extra
         raw_buf += chunk
         cleaned, raw_buf = strip_telnet_commands(raw_buf)
+        cleaned = _petscii_to_ascii(cleaned)
         if cleaned != chunk:
             _debug_bytes("cleaned", session_id, cleaned, echo_state)
         if cleaned and echo_state.enabled:
