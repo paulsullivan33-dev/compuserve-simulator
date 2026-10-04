@@ -8,6 +8,7 @@ import os
 import uuid
 import textwrap
 import shutil
+import subprocess
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -29,7 +30,7 @@ from cis_storage import (
 )
 from cis_sysop import (
     account_rows, pending_uploads, reset_password, set_upload_status,
-    toggle_disabled, unlock_account,
+    toggle_disabled, unlock_account, run_os_command,
 )
 from cis_terminal import header_line, menu_lines, wrap_terminal_text
 from cis_version import RELEASE_NAME, VERSION
@@ -840,6 +841,7 @@ def sysop_console():
         ansi_scroll("9  Members now online", 0.01)
         ansi_scroll("10 Simulation world controls", 0.01)
         ansi_scroll("11 System announcements", 0.01)
+        ansi_scroll("12 Operating system command", 0.01)
         ansi_scroll("M  Return to service", 0.01)
         choice = input("SYSOP ! ").strip().upper()
         if choice == "M":
@@ -886,6 +888,8 @@ def sysop_console():
                 ansi_scroll(cis_dynamic.manage_world(sys.modules[__name__], command), 0.01)
         elif choice == "11":
             sysop_announcements()
+        elif choice == "12":
+            sysop_os_shell()
 
 
 def sysop_announcements():
@@ -918,6 +922,37 @@ def sysop_announcements():
                 ansi_scroll(f'Announcement #{record["id"]} posted.', 0.01)
             except ValueError as exc:
                 ansi_scroll(str(exc), 0.01)
+
+
+def sysop_os_shell():
+    """Run operating-system commands as the service user (sysop only)."""
+    if not current_profile.get("is_sysop"):
+        ansi_scroll("SYSOP privileges required.", 0.01)
+        return
+    ansi_scroll("OS command shell: non-interactive commands only, 60s timeout.", 0.01)
+    ansi_scroll("Runs as the service user. Blank line or M returns.", 0.01)
+    while True:
+        command = input("OS ! ").strip()
+        if not command or command.upper() == "M":
+            return
+        try:
+            returncode, stdout, stderr = run_os_command(command)
+        except subprocess.TimeoutExpired:
+            ansi_scroll("Command timed out after 60 seconds.", 0.01)
+            continue
+        except OSError as exc:
+            ansi_scroll(f"Could not run command: {exc}", 0.01)
+            continue
+        lines = []
+        if stdout:
+            lines.extend(stdout.splitlines())
+        if stderr:
+            lines.append("--- stderr ---")
+            lines.extend(stderr.splitlines())
+        lines.append(f"[exit {returncode}]")
+        if len(lines) > 500:
+            lines = lines[:500] + [f"... truncated ({len(lines) - 500} more lines)"]
+        text_page("sysop", f"OS: {command[:60]}", lines)
 
 
 def sysop_accounts():

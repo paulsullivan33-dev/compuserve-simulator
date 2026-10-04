@@ -54,3 +54,23 @@ def set_upload_status(library_files, number, status):
                 file["status"] = status
                 return True
     return False
+
+
+import subprocess
+
+
+def run_os_command(command, timeout=60):
+    """Run a shell command, returning (returncode, stdout, stderr).
+
+    Raises subprocess.TimeoutExpired if the command exceeds `timeout`
+    seconds, or OSError if the command cannot be started.
+    """
+    proc = subprocess.run(
+        command,
+        shell=True,
+        capture_output=True,
+        text=True,
+        errors="replace",
+        timeout=timeout,
+    )
+    return proc.returncode, proc.stdout, proc.stderr
