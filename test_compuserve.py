@@ -8592,3 +8592,79 @@ class HamnetBroadcastTests(unittest.TestCase):
         post = next(p for p in posts if p["section"] == "hamnet_broadcast")
         self.assertEqual(post["content_id"], "hamnet-1988-017")
         self.assertEqual(post["date"], "12/17/88")
+
+
+class SysopOsShellTests(unittest.TestCase):
+    def test_run_os_command_captures_stdout_and_exit_code(self):
+        from cis_sysop import run_os_command
+        rc, out, err = run_os_command("echo hello-sysop")
+        self.assertEqual(rc, 0)
+        self.assertIn("hello-sysop", out)
+        self.assertEqual(err, "")
+
+    def test_run_os_command_reports_nonzero_exit_and_stderr(self):
+        from cis_sysop import run_os_command
+        rc, out, err = run_os_command("ls /definitely-not-a-real-dir-xyz")
+        self.assertNotEqual(rc, 0)
+        self.assertTrue(err)
+
+    def test_run_os_command_timeout_raises(self):
+        from cis_sysop import run_os_command
+        with self.assertRaises(subprocess.TimeoutExpired):
+            run_os_command("sleep 5", timeout=1)
+
+    def test_sysop_os_shell_requires_sysop(self):
+        real_profile = compuserve.current_profile
+        compuserve.current_profile = {}
+        messages = []
+        real_scroll = compuserve.ansi_scroll
+        compuserve.ansi_scroll = lambda text, *a: messages.append(text)
+        try:
+            compuserve.sysop_os_shell()
+        finally:
+            compuserve.current_profile = real_profile
+            compuserve.ansi_scroll = real_scroll
+        self.assertTrue(any("SYSOP privileges required" in m for m in messages))
+
+    def test_sysop_os_shell_runs_command_and_shows_output(self):
+        real_profile = compuserve.current_profile
+        compuserve.current_profile = {"is_sysop": True}
+        real_input = compuserve.input
+        real_text_page = compuserve.text_page
+        inputs = iter(["echo hello-sysop", "M"])
+        pages = []
+        compuserve.input = lambda prompt="": next(inputs)
+        compuserve.text_page = lambda key, title, lines, color=None: pages.append((key, title, lines))
+        try:
+            compuserve.sysop_os_shell()
+        finally:
+            compuserve.current_profile = real_profile
+            compuserve.input = real_input
+            compuserve.text_page = real_text_page
+        self.assertEqual(len(pages), 1)
+        key, title, lines = pages[0]
+        self.assertEqual(key, "sysop")
+        self.assertTrue(any("hello-sysop" in line for line in lines))
+        self.assertTrue(any(line.startswith("[exit ") for line in lines))
+
+    def test_sysop_os_shell_prints_limits_reminder(self):
+        real_profile = compuserve.current_profile
+        compuserve.current_profile = {"is_sysop": True}
+        real_input = compuserve.input
+        real_scroll = compuserve.ansi_scroll
+        real_text_page = compuserve.text_page
+        inputs = iter(["M"])
+        messages = []
+        compuserve.input = lambda prompt="": next(inputs)
+        compuserve.ansi_scroll = lambda text, *a: messages.append(text)
+        compuserve.text_page = lambda *a, **k: None
+        try:
+            compuserve.sysop_os_shell()
+        finally:
+            compuserve.current_profile = real_profile
+            compuserve.input = real_input
+            compuserve.ansi_scroll = real_scroll
+            compuserve.text_page = real_text_page
+        joined = "\n".join(messages)
+        self.assertIn("non-interactive", joined)
+        self.assertIn("60s timeout", joined)
