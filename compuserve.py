@@ -39,6 +39,7 @@ import cis_mail
 import cis_billing
 import cis_accounts
 import cis_activity
+import cis_ntfy
 import cis_communities
 import cis_phones
 import cis_forums
@@ -668,11 +669,25 @@ def login_screen():
         cis_hardware.apply_settings(sys.modules[__name__])
     # Log before the "Access granted" scroll: the baud-rate delay means a
     # client can disconnect mid-scroll, skipping anything logged after it.
+    handle = current_handle or current_profile.get("handle", user_id)
+    transport = os.environ.get("CIS_TRANSPORT", "CONSOLE")
+    client_ip = os.environ.get("CIS_CLIENT_IP") or None
     cis_activity.log_event(
         "login",
         session_id=live_session_id,
-        client_ip=os.environ.get("CIS_CLIENT_IP") or None,
+        client_ip=client_ip,
         user_id=user_id,
+        detail={
+            "handle": handle,
+            "transport": transport,
+            "is_new": is_new,
+        },
+    )
+    from_where = f" from {client_ip}" if client_ip else ""
+    cis_ntfy.send_async(
+        "CompuServe login",
+        f"{handle} ({user_id}) connected{from_where} via {transport}",
+        tags=("tada",),
     )
     ansi_scroll("Access granted", 0.01)
     waiting = mail_waiting_count(user_id)
@@ -3953,7 +3968,49 @@ def main():
             navigate(show_briefing=True)
         finally:
             unregister_session(BASE_DIR, live_session_id)
+            _record_logout()
     return 0
+
+
+def _record_logout():
+    """Log the session end and notify ntfy.
+
+    Runs in main()'s finally block, so it fires whether the user logged
+    off cleanly, the connection dropped, or navigate() raised. Never
+    raises: logging and notification are both best-effort.
+    """
+    try:
+        handle = current_handle or (current_profile or {}).get(
+            "handle", current_user_id
+        )
+        duration_s = (
+            round(time.time() - session_start, 1)
+            if session_start
+            else 0
+        )
+        transport = os.environ.get("CIS_TRANSPORT", "CONSOLE")
+        client_ip = os.environ.get("CIS_CLIENT_IP") or None
+        cis_activity.log_event(
+            "logout",
+            session_id=live_session_id,
+            client_ip=client_ip,
+            user_id=current_user_id,
+            detail={
+                "handle": handle,
+                "transport": transport,
+                "duration_s": duration_s,
+            },
+        )
+        # Synchronous with a short timeout: the process is about to exit,
+        # so a fire-and-forget thread might never get to run.
+        cis_ntfy.send(
+            "CompuServe logout",
+            f"{handle} ({current_user_id}) disconnected "
+            f"after {cis_ntfy.format_duration(duration_s)}",
+            tags=("zzz",),
+        )
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
