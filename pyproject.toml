@@ -68,6 +68,7 @@ py-modules = [
     "cis_migrations",
     "cis_news",
     "cis_nightstation",
+    "cis_ntfy",
     "cis_ownership",
     "cis_period_news",
     "cis_pets",
