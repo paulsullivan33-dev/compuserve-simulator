@@ -163,6 +163,9 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
 
     Keystrokes are echoed back (remote echo) unless echo_state says
     otherwise, so terminals without local echo can see what they type.
+    While a password is typed on a negotiating client, one asterisk per
+    keystroke is echoed instead; raw-socket clients get no server echo
+    at all (their own local echo stays on).
 
     Returns the reason input forwarding stopped: "idle_timeout",
     "client_closed", "input_flood", or "session_ended".
@@ -200,6 +203,9 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
             _debug_bytes("cleaned", session_id, cleaned, echo_state)
         if cleaned and echo_state.enabled:
             writer.write(_echo_bytes(cleaned))
+            await writer.drain()
+        elif cleaned and _password_masking(echo_state):
+            writer.write(_mask_password_bytes(cleaned))
             await writer.drain()
         line_buf += cleaned
         if len(raw_buf) > MAX_BUFFERED_INPUT or len(line_buf) > MAX_BUFFERED_INPUT:
@@ -363,6 +369,29 @@ def _echo_bytes(data):
             out.append(byte)
         i += 1
     return bytes(out)
+
+
+def _password_masking(echo_state):
+    """True while a password is typed on a client that negotiated echo.
+
+    The gateway sent IAC WILL ECHO at terminal selection, so the client
+    turned its local echo off and the server owns the display. Raw-socket
+    clients never negotiated, so their own local echo stays on and the
+    server must stay silent for them rather than double every character.
+    """
+    return (echo_state.term_selected and not echo_state.enabled
+            and echo_state.saw_iac)
+
+
+def _mask_password_bytes(data):
+    """Echo one asterisk per password keystroke.
+
+    The secret itself never goes back over the wire; the typist still gets
+    feedback that keystrokes are registering. Line terminators echo
+    nothing, so the submitted line break stays hidden too.
+    """
+    return b"".join(b"*" if byte not in (0x0D, 0x0A) else b""
+                    for byte in data)
 
 
 class _EchoTranslator:

@@ -1037,6 +1037,8 @@ class NavigationTests(unittest.TestCase):
 
     def test_telnet_echo_suppressed_when_disabled(self):
         # Password input must reach the sim but never be echoed back.
+        # (Raw-socket client: no IAC negotiation, so the server stays
+        # silent rather than doubling the client's own local echo.)
         async def scenario():
             reader = asyncio.StreamReader()
             reader.feed_data(b"s3cret\r\n")
@@ -1070,7 +1072,49 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(writes, [b"s3cret\n"])
         self.assertEqual(echoed, [])
 
-    def test_echo_bytes_translates_terminators(self):
+    def test_telnet_password_masks_asterisks_for_negotiating_client(self):
+        # A client that negotiated echo (IAC WILL ECHO sent, local echo off)
+        # gets one asterisk per password keystroke; the secret itself is
+        # never echoed back.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"s3cret\r\n")
+            reader.feed_eof()
+
+            writes = []
+            echoed = []
+
+            class FakeStdin:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            class FakeWriter:
+                def write(self, data):
+                    echoed.append(bytes(data))
+
+                async def drain(self):
+                    pass
+
+            state = telnet_app._EchoState()
+            state.enabled = False
+            state.term_selected = True
+            state.saw_iac = True
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            await telnet_app.forward_telnet_input(
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1), state)
+            return writes, echoed
+
+        writes, echoed = asyncio.run(scenario())
+        self.assertEqual(writes, [b"s3cret\n"])
+        self.assertEqual(echoed, [b"******"])
+
+    def test_mask_password_bytes(self):
+        self.assertEqual(telnet_app._mask_password_bytes(b"secret"), b"******")
+        self.assertEqual(telnet_app._mask_password_bytes(b"ab\r\n"), b"**")
+        self.assertEqual(telnet_app._mask_password_bytes(b"\r\n"), b"")
         self.assertEqual(telnet_app._echo_bytes(b"hi\r\n"), b"hi\r\n")
         self.assertEqual(telnet_app._echo_bytes(b"hi\r\x00"), b"hi\r\n")
         self.assertEqual(telnet_app._echo_bytes(b"hi\r"), b"hi\r\n")
