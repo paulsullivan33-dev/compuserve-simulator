@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Bounded SysOp shell capture to 1 MiB, closed command stdin, and added process-tree
+  termination on timeout or excess output.
+- Release builds reject missing `cis_*.py` modules; CI now also runs activity-log
+  and ntfy regression tests.
+
 - Fixed release ZIP startup by including `cis_activity.py` and `cis_ntfy.py`;
   included the new PDF manual and Telnet systemd unit in release assets.
 

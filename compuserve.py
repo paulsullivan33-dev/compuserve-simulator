@@ -30,7 +30,7 @@ from cis_storage import (
 )
 from cis_sysop import (
     account_rows, pending_uploads, reset_password, set_upload_status,
-    toggle_disabled, unlock_account, run_os_command,
+    toggle_disabled, unlock_account, run_os_command, CommandOutputLimitExceeded,
 )
 from cis_terminal import header_line, menu_lines, wrap_terminal_text
 from cis_version import RELEASE_NAME, VERSION
@@ -963,6 +963,10 @@ def sysop_os_shell():
         except subprocess.TimeoutExpired:
             audit("timeout")
             ansi_scroll("Command timed out after 60 seconds.", 0.01)
+            continue
+        except CommandOutputLimitExceeded:
+            audit("output_limit")
+            ansi_scroll("Command stopped: output exceeded 1 MiB.", 0.01)
             continue
         except OSError as exc:
             audit("error", error_type=type(exc).__name__)

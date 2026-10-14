@@ -10,6 +10,17 @@ from release_payload import payload
 
 
 class ReleasePrivacyTests(unittest.TestCase):
+    def test_build_rejects_missing_runtime_module(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'release_assets.json').write_text(
+                json.dumps({'files': [], 'defaults': {}}), encoding='utf-8')
+            (root / 'cis_future.py').write_text('', encoding='utf-8')
+            with patch.object(build_release, 'BASE_DIR', root), \
+                 patch.object(build_release, 'DIST_DIR', root / 'dist'):
+                with self.assertRaisesRegex(ValueError, 'cis_future.py'):
+                    build_release.build_release()
+
     def test_zip_uses_clean_state_and_ignores_unlisted_private_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

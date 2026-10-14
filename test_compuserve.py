@@ -8728,6 +8728,7 @@ class SysopOsShellTests(unittest.TestCase):
 
     def test_sysop_os_shell_audits_failures_without_command_text(self):
         for error, outcome in ((subprocess.TimeoutExpired("secret", 60), "timeout"),
+                               (compuserve.CommandOutputLimitExceeded("secret"), "output_limit"),
                                (OSError("secret"), "error")):
             with self.subTest(outcome=outcome):
                 self.log_event.reset_mock()

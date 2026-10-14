@@ -23,16 +23,21 @@ a short repair log.
 SysOp option 12 runs non-interactive shell commands as the OS account running the
 simulator. Both the console and command handler require a signed-in SysOp profile.
 Enter a blank line or `M` to return. Commands have a 60-second timeout; displayed
-output is capped at 500 lines. This display cap does not limit captured output in
-memory. The timeout applies to the shell process; commands that spawn background
-processes may leave those processes running.
+output is capped at 500 lines. Combined stdout and stderr capture is limited to
+1 MiB; exceeding that limit stops the command. Standard input is closed, so commands
+cannot prompt for input. On timeout or excess output, the simulator terminates the
+process group on Unix or uses `taskkill /T /F` on Windows to stop the shell and its
+ordinary descendants. Processes that deliberately detach can escape this boundary;
+on Windows, descendants can also escape if their parent shell has already exited
+before cleanup. Use the service sandbox to constrain their permissions. Process
+cleanup takes additional time beyond the command's execution deadline.
 
 Use a dedicated, unprivileged service account with access only to the simulator's
 required files. Remote SysOps inherit that account's permissions. The provided
 systemd unit restricts filesystem writes and privilege escalation; adapt its
 `User`, `WorkingDirectory`, `ExecStart`, and `ReadWritePaths` before installation.
 
-Command starts and completion, timeout, or launch-error outcomes are recorded as
+Command starts and completion, timeout, output-limit, or launch-error outcomes are recorded as
 `sysop_os_command` activity events with member and session identifiers. Command
 text and output are omitted because they can contain credentials. Activity logging
 is best-effort, so a log write failure does not prevent execution.

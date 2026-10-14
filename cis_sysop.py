@@ -57,20 +57,100 @@ def set_upload_status(library_files, number, status):
 
 
 import subprocess
+import locale
+import os
+import signal
+import threading
+import time
 
 
-def run_os_command(command, timeout=60):
+MAX_COMMAND_OUTPUT = 1024 * 1024
+
+
+class CommandOutputLimitExceeded(RuntimeError):
+    """The command exceeded the combined stdout/stderr byte limit."""
+
+
+def _stop_command(proc):
+    """Terminate the shell and its ordinary descendants."""
+    try:
+        if os.name == "nt":
+            result = subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                    timeout=10, check=False)
+            if result.returncode and proc.poll() is None:
+                raise OSError("Could not verify command process-tree cleanup")
+        else:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+        proc.wait(timeout=10)
+
+
+def run_os_command(command, timeout=60, max_output=MAX_COMMAND_OUTPUT):
     """Run a shell command, returning (returncode, stdout, stderr).
 
-    Raises subprocess.TimeoutExpired if the command exceeds `timeout`
-    seconds, or OSError if the command cannot be started.
+    Bound combined output bytes and terminate the process tree on timeout or
+    excess output. Detached descendants are outside this lifecycle boundary.
     """
-    proc = subprocess.run(
+    if timeout <= 0 or max_output <= 0:
+        raise ValueError("Command timeout and output limit must be positive")
+    proc = subprocess.Popen(
         command,
         shell=True,
-        capture_output=True,
-        text=True,
-        errors="replace",
-        timeout=timeout,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=os.name != "nt",
     )
-    return proc.returncode, proc.stdout, proc.stderr
+    output = [bytearray(), bytearray()]
+    lock = threading.Lock()
+    exceeded = threading.Event()
+    done = [threading.Event(), threading.Event()]
+    size = 0
+
+    def collect(index, stream):
+        nonlocal size
+        try:
+            while True:
+                chunk = stream.read1(8192)
+                if not chunk:
+                    break
+                with lock:
+                    remaining = max_output - size
+                    output[index].extend(chunk[:remaining])
+                    size += min(len(chunk), remaining)
+                    if len(chunk) > remaining:
+                        exceeded.set()
+                if exceeded.is_set():
+                    break
+        finally:
+            stream.close()
+            done[index].set()
+
+    workers = [threading.Thread(target=collect, args=(i, stream), daemon=True)
+               for i, stream in enumerate((proc.stdout, proc.stderr))]
+    for worker in workers:
+        worker.start()
+    deadline = time.monotonic() + timeout
+    try:
+        while True:
+            if exceeded.is_set():
+                raise CommandOutputLimitExceeded("Command output exceeded its byte limit")
+            if proc.poll() is not None and all(event.is_set() for event in done):
+                break
+            if time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired(command, timeout)
+            exceeded.wait(min(0.02, max(0, deadline - time.monotonic())))
+    except BaseException:
+        _stop_command(proc)
+        raise
+    finally:
+        for worker in workers:
+            worker.join(timeout=1)
+    encoding = locale.getpreferredencoding(False)
+    return proc.returncode, *(bytes(data).decode(encoding, errors="replace") for data in output)

@@ -24,7 +24,11 @@ EXCLUDED_DIRECTORIES = {
 
 def release_files():
     """Return stable, relative paths for files shipped to players."""
-    return [Path(name) for name in policy(BASE_DIR)['files']]
+    files = policy(BASE_DIR)['files']
+    missing = {path.name for path in BASE_DIR.glob('cis_*.py')} - set(files)
+    if missing:
+        raise ValueError(f"Release assets missing runtime modules: {', '.join(sorted(missing))}")
+    return [Path(name) for name in files]
 
 
 def _is_executable(relative: Path) -> bool:
