@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Fixed release ZIP startup by including `cis_activity.py` and `cis_ntfy.py`;
+  included the new PDF manual and Telnet systemd unit in release assets.
+
+- Added SysOp shell outcome auditing without recording command text or output;
+  made shell exit/error and timeout regression tests portable to Windows.
+- Documented Telnet connection limits, activity logs, optional ntfy alerts,
+  SysOp command permissions, and a deployment checklist in `docs/sysop.md`.
+- Since 1.18.0: improved Telnet negotiation, password masking, line endings,
+  C64 PETSCII input/output and pacing; added connection limits, idle timeouts,
+  a sandboxed systemd unit, activity logs, `NEW` account registration, and
+  15-minute password lockout expiry.
+- Added optional ntfy session notifications, SysOp operating-system commands,
+  and a 1988-styled user manual PDF; fixed CB private messages and packaged
+  the activity and ntfy runtime modules.
+
 ## 1.18.0 - 2026-09-18
 
 - Fixed the intermittent `test_concurrent_market_trades_do_not_lose_positions`

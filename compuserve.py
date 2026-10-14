@@ -950,14 +950,25 @@ def sysop_os_shell():
         command = input("OS ! ").strip()
         if not command or command.upper() == "M":
             return
+        def audit(outcome, **detail):
+            # Command text and output may contain credentials; record outcomes only.
+            cis_activity.log_event(
+                "sysop_os_command", session_id=live_session_id,
+                client_ip=os.environ.get("CIS_CLIENT_IP") or None,
+                user_id=current_user_id, detail={"outcome": outcome, **detail},
+            )
+        audit("started")
         try:
             returncode, stdout, stderr = run_os_command(command)
         except subprocess.TimeoutExpired:
+            audit("timeout")
             ansi_scroll("Command timed out after 60 seconds.", 0.01)
             continue
         except OSError as exc:
+            audit("error", error_type=type(exc).__name__)
             ansi_scroll(f"Could not run command: {exc}", 0.01)
             continue
+        audit("completed", returncode=returncode)
         lines = []
         if stdout:
             lines.extend(stdout.splitlines())

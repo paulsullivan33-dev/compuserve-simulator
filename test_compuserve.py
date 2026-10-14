@@ -8639,6 +8639,11 @@ class HamnetBroadcastTests(unittest.TestCase):
 
 
 class SysopOsShellTests(unittest.TestCase):
+    def setUp(self):
+        self.audit = mock.patch.object(compuserve.cis_activity, "log_event")
+        self.log_event = self.audit.start()
+        self.addCleanup(self.audit.stop)
+
     def test_run_os_command_captures_stdout_and_exit_code(self):
         from cis_sysop import run_os_command
         rc, out, err = run_os_command("echo hello-sysop")
@@ -8648,14 +8653,16 @@ class SysopOsShellTests(unittest.TestCase):
 
     def test_run_os_command_reports_nonzero_exit_and_stderr(self):
         from cis_sysop import run_os_command
-        rc, out, err = run_os_command("ls /definitely-not-a-real-dir-xyz")
+        rc, out, err = run_os_command(
+            f'"{sys.executable}" -c "import sys; sys.stderr.write(\'failure\'); sys.exit(7)"'
+        )
         self.assertNotEqual(rc, 0)
         self.assertTrue(err)
 
     def test_run_os_command_timeout_raises(self):
         from cis_sysop import run_os_command
         with self.assertRaises(subprocess.TimeoutExpired):
-            run_os_command("sleep 5", timeout=1)
+            run_os_command(f'"{sys.executable}" -c "import time; time.sleep(5)"', timeout=1)
 
     def test_sysop_os_shell_requires_sysop(self):
         real_profile = compuserve.current_profile
@@ -8669,6 +8676,7 @@ class SysopOsShellTests(unittest.TestCase):
             compuserve.current_profile = real_profile
             compuserve.ansi_scroll = real_scroll
         self.assertTrue(any("SYSOP privileges required" in m for m in messages))
+        self.log_event.assert_not_called()
 
     def test_sysop_os_shell_runs_command_and_shows_output(self):
         real_profile = compuserve.current_profile
@@ -8690,6 +8698,11 @@ class SysopOsShellTests(unittest.TestCase):
         self.assertEqual(key, "sysop")
         self.assertTrue(any("hello-sysop" in line for line in lines))
         self.assertTrue(any(line.startswith("[exit ") for line in lines))
+        events = self.log_event.call_args_list
+        self.assertEqual([event.kwargs["detail"]["outcome"] for event in events],
+                         ["started", "completed"])
+        self.assertEqual(events[-1].kwargs["detail"]["returncode"], 0)
+        self.assertNotIn("hello-sysop", str(events))
 
     def test_sysop_os_shell_prints_limits_reminder(self):
         real_profile = compuserve.current_profile
@@ -8712,3 +8725,18 @@ class SysopOsShellTests(unittest.TestCase):
         joined = "\n".join(messages)
         self.assertIn("non-interactive", joined)
         self.assertIn("60s timeout", joined)
+
+    def test_sysop_os_shell_audits_failures_without_command_text(self):
+        for error, outcome in ((subprocess.TimeoutExpired("secret", 60), "timeout"),
+                               (OSError("secret"), "error")):
+            with self.subTest(outcome=outcome):
+                self.log_event.reset_mock()
+                with mock.patch.object(compuserve, "current_profile", {"is_sysop": True}), \
+                     mock.patch.object(compuserve, "input", side_effect=["secret", "M"]), \
+                     mock.patch.object(compuserve, "ansi_scroll"), \
+                     mock.patch.object(compuserve, "run_os_command", side_effect=error):
+                    compuserve.sysop_os_shell()
+                events = self.log_event.call_args_list
+                self.assertEqual([event.kwargs["detail"]["outcome"] for event in events],
+                                 ["started", outcome])
+                self.assertNotIn("secret", str(events))
