@@ -23,6 +23,12 @@ MAX_INPUT_LENGTH = 4_096
 LOGGER = logging.getLogger("compuserve.web")
 DOWNLOAD_TTL = 3600
 DOWNLOAD_SESSIONS = {}
+MAX_SESSIONS = max(1, int(os.environ.get("CIS_WEB_MAX_SESSIONS", "20")))
+MAX_SESSIONS_PER_IP = max(1, int(os.environ.get("CIS_WEB_MAX_SESSIONS_PER_IP", "3")))
+IDLE_TIMEOUT = max(1.0, float(os.environ.get("CIS_WEB_IDLE_TIMEOUT", "900")))
+# Admission is synchronous on this worker's event loop: no await between the
+# limit checks and reservation. Proxy headers are not trusted here.
+IP_SESSIONS = {}
 
 
 def prune_downloads():
@@ -132,7 +138,11 @@ async def relay_output(websocket, process):
 
 async def relay_input(websocket, process):
     while process.returncode is None:
-        message = await websocket.receive_json()
+        try:
+            message = await asyncio.wait_for(websocket.receive_json(), timeout=IDLE_TIMEOUT)
+        except asyncio.TimeoutError:
+            await websocket.close(code=1008, reason="Terminal idle timeout")
+            return
         if message.get("type") == "disconnect":
             return
         if message.get("type") != "input":
@@ -147,6 +157,22 @@ async def terminal(websocket: WebSocket):
     if not local_origin_allowed(websocket):
         await websocket.close(code=1008)
         return
+    peer = websocket.client.host if websocket.client else "unknown"
+    if sum(IP_SESSIONS.values()) >= MAX_SESSIONS or IP_SESSIONS.get(peer, 0) >= MAX_SESSIONS_PER_IP:
+        await websocket.close(code=1013, reason="Terminal capacity reached")
+        return
+    IP_SESSIONS[peer] = IP_SESSIONS.get(peer, 0) + 1
+    try:
+        await _terminal_session(websocket)
+    finally:
+        remaining = IP_SESSIONS[peer] - 1
+        if remaining:
+            IP_SESSIONS[peer] = remaining
+        else:
+            del IP_SESSIONS[peer]
+
+
+async def _terminal_session(websocket):
     await websocket.accept()
     session_id = uuid.uuid4().hex
     prune_downloads()

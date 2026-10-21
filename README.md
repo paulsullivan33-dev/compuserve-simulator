@@ -50,6 +50,16 @@ For managed Linux installations and upgrades, use the release ZIP and installer 
 Runtime databases, backups, captures, uploads, downloads, virtual environments,
 and release archives are intentionally excluded from source control and releases.
 
+## Web terminal limits and forum ownership
+
+Web terminal admission is limited per worker before a child process or download
+directory is allocated. Defaults are 20 concurrent sessions, 3 per client IP and
+900 seconds without input. Override with `CIS_WEB_MAX_SESSIONS`,
+`CIS_WEB_MAX_SESSIONS_PER_IP` and `CIS_WEB_IDLE_TIMEOUT`. Reverse proxies and
+multi-worker deployments also need an aggregate connection limit; clients behind
+one proxy share its address unless trusted proxy handling is configured separately.
+Legacy forum posts without a verified owner ID require a SysOp for deletion.
+
 ## Linux upgrades
 
 Extract a new release outside the live installation and run:

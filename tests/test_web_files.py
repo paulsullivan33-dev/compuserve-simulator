@@ -47,7 +47,8 @@ class WebDownloadTests(unittest.IsolatedAsyncioTestCase):
         sent = []
         async def send(message):
             sent.append(message)
-        await response({'type': 'http', 'method': 'GET', 'headers': [], 'extensions': {}}, AsyncMock(), send)
+        await response({'type': 'http', 'method': 'GET', 'headers': [], 'extensions': {},
+                        'asgi': {'spec_version': '2.4'}}, AsyncMock(), send)
         self.assertEqual(b''.join(item.get('body', b'') for item in sent), expected)
         self.assertIn('attachment;', response.headers['content-disposition'])
         self.assertIn('EXAMPLE.BAS', response.headers['content-disposition'])
