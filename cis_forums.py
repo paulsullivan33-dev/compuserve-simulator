@@ -58,8 +58,9 @@ def message_actions(app, section_key, message):
             app.save_profiles()
         app.ansi_scroll("Thread watch is active.", 0.01)
     elif action == "D":
-        legacy_owner = message.get("author") == (app.current_handle or app.current_user_id)
-        owner = message.get("author_user_id") == app.current_user_id or legacy_owner
+        # Display handles are editable and need not be unique. Old messages
+        # without a verified owner ID can only be removed by a SysOp.
+        owner = bool(app.current_user_id) and message.get("author_user_id") == app.current_user_id
         if not (owner or app.current_profile.get("is_sysop")):
             app.ansi_scroll("Only the author or SysOp may delete this message.", 0.01)
             return
