@@ -14,3 +14,6 @@ compuserve.db-shm
 compuserve.db-wal
 build/
 activity.log
+
+# GeoIP database (downloaded, not shipped; see cis_geoip.py)
+*.mmdb

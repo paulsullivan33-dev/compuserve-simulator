@@ -39,6 +39,7 @@ import cis_mail
 import cis_billing
 import cis_accounts
 import cis_activity
+import cis_geoip
 import cis_ntfy
 import cis_communities
 import cis_phones
@@ -684,9 +685,13 @@ def login_screen():
         },
     )
     from_where = f" from {client_ip}" if client_ip else ""
+    message = f"{handle} ({user_id}) connected{from_where} via {transport}"
+    location = cis_geoip.describe(client_ip) if client_ip else None
+    if location:
+        message += f"\nLocation: {location}"
     cis_ntfy.send_async(
         "CompuServe login",
-        f"{handle} ({user_id}) connected{from_where} via {transport}",
+        message,
         tags=("tada",),
     )
     ansi_scroll("Access granted", 0.01)
