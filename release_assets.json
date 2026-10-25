@@ -60,6 +60,7 @@
     "cis_features.py",
     "cis_fitness.py",
     "cis_forums.py",
+    "cis_geoip.py",
     "cis_giftguide.py",
     "cis_guitar.py",
     "cis_hamnet.py",

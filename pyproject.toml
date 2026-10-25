@@ -58,6 +58,7 @@ py-modules = [
     "cis_features",
     "cis_fitness",
     "cis_forums",
+    "cis_geoip",
     "cis_giftguide",
     "cis_guitar",
     "cis_hamnet",
