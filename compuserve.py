@@ -5,6 +5,7 @@ import sys
 import re
 import getpass
 import os
+import signal
 import uuid
 import textwrap
 import shutil
@@ -3734,6 +3735,7 @@ def _navigate(initial_go=None):
                 continue
 
             if command in ("OFF", "BYE"):
+                session_state.logged_off = True
                 show_logout_summary()
                 break
 
@@ -3842,6 +3844,7 @@ def _navigate(initial_go=None):
                 if len(stack) > 1:
                     stack.pop()
                 else:
+                    session_state.logged_off = True
                     show_logout_summary()
                     break
                 continue
@@ -3969,6 +3972,7 @@ def _navigate(initial_go=None):
 
 def main():
     """Run one local or relayed CompuServe terminal session."""
+    signal.signal(signal.SIGTERM, _handle_sigterm)
     initialize_database()
     startup_configuration()
     if os.environ.get("CIS_TRANSPORT") == "TELNET":
@@ -3992,12 +3996,59 @@ def main():
     return 0
 
 
+_session_terminated = False
+
+
+def _handle_sigterm(signum, frame):
+    """The gateway terminates the sim when the client connection dies.
+
+    Default SIGTERM handling would kill the process mid-statement and
+    _record_logout would never run -- drops were invisible in the log
+    and on ntfy. Flag the ending as a drop and unwind through main()'s
+    finally block instead, so it is recorded like any other ending.
+    """
+    global _session_terminated
+    _session_terminated = True
+    raise SystemExit(0)
+
+
+_ACTION_LABELS = {
+    "forum_posts": "forum post(s)",
+}
+
+
+def _session_summary_lines():
+    """What the user did, for the logout log/ntfy: the places they
+    visited and the actions tallied along the way. Empty when nothing
+    was recorded."""
+    lines = []
+    titles = []
+    for key in session_state.recent_destinations:
+        title = (screens.get(key) or {}).get("title") or key
+        if title not in titles:
+            titles.append(title)
+    if titles:
+        lines.append("Visited: " + ", ".join(titles))
+    actions = [
+        f"{count} {_ACTION_LABELS.get(name, name.replace('_', ' '))}"
+        for name, count in sorted(session_state.actions.items())
+        if count
+    ]
+    if actions:
+        lines.append("Activity: " + ", ".join(actions))
+    return lines
+
+
 def _record_logout():
     """Log the session end and notify ntfy.
 
     Runs in main()'s finally block, so it fires whether the user logged
-    off cleanly, the connection dropped, or navigate() raised. Never
-    raises: logging and notification are both best-effort.
+    off cleanly, the connection dropped, or navigate() raised. The
+    ending is classified so the log entry and the notification say
+    plainly which it was: "logout" (the user issued OFF/BYE), "dropped"
+    (the gateway terminated the sim because the client went away), or
+    "ended" (the process exited any other way, without a logoff).
+    Never raises: logging and notification are both best-effort.
     """
     try:
         handle = current_handle or (current_profile or {}).get(
@@ -4010,6 +4061,16 @@ def _record_logout():
         )
         transport = os.environ.get("CIS_TRANSPORT", "CONSOLE")
         client_ip = os.environ.get("CIS_CLIENT_IP") or None
+        if _session_terminated:
+            ended, verb = "dropped", "was dropped"
+            title, tags = "CompuServe session dropped", ("warning",)
+        elif session_state.logged_off:
+            ended, verb = "logout", "logged off"
+            title, tags = "CompuServe logout", ("zzz",)
+        else:
+            ended, verb = "ended", "left without logging off"
+            title, tags = "CompuServe session ended", ("zzz",)
+        summary = _session_summary_lines()
         cis_activity.log_event(
             "logout",
             session_id=live_session_id,
@@ -4019,15 +4080,26 @@ def _record_logout():
                 "handle": handle,
                 "transport": transport,
                 "duration_s": duration_s,
+                "ended": ended,
+                "destinations": list(session_state.recent_destinations),
+                "actions": dict(session_state.actions),
             },
         )
+        message = (
+            f"{handle} ({current_user_id}) {verb} "
+            f"after {cis_ntfy.format_duration(duration_s)}"
+        )
+        if summary:
+            message += "\n" + "\n".join(summary)
         # Synchronous with a short timeout: the process is about to exit,
-        # so a fire-and-forget thread might never get to run.
+        # so a fire-and-forget thread might never get to run. A dropped
+        # session gets a shorter timeout still, because the gateway
+        # allows only a brief grace period before it kills the process.
         cis_ntfy.send(
-            "CompuServe logout",
-            f"{handle} ({current_user_id}) disconnected "
-            f"after {cis_ntfy.format_duration(duration_s)}",
-            tags=("zzz",),
+            title,
+            message,
+            tags=tags,
+            timeout=1.5 if _session_terminated else cis_ntfy.TIMEOUT_S,
         )
     except Exception:
         pass

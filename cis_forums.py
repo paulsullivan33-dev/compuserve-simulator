@@ -3,6 +3,9 @@ from cis_session import read_input as input
 
 
 def post(app, section_key, subject, body, parent_id=None):
+    note = getattr(app, "session_state", None)
+    if note is not None:
+        note.note_action("forum_posts")
     ids = [m.get("id", 0) for messages in app.forum_threads.values() for m in messages]
     message_id = max(ids, default=1000) + 1
     app.forum_threads.setdefault(section_key, []).append({

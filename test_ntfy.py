@@ -118,6 +118,7 @@ class RecordLogoutTest(unittest.TestCase):
                 "current_profile",
                 "session_start",
                 "live_session_id",
+                "_session_terminated",
             )
         }
         compuserve.current_user_id = "71000,0004"
@@ -125,10 +126,20 @@ class RecordLogoutTest(unittest.TestCase):
         compuserve.current_profile = {"handle": "Sysop"}
         compuserve.session_start = time.time() - 125
         compuserve.live_session_id = "sess123"
+        compuserve._session_terminated = False
+        state = compuserve.session_state
+        self._state_stash = (state.logged_off, dict(state.actions),
+                             list(state.recent_destinations))
+        state.logged_off = False
+        state.actions = {}
+        state.recent_destinations = []
 
     def tearDown(self):
         for key, value in self._stash.items():
             setattr(self.compuserve, key, value)
+        state = self.compuserve.session_state
+        (state.logged_off, state.actions,
+         state.recent_destinations) = self._state_stash
         self._env.stop()
         self.tmp.cleanup()
 
@@ -137,6 +148,7 @@ class RecordLogoutTest(unittest.TestCase):
             return [json.loads(line) for line in handle if line.strip()]
 
     def test_logout_event_and_ntfy(self):
+        self.compuserve.session_state.logged_off = True
         with patch.object(cis_ntfy, "send", return_value=True) as send:
             self.compuserve._record_logout()
         (event,) = self._lines()
@@ -146,12 +158,42 @@ class RecordLogoutTest(unittest.TestCase):
         self.assertEqual(event["session_id"], "sess123")
         self.assertEqual(event["detail"]["handle"], "Sysop")
         self.assertEqual(event["detail"]["transport"], "TELNET")
+        self.assertEqual(event["detail"]["ended"], "logout")
         self.assertGreaterEqual(event["detail"]["duration_s"], 120)
         (title, message), kwargs = send.call_args
         self.assertEqual(title, "CompuServe logout")
         self.assertIn("71000,0004", message)
+        self.assertIn("logged off", message)
         self.assertIn("2m 05s", message)
         self.assertEqual(kwargs["tags"], ("zzz",))
+
+    def test_dropped_session_is_classified_and_summarized(self):
+        self.compuserve._session_terminated = True
+        state = self.compuserve.session_state
+        state.actions = {"forum_posts": 2}
+        state.recent_destinations = ["forums"]
+        with patch.object(cis_ntfy, "send", return_value=True) as send:
+            self.compuserve._record_logout()
+        (event,) = self._lines()
+        self.assertEqual(event["detail"]["ended"], "dropped")
+        self.assertEqual(event["detail"]["actions"], {"forum_posts": 2})
+        self.assertEqual(event["detail"]["destinations"], ["forums"])
+        (title, message), kwargs = send.call_args
+        self.assertEqual(title, "CompuServe session dropped")
+        self.assertIn("was dropped", message)
+        self.assertIn("Visited:", message)
+        self.assertIn("Activity: 2 forum post(s)", message)
+        self.assertEqual(kwargs["tags"], ("warning",))
+        self.assertEqual(kwargs["timeout"], 1.5)
+
+    def test_unflagged_ending_is_not_called_a_logout(self):
+        with patch.object(cis_ntfy, "send", return_value=True) as send:
+            self.compuserve._record_logout()
+        (event,) = self._lines()
+        self.assertEqual(event["detail"]["ended"], "ended")
+        (title, message), kwargs = send.call_args
+        self.assertEqual(title, "CompuServe session ended")
+        self.assertIn("left without logging off", message)
 
     def test_logout_never_raises_with_missing_state(self):
         self.compuserve.current_profile = None

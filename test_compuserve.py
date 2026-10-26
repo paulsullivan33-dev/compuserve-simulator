@@ -1262,6 +1262,54 @@ class NavigationTests(unittest.TestCase):
                          + telnet_app._IAC_DO_TERMINAL_TYPE
                          + telnet_app._IAC_DO_NAWS)
 
+    def _session_end_report(self, events, **kwargs):
+        """Run the gateway's end-of-session reconciliation on a seeded
+        activity log; returns (result, send mock)."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = os.path.join(tmp.name, "activity.log")
+        with open(path, "w", encoding="utf-8") as handle:
+            for event in events:
+                handle.write(json.dumps(event) + "\n")
+        with patch.dict(os.environ, {"CIS_ACTIVITY_LOG": path}), \
+                patch.object(telnet_app.cis_ntfy, "send",
+                             return_value=True) as send:
+            result = telnet_app._session_end_report(
+                kwargs.get("session_id", "sessX"),
+                kwargs.get("duration_s", 65),
+                kwargs.get("reason", "client_closed"),
+                "1.2.3.4",
+            )
+        return result, send
+
+    def test_session_end_report_notifies_when_no_logout_recorded(self):
+        login = {"event": "login", "session_id": "sessX",
+                 "user_id": "71000,0004", "detail": {"handle": "Sysop"}}
+        (user_id, recorded), send = self._session_end_report([login])
+        self.assertEqual(user_id, "71000,0004")
+        self.assertFalse(recorded)
+        (title, message), kwargs = send.call_args
+        self.assertEqual(title, "CompuServe session dropped")
+        self.assertIn("Sysop (71000,0004)", message)
+        self.assertIn("no logout", message)
+        self.assertIn("client_closed", message)
+
+    def test_session_end_report_quiet_when_logout_recorded(self):
+        login = {"event": "login", "session_id": "sessX",
+                 "user_id": "71000,0004", "detail": {"handle": "Sysop"}}
+        logout = {"event": "logout", "session_id": "sessX",
+                  "user_id": "71000,0004", "detail": {"ended": "logout"}}
+        (user_id, recorded), send = self._session_end_report([login, logout])
+        self.assertEqual(user_id, "71000,0004")
+        self.assertTrue(recorded)
+        send.assert_not_called()
+
+    def test_session_end_report_ignores_visitors_who_never_logged_in(self):
+        (user_id, recorded), send = self._session_end_report([])
+        self.assertIsNone(user_id)
+        self.assertFalse(recorded)
+        send.assert_not_called()
+
     def test_telnet_input_flood_disconnects(self):
         # A client that never sends a line terminator must not grow the
         # gateway's input buffer without bound.

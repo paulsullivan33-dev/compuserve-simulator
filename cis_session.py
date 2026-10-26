@@ -18,6 +18,13 @@ class SessionState:
     navigation_stack: list[str] = field(default_factory=lambda: ["main"])
     last_choices: dict[str, str] = field(default_factory=dict)
     recent_destinations: list[str] = field(default_factory=list)
+    actions: dict[str, int] = field(default_factory=dict)
+    logged_off: bool = False
+
+    def note_action(self, action):
+        """Tally one thing the user did (forum post, ...), for the
+        end-of-session summary in the logout log/ntfy."""
+        self.actions[action] = self.actions.get(action, 0) + 1
 
     @property
     def current_screen(self):

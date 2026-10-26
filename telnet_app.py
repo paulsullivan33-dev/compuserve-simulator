@@ -22,6 +22,7 @@ from contextlib import suppress
 from pathlib import Path
 
 import cis_activity
+import cis_ntfy
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -593,16 +594,59 @@ async def _handle_session(reader, writer, peer):
             await asyncio.wait_for(process.wait(), 2)
         if process.returncode is None:
             process.kill()
-    writer.close()
-    await writer.wait_closed()
+    # Report BEFORE closing the writer: an abrupt client reset can make
+    # wait_closed() raise, and the session-end record must not be lost
+    # with it -- a dropped connection is exactly the case it exists for.
     duration = round(time.monotonic() - started, 1)
-    LOGGER.info("terminal disconnected session=%s client=%s", session_id, peer)
+    user_id, logout_recorded = _session_end_report(
+        session_id, duration, disconnect_reason, client_ip)
+    LOGGER.info(
+        "terminal disconnected session=%s client=%s reason=%s user=%s "
+        "logout_recorded=%s",
+        session_id, peer, disconnect_reason, user_id, logout_recorded)
     cis_activity.log_event(
         "session_disconnected",
         session_id=session_id,
         client_ip=client_ip,
-        detail={"duration_s": duration, "reason": disconnect_reason},
+        detail={"duration_s": duration, "reason": disconnect_reason,
+                "user_id": user_id, "logout_recorded": logout_recorded},
     )
+    with suppress(Exception):
+        writer.close()
+        await writer.wait_closed()
+
+
+def _session_end_report(session_id, duration_s, reason, client_ip):
+    """Reconcile a finished session against the activity log.
+
+    The sim records its own "logout" event (with how the session ended
+    and what the user did) as it exits -- including on drops, via its
+    SIGTERM handler. When no logout event exists, the sim died before
+    it could record one (hard kill, crash): say so on ntfy from here,
+    because otherwise that ending is silent. Returns (user_id,
+    logout_recorded); user_id comes from the session's login event and
+    is None for visitors who never logged in (their disconnects are
+    logged, never notified). Never raises.
+    """
+    try:
+        events = [e for e in cis_activity.read_events(limit=2000)
+                  if e.get("session_id") == session_id]
+        login = next((e for e in events if e.get("event") == "login"), None)
+        user_id = login.get("user_id") if login else None
+        logout_recorded = any(e.get("event") == "logout" for e in events)
+        if not logout_recorded and login is not None:
+            handle = (login.get("detail") or {}).get("handle") or user_id
+            cis_ntfy.send(
+                "CompuServe session dropped",
+                f"{handle} ({user_id}) disconnected after "
+                f"{cis_ntfy.format_duration(duration_s)} -- no logout "
+                f"was recorded (gateway reason: {reason})",
+                tags=("warning",),
+                timeout=3,
+            )
+        return user_id, logout_recorded
+    except Exception:
+        return None, False
 
 
 async def main():
