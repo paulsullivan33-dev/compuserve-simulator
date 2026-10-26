@@ -165,6 +165,7 @@ class RecordLogoutTest(unittest.TestCase):
         self.assertIn("71000,0004", message)
         self.assertIn("logged off", message)
         self.assertIn("2m 05s", message)
+        self.assertIn("via TELNET from 9.9.9.9", message)
         self.assertEqual(kwargs["tags"], ("zzz",))
 
     def test_dropped_session_is_classified_and_summarized(self):
@@ -175,6 +176,7 @@ class RecordLogoutTest(unittest.TestCase):
         with patch.object(cis_ntfy, "send", return_value=True) as send:
             self.compuserve._record_logout()
         (event,) = self._lines()
+        self.assertEqual(event["event"], "session_dropped")
         self.assertEqual(event["detail"]["ended"], "dropped")
         self.assertEqual(event["detail"]["actions"], {"forum_posts": 2})
         self.assertEqual(event["detail"]["destinations"], ["forums"])
@@ -190,10 +192,28 @@ class RecordLogoutTest(unittest.TestCase):
         with patch.object(cis_ntfy, "send", return_value=True) as send:
             self.compuserve._record_logout()
         (event,) = self._lines()
+        self.assertEqual(event["event"], "session_ended")
         self.assertEqual(event["detail"]["ended"], "ended")
         (title, message), kwargs = send.call_args
         self.assertEqual(title, "CompuServe session ended")
         self.assertIn("left without logging off", message)
+
+    def test_summary_lists_every_tallied_action(self):
+        self.compuserve.session_state.logged_off = True
+        state = self.compuserve.session_state
+        state.actions = {"forum_posts": 2, "cb_messages": 3, "mail_sent": 1,
+                         "library_downloads": 4, "library_uploads": 1}
+        with patch.object(cis_ntfy, "send", return_value=True) as send:
+            self.compuserve._record_logout()
+        (event,) = self._lines()
+        self.assertEqual(event["detail"]["actions"], state.actions)
+        (title, message), kwargs = send.call_args
+        self.assertIn("Activity:", message)
+        for fragment in ("2 forum post(s)", "3 CB message(s)",
+                         "1 mail message(s) sent", "4 library download(s)",
+                         "1 library upload(s)"):
+            self.assertIn(fragment, message)
+        self.assertIn("via TELNET from 9.9.9.9", message)
 
     def test_logout_never_raises_with_missing_state(self):
         self.compuserve.current_profile = None
@@ -203,7 +223,7 @@ class RecordLogoutTest(unittest.TestCase):
         ):
             self.compuserve._record_logout()  # must not raise
         (event,) = self._lines()
-        self.assertEqual(event["event"], "logout")
+        self.assertEqual(event["event"], "session_ended")
         self.assertEqual(event["detail"]["duration_s"], 0)
 
 

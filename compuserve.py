@@ -1778,6 +1778,7 @@ def library_transfer(file):
         return
     ansi_scroll(f"Transfer complete -- {destination.stat().st_size} bytes received.", 0.01)
     ansi_scroll(f"Stored as {destination}", 0.01)
+    session_state.note_action("library_downloads")
 
 
 def library_upload(screen_key):
@@ -1811,6 +1812,7 @@ def library_upload(screen_key):
     }
     library_files.setdefault(screen_key, []).append(record)
     save_json_atomic("library_files.json", library_files)
+    session_state.note_action("library_uploads")
     ansi_scroll(f'Upload #{record["number"]} is pending SysOp approval.', 0.01)
 
 
@@ -3168,6 +3170,7 @@ def cb_chat(channel):
                     messages.append({"from": current_handle, "to": recipient[:40], "date": cis_dynamic.simulation_day().strftime("%m/%d/%y"), "text": text[:1000]})
                     return messages
                 storage_update_json_atomic(BASE_DIR, "cb_mail.json", [], _store_cb_mail)
+                session_state.note_action("cb_messages")
                 ansi_scroll(f"Private message stored for {recipient}.", 0.01)
             elif command == "IGNORE" and argument:
                 key = argument[:40]
@@ -3193,6 +3196,7 @@ def cb_chat(channel):
                 cb_help()
             elif command == "SAY" and argument:
                 last_message_id = post_live_message(BASE_DIR, room, current_handle, argument)
+                session_state.note_action("cb_messages")
                 ansi_scroll(f"<{current_handle}> {argument}", 0.01)
                 if channel == "4":
                     exchange += 1
@@ -4055,6 +4059,10 @@ def _handle_sigterm(signum, frame):
 
 _ACTION_LABELS = {
     "forum_posts": "forum post(s)",
+    "cb_messages": "CB message(s)",
+    "mail_sent": "mail message(s) sent",
+    "library_downloads": "library download(s)",
+    "library_uploads": "library upload(s)",
 }
 
 
@@ -4088,8 +4096,11 @@ def _record_logout():
     ending is classified so the log entry and the notification say
     plainly which it was: "logout" (the user issued OFF/BYE), "dropped"
     (the gateway terminated the sim because the client went away), or
-    "ended" (the process exited any other way, without a logoff).
-    Never raises: logging and notification are both best-effort.
+    "ended" (the process exited any other way, without a logoff). The
+    activity-log kind carries the same distinction ("logout",
+    "session_dropped", "session_ended") so the log can be filtered by
+    how sessions ended without opening the detail. Never raises:
+    logging and notification are both best-effort.
     """
     try:
         handle = current_handle or (current_profile or {}).get(
@@ -4113,7 +4124,8 @@ def _record_logout():
             title, tags = "CompuServe session ended", ("zzz",)
         summary = _session_summary_lines()
         cis_activity.log_event(
-            "logout",
+            {"logout": "logout", "dropped": "session_dropped",
+             "ended": "session_ended"}[ended],
             session_id=live_session_id,
             client_ip=client_ip,
             user_id=current_user_id,
@@ -4130,6 +4142,7 @@ def _record_logout():
             f"{handle} ({current_user_id}) {verb} "
             f"after {cis_ntfy.format_duration(duration_s)}"
         )
+        message += f"\nvia {transport}" + (f" from {client_ip}" if client_ip else "")
         if summary:
             message += "\n" + "\n".join(summary)
         # Synchronous with a short timeout: the process is about to exit,

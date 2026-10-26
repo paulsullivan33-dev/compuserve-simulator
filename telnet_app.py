@@ -619,9 +619,10 @@ async def _handle_session(reader, writer, peer):
 def _session_end_report(session_id, duration_s, reason, client_ip):
     """Reconcile a finished session against the activity log.
 
-    The sim records its own "logout" event (with how the session ended
+    The sim records its own session-ending event ("logout",
+    "session_dropped", or "session_ended", with how the session ended
     and what the user did) as it exits -- including on drops, via its
-    SIGTERM handler. When no logout event exists, the sim died before
+    SIGTERM handler. When no ending event exists, the sim died before
     it could record one (hard kill, crash): say so on ntfy from here,
     because otherwise that ending is silent. Returns (user_id,
     logout_recorded); user_id comes from the session's login event and
@@ -633,7 +634,9 @@ def _session_end_report(session_id, duration_s, reason, client_ip):
                   if e.get("session_id") == session_id]
         login = next((e for e in events if e.get("event") == "login"), None)
         user_id = login.get("user_id") if login else None
-        logout_recorded = any(e.get("event") == "logout" for e in events)
+        logout_recorded = any(
+            e.get("event") in ("logout", "session_dropped", "session_ended")
+            for e in events)
         if not logout_recorded and login is not None:
             handle = (login.get("detail") or {}).get("handle") or user_id
             cis_ntfy.send(
