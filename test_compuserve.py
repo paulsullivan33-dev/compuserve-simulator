@@ -1189,6 +1189,79 @@ class NavigationTests(unittest.TestCase):
         greeting = events[kinds.index("write")][1]
         self.assertIn(b"Connecting to CompuServe", greeting)
 
+    def test_telnet_probe_follows_its_notice_in_the_greeting(self):
+        # The connect-time probe teaches the gateway whether the client
+        # speaks TELNET (standard clients answer only when asked). The
+        # plain-text notice must precede the IAC bytes in the same write,
+        # so a raw terminal that drops over the probe was last shown what
+        # was being attempted.
+        async def scenario():
+            events = []
+
+            class FakeWriter:
+                def write(self, data):
+                    events.append(bytes(data))
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            class FakeStdin:
+                def write(self, data):
+                    pass
+
+                async def drain(self):
+                    pass
+
+            class FakeProcess:
+                returncode = 0
+                stdin = FakeStdin()
+
+                def __init__(self):
+                    self.stdout = asyncio.StreamReader()
+                    self.stdout.feed_eof()
+
+                async def wait(self):
+                    return 0
+
+                def terminate(self):
+                    pass
+
+                def kill(self):
+                    pass
+
+            async def fake_spawn(*args, **kwargs):
+                return FakeProcess()
+
+            real_spawn = telnet_app.asyncio.create_subprocess_exec
+            real_log = telnet_app.cis_activity.log_event
+            telnet_app.asyncio.create_subprocess_exec = fake_spawn
+            telnet_app.cis_activity.log_event = lambda *a, **k: None
+            try:
+                await telnet_app._handle_session(
+                    asyncio.StreamReader(), FakeWriter(), ("127.0.0.1", 1234)
+                )
+            finally:
+                telnet_app.asyncio.create_subprocess_exec = real_spawn
+                telnet_app.cis_activity.log_event = real_log
+            return events
+
+        writes = asyncio.run(scenario())
+        greeting = writes[0]
+        self.assertIn(b"Attempting TELNET negotiation", greeting)
+        self.assertIn(telnet_app._NEGOTIATION_PROBE, greeting)
+        self.assertLess(greeting.index(b"Attempting TELNET negotiation"),
+                        greeting.index(telnet_app._NEGOTIATION_PROBE))
+        self.assertEqual(telnet_app._NEGOTIATION_PROBE,
+                         telnet_app._IAC_WILL_ECHO
+                         + telnet_app._IAC_DO_TERMINAL_TYPE
+                         + telnet_app._IAC_DO_NAWS)
+
     def test_telnet_input_flood_disconnects(self):
         # A client that never sends a line terminator must not grow the
         # gateway's input buffer without bound.
