@@ -1035,6 +1035,43 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(writes, [b"P\n"])
         self.assertEqual(echoed, [b"P\r\n"])  # echo, but no IAC yet
 
+    def test_telnet_no_gateway_echo_for_negotiating_client_before_term_selected(self):
+        # A client that answered the connect probe still has its own
+        # local echo -- WILL ECHO is deferred to TERM_SELECTED -- so the
+        # gateway must not echo too, or every typed line appears twice.
+        async def scenario():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"\xff\xfb\x1f")  # WILL NAWS: a probe answer
+            reader.feed_data(b"P\r")
+            reader.feed_eof()
+
+            writes = []
+            echoed = []
+
+            class FakeStdin:
+                def write(self, data):
+                    writes.append(data)
+
+                async def drain(self):
+                    pass
+
+            class FakeWriter:
+                def write(self, data):
+                    echoed.append(bytes(data))
+
+                async def drain(self):
+                    pass
+
+            process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
+            await telnet_app.forward_telnet_input(
+                reader, FakeWriter(), process, "s", ("127.0.0.1", 1),
+                telnet_app._EchoState())
+            return writes, echoed
+
+        writes, echoed = asyncio.run(scenario())
+        self.assertEqual(writes, [b"P\n"])
+        self.assertEqual(echoed, [])
+
     def test_telnet_echo_suppressed_when_disabled(self):
         # Password input must reach the sim but never be echoed back.
         # (Raw-socket client: no IAC negotiation, so the server stays
@@ -1258,9 +1295,13 @@ class NavigationTests(unittest.TestCase):
         self.assertLess(greeting.index(b"Attempting TELNET negotiation"),
                         greeting.index(telnet_app._NEGOTIATION_PROBE))
         self.assertEqual(telnet_app._NEGOTIATION_PROBE,
-                         telnet_app._IAC_WILL_ECHO
-                         + telnet_app._IAC_DO_TERMINAL_TYPE
+                         telnet_app._IAC_DO_TERMINAL_TYPE
                          + telnet_app._IAC_DO_NAWS)
+        # No WILL ECHO in the probe: it would silence the client's local
+        # echo during startup configuration (see _NEGOTIATION_PROBE), and
+        # line-mode clients send nothing until Enter -- blind typing.
+        self.assertNotIn(telnet_app._IAC_WILL_ECHO,
+                         telnet_app._NEGOTIATION_PROBE)
 
     def _session_end_report(self, events, **kwargs):
         """Run the gateway's end-of-session reconciliation on a seeded
