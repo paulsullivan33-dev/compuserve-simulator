@@ -1969,12 +1969,14 @@ class NavigationTests(unittest.TestCase):
              patch('builtins.input', side_effect=['S cbmnet', '1', 'M']):
             cis_poster.directory(compuserve, ['main'])
         forum.assert_called_once_with('commodore')
-        self.assertIn('Opening a related existing simulation:', page.call_args.args[2])
+        self.assertNotIn('Opening a related existing simulation:', page.call_args.args[2])
+        self.assertFalse(any('transcription' in line for line in page.call_args.args[2]))
         with patch.object(compuserve, 'text_page') as page, \
              patch.object(compuserve, 'forum_service') as forum:
             self.assertTrue(compuserve.open_go_destination(compuserve.resolve_go_destination('ASHTON'), ['main']))
         forum.assert_called_once_with('dos')
-        self.assertIn('Opening a related existing simulation:', page.call_args.args[2])
+        self.assertNotIn('Opening a related existing simulation:', page.call_args.args[2])
+        self.assertFalse(any('transcription' in line for line in page.call_args.args[2]))
 
     def test_quick_directory_pagination_empty_search_and_recovery(self):
         import cis_poster
@@ -2095,7 +2097,9 @@ class NavigationTests(unittest.TestCase):
              patch('builtins.input', side_effect=['11', '2', '', '9', 'M', 'OFF']):
             compuserve.navigate()
         forum.assert_called_once_with('ibmhw')
-        self.assertIn('Opening a related reconstructed simulation:', notice.call_args.args[2])
+        for call in notice.call_args_list:
+            self.assertNotIn('reconstructed simulation', str(call.args))
+            self.assertNotIn('not reproduced', str(call.args))
 
     def test_air_hotel_and_aae_photo_rendering_and_addresses(self):
         for width in (40, 80):
@@ -2566,7 +2570,8 @@ class ContentPack8Tests(unittest.TestCase):
              patch.object(compuserve, "forum_service") as forum:
             self.assertTrue(cis_poster.open_word(compuserve, "BORLAND", ["main"]))
         forum.assert_called_once_with("dos")
-        self.assertIn("Opening a related existing simulation:", page.call_args.args[2])
+        self.assertNotIn("Opening a related existing simulation:", page.call_args.args[2])
+        self.assertFalse(any('transcription' in line for line in page.call_args.args[2]))
 
     def test_no_poster_choice_or_word_reports_unimplemented(self):
         import cis_poster
@@ -8993,7 +8998,8 @@ class NoUnimplementedPagesTests(unittest.TestCase):
              patch("builtins.input", side_effect=["GO TESTSVC", "1", "M", "M", "OFF"]):
             compuserve.navigate()
         text = "\n".join(emitted)
-        self.assertIn("related reconstructed simulation", text)
+        self.assertNotIn("related reconstructed simulation", text)
+        self.assertNotIn("not reproduced", text)
         self.assertNotIn("not implemented yet", text)
 
     def test_adventure_league_locked_quest_explains_the_gate(self):

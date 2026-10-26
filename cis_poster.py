@@ -75,10 +75,6 @@ def open_word(app, word, stack):
     if record is None:
         return False
     lines = ['Listed on the original poster as GO ' + word + '.']
-    if record.get('target'):
-        lines += ['', 'Opening a related existing simulation:',
-                  app.destination_label(record['target']),
-                  'Its contents are reconstructed, not a transcription of this service.']
     app.text_page('poster_topics', record['label'], lines)
     if record.get('target'):
         app.open_go_destination(record['target'], stack)
@@ -220,14 +216,12 @@ def select(app, current, choice, stack):
         ('poster_ebb', '4'): '2',
     }.get((current, choice))
     if shopping_action:
-        app.ansi_scroll('Opening the existing reconstructed shopping service. Original merchant catalogs, instructions, and advertisements are not reproduced.', 0.01)
         app.shopping_service(shopping_action)
         return
     if (current, choice) in (('poster_cus', '2'), ('poster_mall', '5')):
         query = input('Search simulated products (RETURN lists all) ! ').strip()
         products = app.cis_store.search(query)
         app.text_page(current, 'SIMULATED PRODUCT INDEX - BROWSING ONLY', [
-            'Reconstructed catalog; original merchant products are not transcribed.',
             *[f"{p['sku']}  {p['name']} - ${p['price']:.2f}" for p in products],
             *([] if products else ['No matching products.']),
         ])
@@ -243,18 +237,12 @@ def select(app, current, choice, stack):
         return
     related = app.screens[current].get('related_targets', {}).get(choice)
     if related:
-        app.text_page(current, app.screens[current]['options'][choice], [
-            'Opening a related reconstructed simulation:', app.destination_label(related),
-            'The original historical forum content is not reproduced.',
-        ])
         app.open_go_destination(related, stack)
         return
     if current == 'poster_aae' and not choice:
-        app.ansi_scroll('The preceding welcome text describes the historical encyclopedia. This simulation contains a small reconstructed sample.', 0.01)
         app.reference_service('1')
         return
     if current == 'poster_hotel' and choice == '1':
-        app.ansi_scroll('Opening the reconstructed hotel directory; original ABC guide content is not reproduced.', 0.01)
         app.travel_service('2')
         return
     if current == 'poster_topics':

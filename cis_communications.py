@@ -240,7 +240,7 @@ def public_files(app):
     while True:
         rows = [r for r in state(app).get('public_files', []) if query.casefold() in
                 (r['original_name'] + ' ' + r['description']).casefold()]
-        app.ansi_scroll('ACCESS PUBLIC FILE AREA - reconstructed text sharing', 0.01)
+        app.ansi_scroll('ACCESS PUBLIC FILE AREA', 0.01)
         for row in rows:
             app.ansi_scroll(f"{row['public_id']} {row['original_name']} -- {row['description']} ({row['downloads']} downloads)", 0.005)
         command = input('Number download, P publish PER file, S search, D delete own, M ! ').strip().upper()
@@ -273,13 +273,12 @@ def society(app):
         return
     while True:
         members = state(app).get('society', {})
-        app.ansi_scroll('CB SOCIETY - reconstructed member club', 0.01)
-        app.ansi_scroll('Original Cupcake column is not reproduced. Club Notes is new simulation content.', 0.005)
+        app.ansi_scroll('CB SOCIETY', 0.01)
         command = input('1 Club Notes, 2 members, 3 discussions, J join, L leave, M ! ').strip().upper()
         if command in ('M', ''):
             return
         if command == '1':
-            app.text_page('poster_cb', 'CLUB NOTES - SIMULATION EDITION', [
+            app.text_page('poster_cb', 'CLUB NOTES', [
                 'Welcome to the December computer-and-modem get-together.',
                 'Introduce your handle and favorite computer on the club discussion board.',
                 'Keep messages friendly, give newcomers time to type, and ask before private chats.',
