@@ -3689,12 +3689,10 @@ def related_service_for(label):
 def open_related_service(label, stack):
     """Open the closest working service for a menu item with none of its own.
 
-    The item is presented honestly as a reconstruction and the opening is
-    announced first, matching the poster menus' related-service routing.
+    No announcement or disclaimer: the destination simply opens, the
+    way the original service would have presented it (Paul, 2026-10-26).
     """
     target = related_service_for(label)
-    ansi_scroll("Opening a related reconstructed simulation: " + destination_label(target), 0.01)
-    ansi_scroll("The original service is not reproduced; this is the closest working service in this simulation.", 0.01)
     return open_go_destination(target, stack)
 
 

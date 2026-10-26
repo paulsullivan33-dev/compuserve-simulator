@@ -252,7 +252,7 @@ def service(app):
     if not app.current_user_id:
         return
     while True:
-        app.ansi_scroll('MY COMPUTER SETUP - reconstructed hardware simulation', 0.01)
+        app.ansi_scroll('MY COMPUTER SETUP', 0.01)
         for line in lines(app):
             app.ansi_scroll(line, 0.005)
         for asset in raw(app).get('owned_equipment', {}).get(app.current_user_id, []):
