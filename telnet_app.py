@@ -202,7 +202,7 @@ async def forward_telnet_input(reader, writer, process, session_id, peer,
         cleaned = _petscii_to_ascii(cleaned, is_c64=is_c64)
         if cleaned != chunk:
             _debug_bytes("cleaned", session_id, cleaned, echo_state)
-        if cleaned and echo_state.enabled:
+        if cleaned and _gateway_echoes(echo_state):
             writer.write(_echo_bytes(cleaned))
             await writer.drain()
         elif cleaned and _password_masking(echo_state):
@@ -306,7 +306,8 @@ async def serve_terminal(reader, writer):
 # answer only when asked, and an unasked client keeps its local echo on --
 # a typed password then shows in cleartext on the user's own screen. The
 # sim emits TERM_SELECTED right after its startup configuration, and the
-# gateway sends WILL ECHO again there in case a probe answer arrived late.
+# gateway sends WILL ECHO there -- the moment it takes echo over from
+# the client.
 _ECHO_OFF_MARKER = b"\x00[ECHOOFF]\x00"
 _ECHO_ON_MARKER = b"\x00[ECHOON]\x00"
 _TERM_SELECTED_MARKER = b"\x00[TERMSELECTED]\x00"
@@ -316,16 +317,20 @@ _IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
 _IAC_DO_TERMINAL_TYPE = b"\xff\xfd\x18"  # client: state your terminal type
 _IAC_DO_NAWS = b"\xff\xfd\x1f"  # client: state your window size
 
-# The connect-time negotiation probe. WILL ECHO puts a negotiating client
-# under server echo from the start (the gateway's remote echo is already
-# running); the two DOs exist to make the client answer, which is how the
-# gateway learns it negotiates at all (echo_state.saw_iac). The probe is
-# written immediately after the plain-text notice, so if a raw-socket
-# terminal drops over these bytes, the last legible line on its screen
-# says what was being attempted. Raw terminals that stay connected show
-# a few stray glyphs -- accepted (Paul, 2026-10-26).
+# The connect-time negotiation probe. The two DOs exist to make the
+# client answer, which is how the gateway learns it negotiates at all
+# (echo_state.saw_iac). WILL ECHO is deliberately NOT part of the probe:
+# a client told WILL ECHO stops its local echo at once, but line-mode
+# clients (GNU telnet) then buffer whole lines before sending anything,
+# so the user types the startup configuration blind -- the gateway
+# cannot echo keystrokes it has not received. WILL ECHO waits for
+# TERM_SELECTED, when the gateway takes echo over (see _EchoTranslator).
+# The probe is written immediately after the plain-text notice, so if a
+# raw-socket terminal drops over these bytes, the last legible line on
+# its screen says what was being attempted. Raw terminals that stay
+# connected show a few stray glyphs -- accepted (Paul, 2026-10-26).
 _NEGOTIATION_NOTICE = b"Attempting TELNET negotiation...\r\n"
-_NEGOTIATION_PROBE = _IAC_WILL_ECHO + _IAC_DO_TERMINAL_TYPE + _IAC_DO_NAWS
+_NEGOTIATION_PROBE = _IAC_DO_TERMINAL_TYPE + _IAC_DO_NAWS
 
 
 def _ascii_to_petscii(data):
@@ -387,14 +392,26 @@ def _echo_bytes(data):
     return bytes(out)
 
 
+def _gateway_echoes(echo_state):
+    """Whether the gateway reflects this client's keystrokes back.
+
+    Raw-socket clients have no local echo of their own, so the gateway
+    echoes from connect. A client that answered the negotiation probe
+    keeps its local echo until TERM_SELECTED -- that is when the gateway
+    sends WILL ECHO and takes echo over -- so gateway echo before then
+    would double every line the user types.
+    """
+    return (echo_state.enabled
+            and (echo_state.term_selected or not echo_state.saw_iac))
+
+
 def _password_masking(echo_state):
     """True while a password is typed on a client that negotiated echo.
 
-    The gateway sent IAC WILL ECHO in its connect-time probe (and again
-    at terminal selection), so the client turned its local echo off and
-    the server owns the display. Raw-socket clients never negotiated, so
-    their own local echo stays on and the server must stay silent for
-    them rather than double every character.
+    The gateway sent IAC WILL ECHO at terminal selection, so the client
+    turned its local echo off and the server owns the display. Raw-socket
+    clients never negotiated, so their own local echo stays on and the
+    server must stay silent for them rather than double every character.
     """
     return (echo_state.term_selected and not echo_state.enabled
             and echo_state.saw_iac)
