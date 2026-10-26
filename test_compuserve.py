@@ -991,7 +991,7 @@ class NavigationTests(unittest.TestCase):
 
             process = types.SimpleNamespace(returncode=None, stdin=FakeStdin())
             state = telnet_app._EchoState()
-            state.enabled = True  # as after the sim's TERM_SELECTED marker
+            state.enabled = True  # gateway echo enabled (the default)
             await telnet_app.forward_telnet_input(
                 reader, FakeWriter(), process, "s", ("127.0.0.1", 1), state)
             return writes, echoed
@@ -1037,7 +1037,7 @@ class NavigationTests(unittest.TestCase):
 
     def test_telnet_no_gateway_echo_for_negotiating_client_before_term_selected(self):
         # A client that answered the connect probe still has its own
-        # local echo -- WILL ECHO is deferred to TERM_SELECTED -- so the
+        # local echo -- WILL ECHO waits for a password prompt -- so the
         # gateway must not echo too, or every typed line appears twice.
         async def scenario():
             reader = asyncio.StreamReader()
@@ -1071,6 +1071,29 @@ class NavigationTests(unittest.TestCase):
         writes, echoed = asyncio.run(scenario())
         self.assertEqual(writes, [b"P\n"])
         self.assertEqual(echoed, [])
+
+    def test_echo_claim_spans_only_the_password_prompt(self):
+        # TERM_SELECTED sends nothing: the client's local echo stays in
+        # charge, or line-mode clients type blind until Enter. The
+        # gateway claims echo (WILL ECHO) when a password prompt opens
+        # and hands it back (WONT ECHO) when the prompt closes.
+        state = telnet_app._EchoState()
+        translator = telnet_app._EchoTranslator(state)
+        forward, iac = translator.feed(b"menu\x00[TERMSELECTED]\x00")
+        self.assertEqual(forward, b"menu")
+        self.assertEqual(iac, b"")
+        self.assertTrue(state.term_selected)
+        self.assertFalse(state.server_echo)
+        forward, iac = translator.feed(b"\x00[ECHOOFF]\x00Password: ")
+        self.assertEqual(forward, b"Password: ")
+        self.assertEqual(iac, telnet_app._IAC_WILL_ECHO)
+        self.assertTrue(state.server_echo)
+        self.assertFalse(state.enabled)
+        forward, iac = translator.feed(b"\x00[ECHOON]\x00welcome")
+        self.assertEqual(forward, b"welcome")
+        self.assertEqual(iac, telnet_app._IAC_WONT_ECHO)
+        self.assertFalse(state.server_echo)
+        self.assertTrue(state.enabled)
 
     def test_telnet_echo_suppressed_when_disabled(self):
         # Password input must reach the sim but never be echoed back.

@@ -198,28 +198,35 @@ class ActivityLogTest(unittest.TestCase):
 
 
 class PasswordEchoTest(unittest.TestCase):
-    def test_term_selected_sends_will_echo(self):
+    def test_term_selected_sends_nothing(self):
         state = telnet_app._EchoState()
         self.assertTrue(state.enabled)  # echo from connect (text only)
         self.assertFalse(state.term_selected)
         tr = telnet_app._EchoTranslator(state)
         fwd, iac = tr.feed(b"ready" + telnet_app._TERM_SELECTED_MARKER + b"menu")
         self.assertEqual(fwd, b"readymenu")
-        self.assertEqual(iac, b"\xff\xfb\x01")  # IAC WILL ECHO, once
+        # No WILL ECHO at terminal selection: claiming echo there left
+        # line-mode clients typing blind until Enter (Paul, 2026-10-26).
+        # The claim waits for a password prompt (ECHO_OFF, below).
+        self.assertEqual(iac, b"")
         self.assertTrue(state.term_selected)
+        self.assertFalse(state.server_echo)
 
     def test_echo_translator_strips_markers_and_toggles_echo(self):
         state = telnet_app._EchoState()
         tr = telnet_app._EchoTranslator(state)
-        # Password markers only flip the flag; WILL ECHO went out earlier.
+        # The password markers ARE the echo claim: WILL ECHO out as the
+        # prompt opens, WONT ECHO as it closes.
         fwd, iac = tr.feed(b"hello " + telnet_app._ECHO_OFF_MARKER + b"world")
         self.assertEqual(fwd, b"hello world")
-        self.assertEqual(iac, b"")
+        self.assertEqual(iac, b"\xff\xfb\x01")  # IAC WILL ECHO
         self.assertFalse(state.enabled)  # server stops echoing the password
+        self.assertTrue(state.server_echo)
         fwd, iac = tr.feed(b"done" + telnet_app._ECHO_ON_MARKER)
         self.assertEqual(fwd, b"done")
-        self.assertEqual(iac, b"")  # no WONT ECHO: server keeps echoing
+        self.assertEqual(iac, b"\xff\xfc\x01")  # IAC WONT ECHO: claim released
         self.assertTrue(state.enabled)
+        self.assertFalse(state.server_echo)
 
     def test_echo_translator_handles_split_marker(self):
         state = telnet_app._EchoState()
@@ -228,7 +235,7 @@ class PasswordEchoTest(unittest.TestCase):
         self.assertEqual((fwd, iac), (b"abc", b""))
         fwd, iac = tr.feed(b"OFF]\x00def")
         self.assertEqual(fwd, b"def")
-        self.assertEqual(iac, b"")
+        self.assertEqual(iac, b"\xff\xfb\x01")  # claim sent once marker completes
         self.assertFalse(state.enabled)
 
     def test_password_input_suppresses_echo_for_remote_terminal(self):
