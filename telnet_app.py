@@ -22,6 +22,7 @@ from contextlib import suppress
 from pathlib import Path
 
 import cis_activity
+import cis_ntfy
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -300,16 +301,31 @@ async def serve_terminal(reader, writer):
 # typed (like real telnetd). NUL-delimited so they never collide with real
 # output; only emitted for remote terminals.
 #
-# No IAC is sent before the terminal type is selected: the sim emits
-# TERM_SELECTED right after its startup configuration, and only then does
-# the gateway send WILL ECHO and start remote echo. Before that the client
-# is on its own (dumb-terminal behavior).
+# At connect the gateway probes once (see _NEGOTIATION_PROBE) so it learns
+# whether the client speaks TELNET: standard clients such as Linux telnet
+# answer only when asked, and an unasked client keeps its local echo on --
+# a typed password then shows in cleartext on the user's own screen. The
+# sim emits TERM_SELECTED right after its startup configuration, and the
+# gateway sends WILL ECHO again there in case a probe answer arrived late.
 _ECHO_OFF_MARKER = b"\x00[ECHOOFF]\x00"
 _ECHO_ON_MARKER = b"\x00[ECHOON]\x00"
 _TERM_SELECTED_MARKER = b"\x00[TERMSELECTED]\x00"
 _TERM_SELECTED_PREFIX = b"\x00[TERMSELECTED:"
 _TERM_SELECTED_SUFFIX = b"]\x00"
 _IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
+_IAC_DO_TERMINAL_TYPE = b"\xff\xfd\x18"  # client: state your terminal type
+_IAC_DO_NAWS = b"\xff\xfd\x1f"  # client: state your window size
+
+# The connect-time negotiation probe. WILL ECHO puts a negotiating client
+# under server echo from the start (the gateway's remote echo is already
+# running); the two DOs exist to make the client answer, which is how the
+# gateway learns it negotiates at all (echo_state.saw_iac). The probe is
+# written immediately after the plain-text notice, so if a raw-socket
+# terminal drops over these bytes, the last legible line on its screen
+# says what was being attempted. Raw terminals that stay connected show
+# a few stray glyphs -- accepted (Paul, 2026-10-26).
+_NEGOTIATION_NOTICE = b"Attempting TELNET negotiation...\r\n"
+_NEGOTIATION_PROBE = _IAC_WILL_ECHO + _IAC_DO_TERMINAL_TYPE + _IAC_DO_NAWS
 
 
 def _ascii_to_petscii(data):
@@ -374,10 +390,11 @@ def _echo_bytes(data):
 def _password_masking(echo_state):
     """True while a password is typed on a client that negotiated echo.
 
-    The gateway sent IAC WILL ECHO at terminal selection, so the client
-    turned its local echo off and the server owns the display. Raw-socket
-    clients never negotiated, so their own local echo stays on and the
-    server must stay silent for them rather than double every character.
+    The gateway sent IAC WILL ECHO in its connect-time probe (and again
+    at terminal selection), so the client turned its local echo off and
+    the server owns the display. Raw-socket clients never negotiated, so
+    their own local echo stays on and the server must stay silent for
+    them rather than double every character.
     """
     return (echo_state.term_selected and not echo_state.enabled
             and echo_state.saw_iac)
@@ -499,12 +516,14 @@ async def _handle_session(reader, writer, peer):
 
     # Greet immediately: spawning the sim subprocess (cold Python +
     # imports) can take ~10s, and a client staring at a blank screen
-    # that long assumes the connection is dead and hangs up. Plain text
-    # only -- no control characters are sent before the terminal type is
-    # selected (the sim reports that with TERM_SELECTED, and only then
-    # does the gateway negotiate WILL ECHO).
+    # that long assumes the connection is dead and hangs up. The
+    # negotiation probe goes out in the same write, right after its
+    # plain-text notice (see _NEGOTIATION_PROBE): asking at connect is
+    # the only way to learn whether this client speaks TELNET, because
+    # standard clients answer only when asked.
     with suppress(Exception):
-        writer.write(b"\r\nConnecting to CompuServe...\r\n")
+        writer.write(b"\r\nConnecting to CompuServe...\r\n"
+                     + _NEGOTIATION_NOTICE + _NEGOTIATION_PROBE)
         await writer.drain()
 
     process = await asyncio.create_subprocess_exec(
@@ -575,16 +594,59 @@ async def _handle_session(reader, writer, peer):
             await asyncio.wait_for(process.wait(), 2)
         if process.returncode is None:
             process.kill()
-    writer.close()
-    await writer.wait_closed()
+    # Report BEFORE closing the writer: an abrupt client reset can make
+    # wait_closed() raise, and the session-end record must not be lost
+    # with it -- a dropped connection is exactly the case it exists for.
     duration = round(time.monotonic() - started, 1)
-    LOGGER.info("terminal disconnected session=%s client=%s", session_id, peer)
+    user_id, logout_recorded = _session_end_report(
+        session_id, duration, disconnect_reason, client_ip)
+    LOGGER.info(
+        "terminal disconnected session=%s client=%s reason=%s user=%s "
+        "logout_recorded=%s",
+        session_id, peer, disconnect_reason, user_id, logout_recorded)
     cis_activity.log_event(
         "session_disconnected",
         session_id=session_id,
         client_ip=client_ip,
-        detail={"duration_s": duration, "reason": disconnect_reason},
+        detail={"duration_s": duration, "reason": disconnect_reason,
+                "user_id": user_id, "logout_recorded": logout_recorded},
     )
+    with suppress(Exception):
+        writer.close()
+        await writer.wait_closed()
+
+
+def _session_end_report(session_id, duration_s, reason, client_ip):
+    """Reconcile a finished session against the activity log.
+
+    The sim records its own "logout" event (with how the session ended
+    and what the user did) as it exits -- including on drops, via its
+    SIGTERM handler. When no logout event exists, the sim died before
+    it could record one (hard kill, crash): say so on ntfy from here,
+    because otherwise that ending is silent. Returns (user_id,
+    logout_recorded); user_id comes from the session's login event and
+    is None for visitors who never logged in (their disconnects are
+    logged, never notified). Never raises.
+    """
+    try:
+        events = [e for e in cis_activity.read_events(limit=2000)
+                  if e.get("session_id") == session_id]
+        login = next((e for e in events if e.get("event") == "login"), None)
+        user_id = login.get("user_id") if login else None
+        logout_recorded = any(e.get("event") == "logout" for e in events)
+        if not logout_recorded and login is not None:
+            handle = (login.get("detail") or {}).get("handle") or user_id
+            cis_ntfy.send(
+                "CompuServe session dropped",
+                f"{handle} ({user_id}) disconnected after "
+                f"{cis_ntfy.format_duration(duration_s)} -- no logout "
+                f"was recorded (gateway reason: {reason})",
+                tags=("warning",),
+                timeout=3,
+            )
+        return user_id, logout_recorded
+    except Exception:
+        return None, False
 
 
 async def main():
