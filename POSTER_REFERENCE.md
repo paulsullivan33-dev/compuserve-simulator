@@ -76,7 +76,8 @@ IMG_3303 adds TRA-4 (including its TRAVELSHOPPER heading) and TRA-5.
 Travel choices 2 and 3 now open these intermediate menus. TRA-4 choice 1 opens
 existing simulated OAG functionality. TRA-5 choice 1 opens the reconstructed
 hotel directory with a notice that original ABC content is not reproduced.
-Other named travel providers remain unimplemented.
+Other named travel providers open the closest related reconstructed travel
+service rather than an unimplemented notice.
 
 IMG_3304 adds AAE-1 and GPO-1. Reference choices 1 and 2 open these screens.
 AAE preserves the centered welcome, printed Copyright @ 1986, and historical
@@ -130,5 +131,5 @@ Color Mail. The Society has original Club Notes rather than invented Cupcake tex
 cards use original ASCII art rather than historical Hallmark designs. GO SOCIETY,
 GO ACCESS and GO CARDS are convenience aliases added by this simulation.
 GO QUICK and GO COVERAGE distinguish working menus from reconstructed services;
-a few photographed quick words intentionally remain unimplemented. GO PHOTOS
-lists the specific reference gaps.
+every photographed quick word opens a service, its own or the closest related
+reconstruction. GO PHOTOS lists the specific reference gaps.

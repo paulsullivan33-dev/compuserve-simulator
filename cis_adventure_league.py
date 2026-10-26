@@ -75,8 +75,12 @@ def undertake(app, quest_id, approach):
     state = app.cis_dynamic.load_state(app); hero = _characters(state).get(_user(app))
     if not hero:
         return "Create a character first."
+    if quest_id not in QUESTS:
+        return "Unknown quest code. Available quests: " + ", ".join(available_quests(app)) + "."
     if quest_id not in available_quests(app):
-        return "That quest is not yet available."
+        gate = next(key for key in QUESTS if key not in hero.get("completed", []))
+        return (f"That quest opens later in your campaign. Complete {QUESTS[gate]['title']} "
+                f"to advance (campaign chapter {hero.get('campaign', 1)} of {len(QUESTS)}).")
     day_key = app.cis_dynamic.simulation_day().isoformat()
     if hero.setdefault("daily", {}).get(day_key):
         return "Today's League quest is already complete. Return after the simulation date advances."

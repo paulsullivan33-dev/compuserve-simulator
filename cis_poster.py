@@ -79,11 +79,11 @@ def open_word(app, word, stack):
         lines += ['', 'Opening a related existing simulation:',
                   app.destination_label(record['target']),
                   'Its contents are reconstructed, not a transcription of this service.']
-    else:
-        lines += ['', 'This historical service has not yet been recreated.']
     app.text_page('poster_topics', record['label'], lines)
     if record.get('target'):
         app.open_go_destination(record['target'], stack)
+    else:
+        app.open_related_service(record['label'], stack)
     return True
 
 
@@ -266,7 +266,7 @@ def select(app, current, choice, stack):
                 'Search by service name or GO word, or list all indexed destinations.',
                 'F and B turn pages. S words searches. ALL clears the search.',
                 'Enter a displayed number to open a destination. M returns.',
-                'Not recreated means the poster names a service with no implementation.',
+                'A name with no service of its own opens the closest related simulation.',
                 'Related simulation means existing content covers part of that topic.',
                 'The original complete topic index is not yet transcribed.',
                 'On the poster, E denotes an Executive Option offering.',
@@ -304,7 +304,4 @@ def select(app, current, choice, stack):
     elif target:
         app.open_go_destination(target, stack)
     else:
-        app.text_page(current, app.screens[current]['options'][choice], [
-            'This service appears on the original CompuServe poster.',
-            'It has not yet been recreated in this simulation.',
-        ])
+        app.open_related_service(app.screens[current]['options'][choice], stack)
