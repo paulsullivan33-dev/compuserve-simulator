@@ -123,6 +123,9 @@ def compose(app, recipient=None, subject_default="", initial_lines=None, resume_
         messages.append({"id": next_id + 1, "from": "POSTMASTER", "to": app.current_user_id, "date": app.SIMULATION_DATE, "subject": "DELIVERY FAILURE: " + subject, "body": f"User ID {recipient} is not listed. Your message could not be delivered.", "read": False})
     app.save_json_atomic("easyplex.json", messages)
     app.cis_drafts.delete_draft(app, "mail")
+    note = getattr(app, "session_state", None)
+    if note is not None:
+        note.note_action("mail_sent")
     app.ansi_scroll("Message accepted by EasyPlex.", 0.01)
 
 

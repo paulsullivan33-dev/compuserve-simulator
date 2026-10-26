@@ -1304,6 +1304,16 @@ class NavigationTests(unittest.TestCase):
         self.assertTrue(recorded)
         send.assert_not_called()
 
+    def test_session_end_report_quiet_when_drop_recorded_by_sim(self):
+        login = {"event": "login", "session_id": "sessX",
+                 "user_id": "71000,0004", "detail": {"handle": "Sysop"}}
+        dropped = {"event": "session_dropped", "session_id": "sessX",
+                   "user_id": "71000,0004", "detail": {"ended": "dropped"}}
+        (user_id, recorded), send = self._session_end_report([login, dropped])
+        self.assertEqual(user_id, "71000,0004")
+        self.assertTrue(recorded)
+        send.assert_not_called()
+
     def test_session_end_report_ignores_visitors_who_never_logged_in(self):
         (user_id, recorded), send = self._session_end_report([])
         self.assertIsNone(user_id)
@@ -8932,3 +8942,44 @@ class NoUnimplementedPagesTests(unittest.TestCase):
                 self.assertIn("campaign", message)
                 unknown = cis_adventure_league.undertake(compuserve, "BOGUS", "SEARCH")
                 self.assertIn("Available quests", unknown)
+
+
+class SessionSummaryTallyTests(unittest.TestCase):
+    """Actions beyond forum posts land in the session summary tally."""
+
+    def test_mail_send_is_tallied(self):
+        state = SessionState()
+        with tempfile.TemporaryDirectory() as directory:
+            entries = ["70000,0002", "Test subject", "Line one", "SAVE"]
+            with (
+                patch.object(compuserve, "BASE_DIR", Path(directory)),
+                patch.object(compuserve, "session_state", state),
+                patch.object(compuserve, "current_user_id", "70000,0001"),
+                patch.object(compuserve, "current_profile", {}),
+                patch.object(compuserve, "profiles", {"70000,0002": {}}),
+                patch("builtins.input", side_effect=entries),
+                patch.object(compuserve, "ansi_scroll"),
+            ):
+                compuserve.mail_compose()
+        self.assertEqual(state.actions, {"mail_sent": 1})
+
+    def test_library_download_is_tallied(self):
+        state = SessionState()
+        with tempfile.TemporaryDirectory() as directory:
+            received = Path(directory) / "TEST.EXE"
+            received.write_bytes(b"x" * 100)
+            fake_library = Mock(
+                download_bytes=Mock(return_value=b"x" * 100),
+                materialize_download=Mock(return_value=received),
+            )
+            fake_hardware = Mock(
+                transfer_plan=Mock(return_value={"baud": 2400, "seconds": 5}))
+            with (
+                patch.object(compuserve, "session_state", state),
+                patch.object(compuserve, "cis_library", fake_library),
+                patch.object(compuserve, "cis_hardware", fake_hardware),
+                patch("builtins.input", side_effect=["B"]),
+                patch.object(compuserve, "ansi_scroll"),
+            ):
+                compuserve.library_transfer({"name": "TEST.EXE", "bytes": 100})
+        self.assertEqual(state.actions, {"library_downloads": 1})
