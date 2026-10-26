@@ -305,15 +305,20 @@ async def serve_terminal(reader, writer):
 # whether the client speaks TELNET: standard clients such as Linux telnet
 # answer only when asked, and an unasked client keeps its local echo on --
 # a typed password then shows in cleartext on the user's own screen. The
-# sim emits TERM_SELECTED right after its startup configuration, and the
-# gateway sends WILL ECHO there -- the moment it takes echo over from
-# the client.
+# gateway claims echo (WILL ECHO) only for the span of a password prompt,
+# between the sim's ECHO_OFF and ECHO_ON markers, and hands it back
+# (WONT ECHO) right after: line-mode clients stop their local echo the
+# moment they are told WILL ECHO yet still send whole lines, so claiming
+# echo any earlier leaves the user typing blind until Enter (Paul,
+# 2026-10-26, first at the startup configuration, then at the temporal
+# destination menu).
 _ECHO_OFF_MARKER = b"\x00[ECHOOFF]\x00"
 _ECHO_ON_MARKER = b"\x00[ECHOON]\x00"
 _TERM_SELECTED_MARKER = b"\x00[TERMSELECTED]\x00"
 _TERM_SELECTED_PREFIX = b"\x00[TERMSELECTED:"
 _TERM_SELECTED_SUFFIX = b"]\x00"
 _IAC_WILL_ECHO = b"\xff\xfb\x01"  # server takes over echo: client, stop echoing
+_IAC_WONT_ECHO = b"\xff\xfc\x01"  # server gives echo back: client, echo again
 _IAC_DO_TERMINAL_TYPE = b"\xff\xfd\x18"  # client: state your terminal type
 _IAC_DO_NAWS = b"\xff\xfd\x1f"  # client: state your window size
 
@@ -356,15 +361,18 @@ class _EchoState:
 
     True from connect (so terminals without local echo see what they
     type); the sim's password markers flip it off and on via
-    _EchoTranslator. The IAC WILL ECHO negotiation itself is deferred
-    until the terminal type is selected. One instance is shared by a
-    session's input and output tasks.
+    _EchoTranslator. For a negotiating client the gateway claims echo
+    (WILL ECHO) only around a password prompt -- server_echo is True
+    for exactly that span -- and the client's own local echo covers
+    the rest of the session. One instance is shared by a session's
+    input and output tasks.
     """
 
     def __init__(self):
         self.enabled = True
         self.term_selected = False
         self.saw_iac = False  # True if the client sent any TELNET IAC
+        self.server_echo = False  # True between WILL ECHO and WONT ECHO
         self.terminal_preset = None  # e.g. "C64" after TERM_SELECTED
 
 
@@ -396,22 +404,24 @@ def _gateway_echoes(echo_state):
     """Whether the gateway reflects this client's keystrokes back.
 
     Raw-socket clients have no local echo of their own, so the gateway
-    echoes from connect. A client that answered the negotiation probe
-    keeps its local echo until TERM_SELECTED -- that is when the gateway
-    sends WILL ECHO and takes echo over -- so gateway echo before then
-    would double every line the user types.
+    echoes for them whenever echo is enabled. A negotiating client
+    keeps its own local echo for the whole session except the span of
+    a password prompt, where the gateway claims echo and the masking
+    branch below runs instead -- gateway echo there would double every
+    line the user types.
     """
     return (echo_state.enabled
-            and (echo_state.term_selected or not echo_state.saw_iac))
+            and (not echo_state.saw_iac or echo_state.server_echo))
 
 
 def _password_masking(echo_state):
     """True while a password is typed on a client that negotiated echo.
 
-    The gateway sent IAC WILL ECHO at terminal selection, so the client
-    turned its local echo off and the server owns the display. Raw-socket
-    clients never negotiated, so their own local echo stays on and the
-    server must stay silent for them rather than double every character.
+    The gateway sent IAC WILL ECHO at this password prompt, so the
+    client turned its local echo off and the server owns the display
+    until the prompt ends. Raw-socket clients never negotiated, so
+    their own local echo stays on and the server must stay silent for
+    them rather than double every character.
     """
     return (echo_state.term_selected and not echo_state.enabled
             and echo_state.saw_iac)
@@ -434,11 +444,13 @@ class _EchoTranslator:
     Markers can straddle read-chunk boundaries, so a trailing partial marker
     is held back until the next feed(). Call flush() at end of stream.
 
-    TERM_SELECTED (terminal type chosen) sends WILL ECHO and enables the
-    gateway's remote echo; ECHO_OFF clears echo_state.enabled (the server
-    stops echoing the password); ECHO_ON sets it again. The client was told
-    WILL ECHO at terminal selection and keeps its local echo off throughout,
-    so no WONT ECHO is ever sent.
+    TERM_SELECTED (terminal type chosen) only records the choice (and
+    the C64 preset); it sends nothing, so the client's local echo stays
+    in charge. ECHO_OFF (a password prompt opens) sends WILL ECHO --
+    the gateway claims echo -- and clears echo_state.enabled; ECHO_ON
+    (the prompt closes) sends WONT ECHO, handing local echo back, and
+    sets enabled again. See the marker comment above for why the claim
+    spans only the password.
     """
 
     def __init__(self, echo_state=None):
@@ -485,19 +497,21 @@ class _EchoTranslator:
                 preset, length = result
                 if TELNET_DEBUG:
                     LOGGER.info("telnet_debug MARKER TERM_SELECTED preset=%s", preset)
-                iac += _IAC_WILL_ECHO
-                self._echo_state.enabled = True
                 self._echo_state.term_selected = True
                 self._echo_state.terminal_preset = preset or None
                 index += length
             elif data.startswith(_ECHO_OFF_MARKER, index):
                 if TELNET_DEBUG:
                     LOGGER.info("telnet_debug MARKER ECHO_OFF (password start)")
+                iac += _IAC_WILL_ECHO
+                self._echo_state.server_echo = True
                 self._echo_state.enabled = False
                 index += len(_ECHO_OFF_MARKER)
             elif data.startswith(_ECHO_ON_MARKER, index):
                 if TELNET_DEBUG:
                     LOGGER.info("telnet_debug MARKER ECHO_ON (password end)")
+                iac += _IAC_WONT_ECHO
+                self._echo_state.server_echo = False
                 self._echo_state.enabled = True
                 index += len(_ECHO_ON_MARKER)
             elif data[index:index + 1] == b"\x00" and end - index < len(_TERM_SELECTED_MARKER):
