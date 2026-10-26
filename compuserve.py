@@ -3652,6 +3652,48 @@ def open_go_destination(target, stack):
     return True
 
 
+# Educated-guess routing for a menu item with no screen or handler of its
+# own: the working service closest to the item's label, so that no menu
+# selection ever dead-ends on an "unimplemented" notice.
+RELATED_SERVICE_ROUTES = (
+    (("WEATHER",), "weather"),
+    (("HOTEL", "MOTEL", "LODGING"), "travel"),
+    (("AIRLINE", "FLIGHT", "AIRPORT", "AIR "), "travel"),
+    (("TOUR", "CRUISE", "VACATION", "TRAVEL"), "travel"),
+    (("CAR ", "CARS", "RENTAL", "AUTO"), "travel"),
+    (("MAIL", "MESSAGE", "LETTER"), "mail"),
+    (("FORUM", "BULLETIN", "DISCUSSION"), "forums"),
+    (("CHAT", "TALK", " CB "), "cb"),
+    (("NEWS", "SPORT", "HEADLINE"), "news"),
+    (("GAME", "ARCADE", "PLAY"), "games"),
+    (("SHOP", "MALL", "STORE", "CLASSIFIED", "BUY"), "shopping"),
+    (("STOCK", "MARKET", "MONEY", "FINANCE", "INVEST", "BANK"), "finance"),
+    (("REFERENCE", "ENCYCLOPEDIA", "LIBRARY", "EDUCATION", "INDEX"), "reference"),
+    (("HELP", "SUPPORT", "BILLING", "ACCOUNT"), "support"),
+)
+
+
+def related_service_for(label):
+    """The working service closest to a menu item's label (default: forums)."""
+    text = " " + label.upper() + " "
+    for keywords, target in RELATED_SERVICE_ROUTES:
+        if any(keyword in text for keyword in keywords):
+            return target
+    return "forums"
+
+
+def open_related_service(label, stack):
+    """Open the closest working service for a menu item with none of its own.
+
+    The item is presented honestly as a reconstruction and the opening is
+    announced first, matching the poster menus' related-service routing.
+    """
+    target = related_service_for(label)
+    ansi_scroll("Opening a related reconstructed simulation: " + destination_label(target), 0.01)
+    ansi_scroll("The original service is not reproduced; this is the closest working service in this simulation.", 0.01)
+    return open_go_destination(target, stack)
+
+
 def start_here():
     """Offer three date-aware destinations without adding another long directory."""
     while True:
@@ -3960,8 +4002,7 @@ def _navigate(initial_go=None):
                     stack.append(target)
                     session_state.remember_destination(target)
                 else:
-                    ansi_scroll("\nScreen exists but is not implemented yet.\n", 0.01)
-                    time.sleep(0.3)
+                    open_related_service(options[choice], stack)
             else:
                 ansi_scroll("Huh", 0.01)
                 time.sleep(0.3)

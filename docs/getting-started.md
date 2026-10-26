@@ -16,11 +16,10 @@ The TOP menu follows the photographed twelve-category CompuServe map. Choose
 `GO HELP` opens the instructions menu directly. `GO INDEX` offers topic search
 and an alphabetical directory; `GO QUICK` opens the searchable GO-word directory.
 In directories, use `S words`, `F`/`B`, `ALL`, a displayed number, or `M`.
-Historical entries identify related simulations and services not yet recreated.
-Every numbered poster menu choice now opens either its transcribed destination
-or a related reconstructed simulation, announced before opening; only a few
-photographed quick words (e.g. ASHTON) intentionally keep the unimplemented
-notice.
+Historical entries identify related simulations. Every numbered poster menu
+choice and every quick word now opens either its transcribed destination or a
+related reconstructed simulation, announced before opening; no selection
+dead-ends on an unimplemented notice.
 `GO SUPPORT` retains the older support menu and its extra simulation features.
 See [Poster reference](../POSTER_REFERENCE.md) for source coverage and limitations.
 

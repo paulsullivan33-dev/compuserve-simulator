@@ -8862,3 +8862,73 @@ class SysopOsShellTests(unittest.TestCase):
                 self.assertEqual([event.kwargs["detail"]["outcome"] for event in events],
                                  ["started", outcome])
                 self.assertNotIn("secret", str(events))
+
+
+class NoUnimplementedPagesTests(unittest.TestCase):
+    """Every menu selection must do something; no dead-end notices."""
+
+    def test_paul_test_screen_removed(self):
+        self.assertNotIn("paul", compuserve.screens)
+        self.assertNotIn("GO PAUL", compuserve.go_map)
+
+    def test_every_screen_choice_has_a_dispatch(self):
+        service_screens = {"finance", "travel", "reference", "shopping", "games", "support"}
+        handled = {
+            "mail": {"1", "2", "3", "4"},
+            "cb": {"1", "2", "3", "4", "5", "6", "7"},
+            "news": {str(number) for number in range(1, 15)},
+            "forums": set(compuserve.FORUM_CHOICES),
+        }
+        libraries = {"ibmhw_lib1", "ibmhw_lib2", "ibmhw_lib3", "ibmhw_lib4"}
+        forum_internal = {"ibmhw", "gamers", "ibmhw_libs"}
+        for name, screen in compuserve.screens.items():
+            options = screen.get("options", {})
+            if not options:
+                continue
+            with self.subTest(screen=name):
+                if screen.get("poster"):
+                    for choice in options:
+                        self.assertNotEqual(
+                            compuserve.cis_poster.selection_status(compuserve, name, choice),
+                            "unimplemented", f"{name} choice {choice}")
+                    continue
+                if name in libraries or name in forum_internal or name in service_screens:
+                    continue
+                covered = handled.get(name, set()) | set(compuserve.OPTION_TARGETS.get(name, {}))
+                for choice, label in options.items():
+                    self.assertTrue(choice in covered or label.startswith("$"),
+                                    f"{name} choice {choice} ({label}) has no dispatch")
+
+    def test_related_service_routing_guesses(self):
+        self.assertEqual(compuserve.related_service_for("Car Rental Desk"), "travel")
+        self.assertEqual(compuserve.related_service_for("Stock Market Reports"), "finance")
+        self.assertEqual(compuserve.related_service_for("Weather Wire"), "weather")
+        self.assertEqual(compuserve.related_service_for("Zebra Watching Society"), "forums")
+
+    def test_uncovered_choice_opens_related_service(self):
+        screens = dict(compuserve.screens)
+        screens["testsvc"] = {"title": "Test Service", "options": {"1": "Car Rental Desk"}}
+        emitted = []
+        with patch.object(compuserve, "screens", screens), \
+             patch.dict(compuserve.go_map, {"GO TESTSVC": "testsvc"}), \
+             patch.object(compuserve, "session_state", SessionState()), \
+             patch.object(compuserve, "clear"), \
+             patch.object(compuserve, "show_screen"), \
+             patch.object(compuserve, "show_logout_summary"), \
+             patch.object(compuserve, "ansi_scroll", side_effect=lambda line, *_: emitted.append(str(line))), \
+             patch("builtins.input", side_effect=["GO TESTSVC", "1", "M", "M", "OFF"]):
+            compuserve.navigate()
+        text = "\n".join(emitted)
+        self.assertIn("related reconstructed simulation", text)
+        self.assertNotIn("not implemented yet", text)
+
+    def test_adventure_league_locked_quest_explains_the_gate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(compuserve, "BASE_DIR", Path(directory)), \
+                 patch.object(compuserve, "current_user_id", "70000,0103"):
+                cis_adventure_league.create_character(compuserve, "Nova", "SCOUT")
+                message = cis_adventure_league.undertake(compuserve, "NODE", "SEARCH")
+                self.assertIn("THE SILENT RELAY", message)
+                self.assertIn("campaign", message)
+                unknown = cis_adventure_league.undertake(compuserve, "BOGUS", "SEARCH")
+                self.assertIn("Available quests", unknown)
