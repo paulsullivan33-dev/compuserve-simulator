@@ -167,6 +167,24 @@ class ExpansionTests(unittest.TestCase):
         self.assertTrue(any('Transfer complete' in str(call) for call in output.call_args_list))
         self.assertEqual(hardware.snapshot(app)['used'], 11)
 
+    def test_library_upload_arrives_from_the_terminal(self):
+        # An upload is typed/sent from the member's terminal (name,
+        # description, then the file in the line editor) -- never a
+        # path on the host (Paul, 2026-10-26). The stored record is
+        # the usual pending upload, and its bytes download back
+        # unchanged once approved.
+        entries = ['MYPROG.BAS', 'A test program', '10 PRINT "HI"', '20 END', 'SAVE']
+        with patch.object(app, 'input', side_effect=entries), patch.object(app, 'ansi_scroll'):
+            app.library_upload('appleii_library')
+        record = app.library_files['appleii_library'][0]
+        self.assertEqual(record['name'], 'MYPROG.BAS')
+        self.assertEqual(record['status'], 'pending')
+        self.assertEqual(record['description'], 'A test program')
+        stored = app.BASE_DIR / record['stored_path']
+        self.assertEqual(stored.read_bytes(), b'10 PRINT "HI"\n20 END\n')
+        self.assertEqual(record['bytes'], len(b'10 PRINT "HI"\n20 END\n'))
+        self.assertEqual(cis_library.download_bytes(app, record), b'10 PRINT "HI"\n20 END\n')
+
     def test_library_download_streams_payload_to_stdout(self):
         # A download delivers the file's bytes on standard output for
         # the user's terminal program to capture -- nothing is stored
