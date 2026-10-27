@@ -1,4 +1,4 @@
-"""Photo-backed navigation with explicitly identified reconstructed directories."""
+"""Photo-backed navigation directories."""
 
 from cis_session import read_input as input
 import cis_communications
@@ -33,14 +33,14 @@ def photo_requests(app):
 
 
 def selection_status(app, key, choice):
+    # A destination simply works or it does not; the directory does
+    # not grade how the service behind it was built (Paul, 2026-10-26:
+    # no reconstruction labels anywhere).
     screen = app.screens[key]
     if choice in IMPLEMENTED_CHOICES.get(key, set()) or choice in screen.get('related_targets', {}):
-        return 'working / reconstructed'
+        return 'working'
     if choice in screen.get('targets', {}):
-        target = screen['targets'][choice]
-        if app.screens.get(target, {}).get('poster'):
-            return 'working / poster menu'
-        return 'working / reconstructed'
+        return 'working'
     return 'unimplemented'
 
 
@@ -54,7 +54,7 @@ def coverage_records(app):
             result.append(dict(label=f'{app.destination_label(key)} / {choice} {label}',
                 word=screen.get('page', ''), destination=key, status=status,
                 source=screen.get('source', 'poster'),
-                note=(f'Parent menu is transcribed. A full photo of the {label} destination would help, if shown elsewhere.'
+                note=('No service at this destination yet.'
                       if status == 'unimplemented' else 'Opens the parent menu; choose ' + choice + '.')))
     return result
 
@@ -65,7 +65,7 @@ def install(app):
     app.go_map.update({'GO QUICK': 'quick', 'GO PHONES': 'phones'})
     app.go_map['GO PER'] = 'personal_files'
     app.go_map['GO SETUP'] = 'computer_setup'
-    # Convenience words for reconstructed services; no claim these are poster aliases.
+    # Convenience words for services beyond the poster.
     app.go_map.update({'GO ACCESS': 'public_files', 'GO SOCIETY': 'cb_society',
                        'GO CARDS': 'color_cards', 'GO COVERAGE': 'coverage', 'GO PHOTOS': 'photo_requests'})
 
@@ -90,7 +90,7 @@ def records(app, group=None):
         if group and record['group'] != group:
             continue
         result.append(dict(record, destination='quick:' + record['word'],
-                           status='working / reconstructed' if record.get('target') else 'unimplemented'))
+                           status='working' if record.get('target') else 'unimplemented'))
     if group:
         related = {
             'hardware': [('IBM PC Hardware Forum', 'ibmhw'), ('Macintosh Developers Forum', 'macdev')],
@@ -98,7 +98,7 @@ def records(app, group=None):
             'publications': [('Online Weekly Magazine', 'magazine')],
         }
         for label, target in related.get(group, []):
-            result.append(dict(label=label, word='', destination=target, status='simulation addition'))
+            result.append(dict(label=label, word='', destination=target, status='working'))
     else:
         known = {record['word'] for record in app.poster_words}
         for command, target in app.go_map.items():
@@ -106,7 +106,7 @@ def records(app, group=None):
             if word in known or target.startswith('quick:'):
                 continue
             result.append(dict(label=app.destination_label(target), word=word,
-                               destination=target, status='working / poster menu' if app.screens.get(target, {}).get('poster') else 'working / reconstructed'))
+                               destination=target, status='working'))
     return sorted(result, key=lambda record: (record['label'].casefold(), record['word']))
 
 
@@ -127,7 +127,6 @@ def directory(app, stack, group=None, search_first=False, coverage=False):
         app.clear()
         app.header_bar('poster_topics')
         app.ansi_scroll('IMPLEMENTATION COVERAGE' if coverage else ('QUICK REFERENCE WORDS' if not group else group.upper() + ' DIRECTORY'), 0.01)
-        app.ansi_scroll('Reconstructed directory from readable poster entries and simulation services.', 0.01)
         app.ansi_scroll(f'Page {page + 1}/{pages}  {len(matches)} topics' + (f'  Search: {query}' if query else ''), 0.01)
         for number, record in enumerate(visible, 1):
             app.ansi_scroll(f'{number:>2}  {record["label"]}', 0.01)
@@ -135,8 +134,8 @@ def directory(app, stack, group=None, search_first=False, coverage=False):
             app.ansi_scroll(f'    {quick}[{record["status"]}]', 0.01)
         if not visible:
             app.ansi_scroll('No matching topics.', 0.01)
-        app.ansi_scroll('W working, R reconstructed, U unimplemented, PHOTOS, COVERAGE', 0.005)
-        command = input('Number, F/B, S words, ALL, W/R/U, PHOTOS, COVERAGE, M ! ').strip()
+        app.ansi_scroll('W working, U unimplemented, PHOTOS, COVERAGE', 0.005)
+        command = input('Number, F/B, S words, ALL, W/U, PHOTOS, COVERAGE, M ! ').strip()
         upper = command.upper()
         if upper in ('M', '0', ''):
             return
@@ -147,8 +146,8 @@ def directory(app, stack, group=None, search_first=False, coverage=False):
         elif upper == 'ALL':
             query, page = '', 0
             status_filter = ''
-        elif upper in ('W', 'R', 'U'):
-            status_filter = {'W': 'working', 'R': 'reconstructed', 'U': 'unimplemented'}[upper]
+        elif upper in ('W', 'U'):
+            status_filter = {'W': 'working', 'U': 'unimplemented'}[upper]
             page = 0
         elif upper == 'PHOTOS':
             photo_requests(app)

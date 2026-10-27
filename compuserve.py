@@ -1802,31 +1802,40 @@ def library_transfer(file):
 
 
 def library_upload(screen_key):
-    source_text = input("Local file path: ").strip().strip('"')
-    if not source_text:
+    # The file arrives from the member's own terminal -- typed, or
+    # sent by their terminal program -- never from a path on the
+    # host: a remote member has no host files (Paul, 2026-10-26,
+    # the upload counterpart of streaming downloads).
+    name_text = input("File name for the library (such as MYPROG.BAS): ").strip().strip('"')
+    if not name_text:
         return
-    source = Path(source_text).expanduser().resolve()
-    if not source.is_file():
-        ansi_scroll("File not found.", 0.01)
-        return
-    if source.stat().st_size > 1024 * 1024:
-        ansi_scroll("Upload exceeds the 1 MiB simulation limit.", 0.01)
+    name = Path(name_text).name
+    if not name:
         return
     description = input("Description: ").strip()[:240]
     if not description:
         ansi_scroll("Upload cancelled; a description is required.", 0.01)
         return
+    ansi_scroll("Send the file from your terminal now.", 0.01)
+    body = line_editor()
+    if body is None:
+        ansi_scroll("Upload cancelled.", 0.01)
+        return
+    payload = (body + "\n").encode("utf-8", errors="replace")
+    if len(payload) > 1024 * 1024:
+        ansi_scroll("Upload exceeds the 1 MiB simulation limit.", 0.01)
+        return
     upload_dir = BASE_DIR / "uploads"
     upload_dir.mkdir(exist_ok=True)
-    destination = upload_dir / source.name
+    destination = upload_dir / name
     if destination.exists():
         ansi_scroll("A file with that name is already awaiting approval.", 0.01)
         return
-    shutil.copy2(source, destination)
+    destination.write_bytes(payload)
     numbers = [file["number"] for files in library_files.values() for file in files]
     record = {
-        "number": max(numbers, default=100) + 1, "name": source.name.upper()[:12],
-        "bytes": destination.stat().st_size, "date": SIMULATION_DATE,
+        "number": max(numbers, default=100) + 1, "name": name.upper()[:12],
+        "bytes": len(payload), "date": SIMULATION_DATE,
         "downloads": 0, "description": description,
         "stored_path": str(destination.relative_to(BASE_DIR)), "status": "pending",
     }
@@ -1852,7 +1861,7 @@ def news_section(category):
         if metadata.get("sources"):
             ansi_scroll("Sources: " + ", ".join(metadata["sources"]), 0.005)
         if not articles:
-            ansi_scroll("No current dispatches. Run news_feed.py to update the wire.", 0.01)
+            ansi_scroll("No current dispatches. (News menu choice 6 updates the wire.)", 0.01)
             input("!")
             return
         start = page * page_size
