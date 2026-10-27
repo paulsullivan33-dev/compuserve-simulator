@@ -1,5 +1,9 @@
 """Library file transfer persistence helpers."""
 
+import os
+import sys
+from contextlib import suppress
+
 import cis_communities
 import cis_hardware
 from cis_web_files import offer_download
@@ -96,13 +100,79 @@ def download_bytes(app, file):
     return (heading + b'\x1a' * file['bytes'])[:file['bytes']]
 
 
-def materialize_download(app, file, protocol):
-    payload = download_bytes(app, file)
+def emit_payload(app, payload):
+    """Write a downloaded file's bytes to standard output, verbatim.
+
+    A remote user captures the file in their terminal program, the way
+    a period download actually arrived; nothing is stored on the host
+    for a console or TELNET session (Paul, 2026-10-26). Bypasses
+    ansi_scroll on purpose: no scroll delay and no page pause may
+    interleave with the file's contents.
+    """
+    with suppress(Exception):
+        sys.stdout.flush()
+    buffer = getattr(sys.stdout, "buffer", None)
+    if buffer is not None:
+        buffer.write(payload)
+        buffer.flush()
+    else:
+        sys.stdout.write(payload.decode("utf-8", errors="replace"))
+        sys.stdout.flush()
+
+
+def _web_export_staging(app, file, payload):
+    """Stage a host copy for the web launcher's download queue, or None.
+
+    Only a web session needs a file on the host at all -- offer_download
+    publishes from this staging copy, under the same environment gate
+    it checks itself. Console and TELNET sessions get the payload on
+    standard output instead (emit_payload).
+    """
+    if os.environ.get('CIS_WEB_TERMINAL') != '1' or not os.environ.get('CIS_WEB_EXPORT_DIR'):
+        return None
     download_dir = app.BASE_DIR / 'downloads'
     download_dir.mkdir(exist_ok=True)
     destination = download_dir / Path(file['name']).name
+    destination.write_bytes(payload)
+    return destination
+
+
+def deliver_document(app, name, payload):
+    """Deliver a document the sim generated for the member.
+
+    Statements, research packets, itineraries, command cards,
+    magazine issues and the like stream to standard output for the
+    member's terminal program to capture, exactly like a library
+    download (Paul, 2026-10-26); the host's downloads folder only
+    stages a web session's browser copy. Returns the payload.
+    """
+    staged = _web_export_staging(app, {"name": name}, payload)
+    if staged is not None:
+        offer_download(staged)
+    emit_payload(app, payload)
+    return payload
+
+
+def materialize_download(app, file, protocol):
+    """Deliver a library file: bookkeeping, then the payload itself.
+
+    Returns the payload bytes; the caller streams them to standard
+    output with emit_payload so the user's terminal program can
+    capture the file. The simulated machine's storage ledger, the
+    download counters, and the activity record are kept exactly as
+    before -- only the host-side file copy is gone (a web session
+    still stages one for its browser download queue).
+    """
+    payload = download_bytes(app, file)
+    staged = []
+
+    def stage():
+        destination = _web_export_staging(app, file, payload)
+        if destination is not None:
+            staged.append(destination)
+
     plan = cis_hardware.record_download(app, file, len(payload), protocol,
-                                        writer=lambda: destination.write_bytes(payload))
+                                        writer=stage)
     if plan.get('error'):
         raise ValueError(plan['error'])
     file['bytes'] = len(payload)
@@ -117,5 +187,6 @@ def materialize_download(app, file, protocol):
         app.save_json_atomic("library_files.json", app.library_files)
     if getattr(app, "current_user_id", None):
         app.cis_dynamic.record_activity(app, app.current_user_id, "LIBRARY", f'Downloaded {file["name"]} using {protocol}.', {"number": file["number"], "protocol": protocol})
-    offer_download(destination)
-    return destination
+    if staged:
+        offer_download(staged[0])
+    return payload

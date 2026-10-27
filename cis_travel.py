@@ -81,12 +81,10 @@ def ground_transport(city):
     return [f"GROUND TRANSPORTATION -- {city}", "", "RENTAL CAR (fictional daily rates)", "COMPACT $29  INTERMEDIATE $35  FULL SIZE $43", "Mileage allowance and taxes vary; confirm at the counter.", "", "RAIL INFORMATION", "AMTRAK reservations and schedules: consult station or travel agent.", "Coach and sleeping-car accommodations are subject to availability.", "", "Local taxi, airport bus, and hotel shuttle information is illustrative."]
 
 def export_itinerary(app):
-    destination = app.BASE_DIR / "downloads" / f"TRIP_{(app.current_user_id or 'GUEST').replace(',', '_')}.TXT"
-    destination.parent.mkdir(exist_ok=True)
-    destination.write_text("COMPUSERVE TRAVEL SERVICES\nDECEMBER 1988 FICTIONAL ITINERARY\n\n" + "\n".join(trip_folder(app)) + "\n\nVERIFY ALL SERVICES WITH THE CARRIER OR PROPERTY.\n", encoding="ascii", errors="replace")
-    app.cis_dynamic.record_activity(app, app.current_user_id, "TRAVEL", f"Prepared itinerary packet {destination.name}.")
-    offer_download(destination)
-    return destination
+    name = f"TRIP_{(app.current_user_id or 'GUEST').replace(',', '_')}.TXT"
+    payload = ("COMPUSERVE TRAVEL SERVICES\nDECEMBER 1988 FICTIONAL ITINERARY\n\n" + "\n".join(trip_folder(app)) + "\n\nVERIFY ALL SERVICES WITH THE CARRIER OR PROPERTY.\n").encode("ascii", errors="replace")
+    app.cis_dynamic.record_activity(app, app.current_user_id, "TRAVEL", f"Prepared itinerary packet {name}.")
+    return app.cis_library.deliver_document(app, name, payload)
 
 def combined_plan(origin, destination, city, nights, travel_date, schedule_fn):
     outbound = schedule_fn(origin, destination, travel_date, "COACH")[:3]

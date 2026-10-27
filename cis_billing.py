@@ -54,9 +54,7 @@ def statement_lines(app, include_current=True):
 
 
 def export_statement(app):
-    destination = Path(app.BASE_DIR) / "downloads" / f'BILL{(app.current_user_id or "GUEST").replace(",", "")}.TXT'
-    destination.parent.mkdir(exist_ok=True)
-    destination.write_text("\r\n".join(statement_lines(app)), encoding="ascii", errors="replace")
-    offer_download(destination)
-    return destination
+    name = f'BILL{(app.current_user_id or "GUEST").replace(",", "")}.TXT'
+    payload = "\r\n".join(statement_lines(app)).encode("ascii", errors="replace")
+    return app.cis_library.deliver_document(app, name, payload)
 

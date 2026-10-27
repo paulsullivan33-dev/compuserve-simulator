@@ -88,8 +88,7 @@ def export_marked(app):
     records = marked(app)
     if not records:
         return None
-    destination = app.BASE_DIR / "downloads" / f'TIME{(app.current_user_id or "GUEST").replace(",", "")}.TXT'
-    destination.parent.mkdir(exist_ok=True)
+    name = f'TIME{(app.current_user_id or "GUEST").replace(",", "")}.TXT'
     lines = [TIMELINE["title"].upper(), f'MARKED RECORDS FOR {app.current_user_id or "GUEST"}', ""]
     for record in records:
         article = article_lines(record)
@@ -100,7 +99,6 @@ def export_marked(app):
         if related:
             article.extend(["", "RELATED REFERENCE INDEX", *related])
         lines.extend(article + ["", "-" * 72, ""])
-    destination.write_text("\r\n".join(lines), encoding="ascii", errors="replace")
-    offer_download(destination)
-    return destination
+    payload = "\r\n".join(lines).encode("ascii", errors="replace")
+    return app.cis_library.deliver_document(app, name, payload)
 

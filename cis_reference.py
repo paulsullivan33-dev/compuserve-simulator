@@ -352,18 +352,15 @@ def export_marked(app):
         return None
     user_id = app.current_user_id or "GUEST"
     filename = f"REF{user_id.split(',')[-1] if ',' in user_id else 'GUEST'}.TXT"
-    destination = app.BASE_DIR / "downloads" / filename
-    destination.parent.mkdir(exist_ok=True)
     lines = ["COMPUSERVE REFERENCE DATA BASES", f"MARKED RECORD PACKET FOR {user_id}", "DECEMBER 1988 HISTORICAL SIMULATION", "",]
     for database, record in marked:
         lines.extend(article_lines(record, database) + ["", "-" * 72, ""])
     for record in live_marked:
         lines.extend(live_article_lines(record) + ["", "-" * 72, ""])
-    destination.write_text("\r\n".join(lines), encoding="ascii", errors="replace")
+    payload = "\r\n".join(lines).encode("ascii", errors="replace")
     if getattr(app, "current_user_id", None):
         app.cis_dynamic.record_activity(app, app.current_user_id, "REFERENCE", f"Prepared {filename} with {len(marked) + len(live_marked)} marked records.")
-    offer_download(destination)
-    return destination
+    return app.cis_library.deliver_document(app, filename, payload)
 
 def related_records(database, record, count=3):
     keywords = set(_terms(record[3]))

@@ -60,8 +60,9 @@ class ExpansionTests(unittest.TestCase):
             self.assertIn('Attached', hardware.attach(app, owned[sku]['id']))
         self.assertEqual(app.connection_baud, 2400)
         file = dict(name='UTILITY.TXT', text_content='DOS utility notes', platforms=['DOS'], number=500, downloads=0)
-        path = cis_library.materialize_download(app, file, 'B')
-        self.assertEqual(path.read_text(), 'DOS utility notes')
+        payload = cis_library.materialize_download(app, file, 'B')
+        self.assertEqual(payload, b'DOS utility notes')
+        self.assertFalse((app.BASE_DIR / 'downloads' / file['name']).exists())
         used = hardware.snapshot(app)['used']
         for bad, reason in [
             (dict(file, name='MAC.TXT', platforms=['MAC']), 'does not match'),
@@ -132,8 +133,8 @@ class ExpansionTests(unittest.TestCase):
         hardware.activate(app, laptop['id'])
         file = dict(name='MODEMREF.TXT', bytes=999999, number=100, description='notes', downloads=0)
         payload = cis_library.download_bytes(app, file)
-        destination = cis_library.materialize_download(app, file, 'B')
-        self.assertEqual(destination.read_bytes(), payload)
+        received = cis_library.materialize_download(app, file, 'B')
+        self.assertEqual(received, payload)
         self.assertEqual(hardware.snapshot(app)['used'], len(payload))
         self.assertGreater(hardware.snapshot(app)['transfer_seconds'], 0)
         large = dict(name='LARGE.TXT', bytes=30000, number=101, description='large', downloads=0)
@@ -166,6 +167,38 @@ class ExpansionTests(unittest.TestCase):
         self.assertTrue(any('Transfer complete' in str(call) for call in output.call_args_list))
         self.assertEqual(hardware.snapshot(app)['used'], 11)
 
+    def test_library_download_streams_payload_to_stdout(self):
+        # A download delivers the file's bytes on standard output for
+        # the user's terminal program to capture -- nothing is stored
+        # on the host and no "Stored as" path is announced (Paul,
+        # 2026-10-26). Counters and the activity tally still record it.
+        file = dict(name='NOTES.TXT', text_content='First line\nSecond line\n',
+                    bytes=23, number=103, description='notes', downloads=0)
+        app.library_files = {'ibmhw_lib1': [file]}
+
+        class FakeStdout(io.TextIOBase):
+            def __init__(self):
+                self.buffer = io.BytesIO()
+
+            def write(self, text):
+                return self.buffer.write(text.encode('utf-8'))
+
+            def flush(self):
+                pass
+
+        fake = FakeStdout()
+        with patch.object(app, 'input', return_value='B'), \
+             patch.object(app, 'ansi_scroll') as output, \
+             patch.dict(app.startup_options, {'fast_mode': True}), \
+             patch('sys.stdout', fake):
+            app.library_transfer(file)
+        self.assertEqual(fake.buffer.getvalue(), b'First line\nSecond line\n')
+        announced = ' '.join(str(call) for call in output.call_args_list)
+        self.assertIn('Transfer complete -- 23 bytes received.', announced)
+        self.assertNotIn('Stored as', announced)
+        self.assertFalse((app.BASE_DIR / 'downloads' / 'NOTES.TXT').exists())
+        self.assertEqual(file['downloads'], 1)
+
     def test_storage_cannot_be_detached_until_files_fit(self):
         mac, drive, modem, cable = self.deliver(2004, 2106, 1101, 1203)
         hardware.activate(app, mac['id'])
@@ -183,8 +216,8 @@ class ExpansionTests(unittest.TestCase):
         with patch.object(app, 'current_user_id', '70000,0002'):
             comm.remove_public_file(app, number)
             record = comm.state(app)['public_files'][0]
-            path = cis_library.materialize_download(app, record, 'B')
-            self.assertEqual(path.read_text(), 'Original tip')
+            payload = cis_library.materialize_download(app, record, 'B')
+            self.assertEqual(payload, b'Original tip')
             self.assertEqual(comm.state(app)['public_files'][0]['downloads'], 1)
         comm.remove_public_file(app, number)
         self.assertFalse(comm.state(app)['public_files'])

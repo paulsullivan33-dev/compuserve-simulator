@@ -127,7 +127,8 @@ def service(app):
         candidates = [item for item in app.library_files.get("ibmhw_lib1", []) if item.get("shareware_arc") == ARC_ID and item.get("status") == "approved"]
         if candidates:
             newest = sorted(candidates, key=lambda item: item.get("version", ""))[-1]
-            destination = app.cis_library.materialize_download(app, newest, "B")
-            app.ansi_scroll(f"Transfer complete: {destination.name}", 0.01)
+            payload = app.cis_library.materialize_download(app, newest, "B")
+            app.cis_library.emit_payload(app, payload)
+            app.ansi_scroll(f"Transfer complete: {newest['name']}", 0.01)
         else:
             app.ansi_scroll("No approved TERMLINK release is available yet.", 0.01)

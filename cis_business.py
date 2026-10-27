@@ -277,16 +277,14 @@ def economic_indicators():
     ]
 
 def export_packet(app, quotes):
-    destination = app.BASE_DIR / "downloads" / f"FINANCE_{(app.current_user_id or 'GUEST').replace(',', '_')}.TXT"
-    destination.parent.mkdir(exist_ok=True)
+    name = f"FINANCE_{(app.current_user_id or 'GUEST').replace(',', '_')}.TXT"
     watches = watchlist(app)
     lines = ["COMPUSERVE BUSINESS & FINANCIAL RESEARCH PACKET", "DECEMBER 1988 HISTORICAL SIMULATION", "", *portfolio_lines(app, quotes), "", "WATCH LIST"]
     lines.extend(f"{symbol}  {COMPANIES[symbol][0]}  " + (f"{quotes[symbol]['last']:.2f} {quotes[symbol]['change']:+.2f}" if symbol in quotes else "QUOTE UNAVAILABLE") for symbol in watches)
     lines.extend(["", *economic_indicators(), "", "All transactions, prices, and balances are fictional."])
-    destination.write_text("\n".join(lines) + "\n", encoding="ascii", errors="replace")
-    app.cis_dynamic.record_activity(app, app.current_user_id, "FINANCE", f"Prepared research packet {destination.name}.")
-    offer_download(destination)
-    return destination
+    payload = ("\n".join(lines) + "\n").encode("ascii", errors="replace")
+    app.cis_dynamic.record_activity(app, app.current_user_id, "FINANCE", f"Prepared research packet {name}.")
+    return app.cis_library.deliver_document(app, name, payload)
 
 def challenge_lines(app, quotes):
     portfolio = _portfolio(app)
