@@ -573,6 +573,19 @@ ECHO_RESTORE_MARKER = "\x00[ECHOON]\x00"
 TERM_SELECTED_MARKER = "\x00[TERMSELECTED]\x00"
 
 
+def public_error(exc):
+    """Error text safe to show a member: never a local host path.
+
+    OS errors embed the offending filename, which on the host is an
+    absolute path under the sim's directory. Strip that prefix so a
+    failure message names the file, not where the host keeps it
+    (Paul, 2026-10-26: local paths are not member-facing output).
+    """
+    text = str(exc)
+    base = str(BASE_DIR)
+    return text.replace(base + "/", "").replace(base, "")
+
+
 def password_input(prompt="Password: "):
     """Read a secret from the console or the web terminal's masked input."""
     if os.environ.get("CIS_WEB_TERMINAL") == "1" or os.environ.get("CIS_REMOTE_TERMINAL") == "1":
@@ -585,6 +598,11 @@ def password_input(prompt="Password: "):
             return builtins.input(prompt)
         finally:
             if remote:
+                # The Enter that ended the password echoed nothing
+                # while echo was suppressed, so end the line here:
+                # the approval (or next) line must start on a fresh
+                # line, not trail the asterisks (Paul, 2026-10-26).
+                sys.stdout.write("\r\n")
                 sys.stdout.write(ECHO_RESTORE_MARKER)
                 sys.stdout.flush()
     return getpass.getpass(prompt)
@@ -976,7 +994,7 @@ def sysop_os_shell():
             continue
         except OSError as exc:
             audit("error", error_type=type(exc).__name__)
-            ansi_scroll(f"Could not run command: {exc}", 0.01)
+            ansi_scroll(f"Could not run command: {public_error(exc)}", 0.01)
             continue
         audit("completed", returncode=returncode)
         lines = []
@@ -1756,7 +1774,7 @@ def library_transfer(file):
         size = len(cis_library.download_bytes(sys.modules[__name__], file))
         plan = cis_hardware.transfer_plan(sys.modules[__name__], file, size, protocol)
     except (OSError, ValueError) as exc:
-        ansi_scroll(f'Transfer unavailable: {exc}', 0.01)
+        ansi_scroll(f'Transfer unavailable: {public_error(exc)}', 0.01)
         return
     if plan.get('error'):
         ansi_scroll(plan['error'], 0.01)
@@ -1774,7 +1792,7 @@ def library_transfer(file):
     try:
         payload = cis_library.materialize_download(sys.modules[__name__], file, protocol)
     except (OSError, ValueError) as exc:
-        ansi_scroll(f'Transfer stopped: {exc}', 0.01)
+        ansi_scroll(f'Transfer stopped: {public_error(exc)}', 0.01)
         return
     cis_library.emit_payload(sys.modules[__name__], payload)
     if payload and not payload.endswith((b"\n", b"\r")):
