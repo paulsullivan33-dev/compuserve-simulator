@@ -110,11 +110,30 @@ def delete_note(app, note_id):
     return "Notebook item deleted." if removed["value"] else "Notebook item not found."
 
 def download_lines(app):
+    # Downloads stream to the member's terminal for capture and are
+    # not stored on this host (Paul, 2026-10-26), so the Download
+    # Center reports the account's download activity instead of
+    # listing a host folder. Web sessions additionally stage browser
+    # copies, which are still listed when any are waiting.
+    lines = ["Downloads are delivered to your terminal as they finish;",
+             "capture them with your terminal program. They are not",
+             "stored on this host.", ""]
+    activity = [item for item in app.cis_dynamic.load_state(app).get("activity", [])
+                if item.get("user_id") == app.current_user_id and item.get("kind") == "LIBRARY"]
+    if activity:
+        lines.append("LIBRARY DOWNLOADS ON THIS ACCOUNT:")
+        lines.extend(f"  {item.get('text', '')}" for item in activity[-15:])
+        lines.append("")
     folder = app.BASE_DIR / "downloads"
-    if not folder.exists():
-        return ["No downloaded files."]
-    files = sorted((path for path in folder.iterdir() if path.is_file()), key=lambda p: p.name.lower())
-    return [f"{index:>2} {path.name:<40} {path.stat().st_size:>8} BYTES" for index, path in enumerate(files, 1)] or ["No downloaded files."]
+    staged = []
+    if folder.exists():
+        staged = sorted((path for path in folder.iterdir() if path.is_file()), key=lambda p: p.name.lower())
+    if staged:
+        lines.append("BROWSER DOWNLOAD COPIES WAITING:")
+        lines.extend(f"{index:>2} {path.name:<40} {path.stat().st_size:>8} BYTES" for index, path in enumerate(staged, 1))
+    if not activity and not staged:
+        lines.append("No downloads yet on this account.")
+    return lines
 
 def achievement_lines(app):
     state = app.cis_dynamic.load_state(app); user = app.current_user_id
@@ -164,10 +183,7 @@ def first_hint(app, key, message):
     return "HINT: " + message
 
 def export_command_card(app):
-    destination = app.BASE_DIR / "downloads" / "CIS_COMMAND_CARD.TXT"
-    destination.parent.mkdir(exist_ok=True)
     lines = ["COMPUSERVE INFORMATION SERVICE", "MEMBER COMMAND CARD -- DECEMBER 1988 SIMULATION", "", *app.COMMAND_HELP_LINES, "", "SERVICE HELP", "HELP FINANCE / TRAVEL / STORE / REFERENCE / FORUMS / CB / GAMES", "COMMANDS displays actions for the current service."]
-    destination.write_text("\n".join(lines) + "\n", encoding="ascii", errors="replace")
-    offer_download(destination)
-    return destination
+    payload = ("\n".join(lines) + "\n").encode("ascii", errors="replace")
+    return app.cis_library.deliver_document(app, "CIS_COMMAND_CARD.TXT", payload)
 

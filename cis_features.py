@@ -62,12 +62,9 @@ def chapter_lines(feature, index):
 
 
 def export(app, feature):
-    destination = app.BASE_DIR / "downloads" / f'{feature["id"]}.TXT'
-    destination.parent.mkdir(exist_ok=True)
     lines = [CATALOG["title"].upper(), feature["title"], feature["deck"], ""]
     for index in range(len(feature["chapters"])):
         lines.extend(chapter_lines(feature, index) + ["", "-" * 72, ""])
-    destination.write_text("\r\n".join(lines), encoding="ascii", errors="replace")
-    offer_download(destination)
-    return destination
+    payload = "\r\n".join(lines).encode("ascii", errors="replace")
+    return app.cis_library.deliver_document(app, f'{feature["id"]}.TXT', payload)
 

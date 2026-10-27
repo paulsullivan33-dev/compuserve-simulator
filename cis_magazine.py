@@ -66,16 +66,13 @@ def export_issue(app, issue):
     for article in issue['articles']:
         lines.extend(['', '=' * 72, '', *article_lines(issue, article)])
     rendered = [line for text in lines for line in wrap_terminal_text(text, 72)]
-    destination = app.BASE_DIR / 'downloads' / f"{issue['id']}.TXT"
-    destination.parent.mkdir(exist_ok=True)
-    destination.write_bytes(('\r\n'.join(rendered) + '\r\n').encode('ascii'))
-    offer_download(destination)
-    return destination
+    payload = ('\r\n'.join(rendered) + '\r\n').encode('ascii')
+    return app.cis_library.deliver_document(app, f"{issue['id']}.TXT", payload)
 
 
 def _download(app, issue):
-    path = export_issue(app, issue)
-    app.ansi_scroll(f'Full issue saved: {path.name}', 0.01)
+    payload = export_issue(app, issue)
+    app.ansi_scroll(f'Full issue sent -- {len(payload)} bytes.', 0.01)
 
 
 def read_article(app, issue, index):

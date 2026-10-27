@@ -137,6 +137,22 @@ def _web_export_staging(app, file, payload):
     return destination
 
 
+def deliver_document(app, name, payload):
+    """Deliver a document the sim generated for the member.
+
+    Statements, research packets, itineraries, command cards,
+    magazine issues and the like stream to standard output for the
+    member's terminal program to capture, exactly like a library
+    download (Paul, 2026-10-26); the host's downloads folder only
+    stages a web session's browser copy. Returns the payload.
+    """
+    staged = _web_export_staging(app, {"name": name}, payload)
+    if staged is not None:
+        offer_download(staged)
+    emit_payload(app, payload)
+    return payload
+
+
 def materialize_download(app, file, protocol):
     """Deliver a library file: bookkeeping, then the payload itself.
 

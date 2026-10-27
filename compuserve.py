@@ -1984,7 +1984,7 @@ def customer_support(choice):
         ])
         if input("D to prepare ASCII command card, or RETURN ! ").strip().upper() == "D":
             card = cis_experience.export_command_card(sys.modules[__name__])
-            ansi_scroll(f"Command card prepared: {card.name}", 0.01)
+            ansi_scroll(f"Command card sent -- {len(card)} bytes.", 0.01)
     elif choice == "2":
         seconds = get_elapsed_seconds()
         text_page("support", "BILLING INFORMATION", [
@@ -2064,7 +2064,7 @@ def customer_support(choice):
         text_page("support", "MEMBER USAGE STATEMENT", cis_billing.statement_lines(sys.modules[__name__]))
         if input("D to download statement, or RETURN ! ").strip().upper() == "D":
             statement = cis_billing.export_statement(sys.modules[__name__])
-            ansi_scroll(f"ASCII statement prepared: {statement.name}", 0.01)
+            ansi_scroll(f"ASCII statement sent -- {len(statement)} bytes.", 0.01)
 
 
 def terminal_settings():
@@ -2189,12 +2189,12 @@ def finance_service(choice):
             text_page("finance", "FICTIONAL TRADE LEDGER", cis_business.ledger_lines(sys.modules[__name__]))
         elif action == "D":
             packet = cis_business.export_packet(sys.modules[__name__], quotes)
-            ansi_scroll(f"ASCII research packet prepared: {packet.name}", 0.01)
+            ansi_scroll(f"ASCII research packet sent -- {len(packet)} bytes.", 0.01)
     elif choice == "6":
         text_page("finance", "ECONOMIC AND FIXED-INCOME INDICATORS", cis_business.economic_indicators())
         if input("D to download full research packet, or RETURN ! ").strip().upper() == "D":
             packet = cis_business.export_packet(sys.modules[__name__], cis_business.member_quotes(sys.modules[__name__], service_data.get("quotes", {})))
-            ansi_scroll(f"ASCII research packet prepared: {packet.name}", 0.01)
+            ansi_scroll(f"ASCII research packet sent -- {len(packet)} bytes.", 0.01)
     elif choice == "7":
         text_page("finance", "DECEMBER MARKET CHALLENGE", cis_business.challenge_lines(sys.modules[__name__], cis_business.member_quotes(sys.modules[__name__], service_data.get("quotes", {}))))
     elif choice == "8":
@@ -2262,7 +2262,7 @@ def travel_service(choice):
         action = input("D download, P preferences, B rebook air, or RETURN ! ").strip().upper()
         if action == "D":
             packet = cis_travel.export_itinerary(sys.modules[__name__])
-            ansi_scroll(f"ASCII itinerary prepared: {packet.name}", 0.01)
+            ansi_scroll(f"ASCII itinerary sent -- {len(packet)} bytes.", 0.01)
         elif action == "P":
             current = cis_travel.traveler_profile(sys.modules[__name__])
             seat = input(f'Seat [{current["seat"]}] WINDOW/AISLE/NO PREFERENCE: ').strip().upper() or current["seat"]
@@ -2383,7 +2383,7 @@ def reference_service(choice):
             continue
         elif command == "DOWNLOAD":
             packet = cis_reference.export_marked(sys.modules[__name__])
-            ansi_scroll(f"Reference packet prepared: {packet.name}" if packet else "No records marked.", 0.01)
+            ansi_scroll(f"Reference packet sent -- {len(packet)} bytes." if packet else "No records marked.", 0.01)
             continue
         elif command == "B":
             records = cis_reference.search(database, "")
@@ -2438,7 +2438,7 @@ def live_reference_service(provider="wikipedia"):
             continue
         if query.upper() == "DOWNLOAD":
             packet = cis_reference.export_marked(sys.modules[__name__])
-            ansi_scroll(f"Reference packet prepared: {packet.name}" if packet else "No records marked.", 0.01)
+            ansi_scroll(f"Reference packet sent -- {len(packet)} bytes." if packet else "No records marked.", 0.01)
             continue
         if not query:
             continue
@@ -3517,7 +3517,8 @@ def feature_service(feature_id=None):
         elif command == "BOOKMARK":
             ansi_scroll(cis_features.toggle_bookmark(sys.modules[__name__], feature), 0.01)
         elif command == "DOWNLOAD":
-            ansi_scroll(f'Feature packet prepared: {cis_features.export(sys.modules[__name__], feature).name}', 0.01)
+            packet = cis_features.export(sys.modules[__name__], feature)
+            ansi_scroll(f'Feature packet sent -- {len(packet)} bytes.', 0.01)
         elif command == "BACK":
             feature = None
             return feature_service()
@@ -3569,7 +3570,7 @@ def timeline_service():
             continue
         if upper == "DOWNLOAD":
             packet = cis_timeline.export_marked(sys.modules[__name__])
-            ansi_scroll(f"Timeline packet prepared: {packet.name}" if packet else "No timeline records marked.", 0.01)
+            ansi_scroll(f"Timeline packet sent -- {len(packet)} bytes." if packet else "No timeline records marked.", 0.01)
             continue
         record = records[int(command) - 1] if command.isdigit() and 1 <= int(command) <= len(records) else cis_timeline.find(upper)
         if record:

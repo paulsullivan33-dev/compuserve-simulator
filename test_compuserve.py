@@ -138,8 +138,7 @@ class MagazineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.object(cis_dynamic, 'simulation_day', return_value=date(1988, 12, 31)):
             for issue in cis_magazine.ISSUES:
                 with self.subTest(issue=issue['id']):
-                    path = cis_magazine.export_issue(compuserve, issue)
-                    raw = path.read_bytes()
+                    raw = cis_magazine.export_issue(compuserve, issue)
                     text = raw.decode('ascii')
                     flattened = ' '.join(text.split())
                     self.assertTrue(all(len(line) <= 72 for line in text.splitlines()))
@@ -189,8 +188,7 @@ class MagazineTests(unittest.TestCase):
     def test_full_issue_export_and_browser_snapshot(self):
         issue = cis_magazine.ISSUES[2]
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as exports, patch.object(compuserve, 'BASE_DIR', Path(directory)), patch.dict('os.environ', {'CIS_SIMULATION_DATE': '1988-12-15', 'CIS_WEB_TERMINAL': '1', 'CIS_WEB_EXPORT_DIR': exports}):
-            path = cis_magazine.export_issue(compuserve, issue)
-            data = path.read_bytes()
+            data = cis_magazine.export_issue(compuserve, issue)
             text = data.decode('ascii')
             self.assertTrue(all(len(line) <= 72 for line in text.splitlines()))
             self.assertIn('CONTENTS', text)
@@ -529,7 +527,7 @@ class NavigationTests(unittest.TestCase):
                 compuserve.current_profile = {}
                 self.assertIn("marked", cis_timeline.mark(compuserve, "H1207A").lower())
                 packet = cis_timeline.export_marked(compuserve)
-                packet_text = packet.read_text(encoding="ascii")
+                packet_text = packet.decode("ascii")
                 self.assertIn("DESTRUCTIVE EARTHQUAKE", packet_text)
                 self.assertIn("RELATED REFERENCE INDEX", packet_text)
                 self.assertIn("A1011", packet_text)
@@ -561,7 +559,7 @@ class NavigationTests(unittest.TestCase):
                 self.assertEqual(cis_features.progress(compuserve, feature), 1)
                 self.assertEqual(cis_features.toggle_bookmark(compuserve, feature), "Feature bookmarked.")
                 packet = cis_features.export(compuserve, feature)
-                self.assertIn("TEXT BEFORE THE WEB", packet.read_text(encoding="ascii"))
+                self.assertIn("TEXT BEFORE THE WEB", packet.decode("ascii"))
                 self.assertTrue(any("F004" in result for result in cis_discovery.search(compuserve, "modem")))
                 notices = [item for item in cis_discovery.activity_items(compuserve) if item["kind"] == "FEATURE"]
                 self.assertEqual(len(notices), 5)
@@ -614,7 +612,7 @@ class NavigationTests(unittest.TestCase):
                 self.assertTrue(any("SESSIONS" in line and "1" in line for line in lines))
                 self.assertTrue(any("$   0.92" in line for line in lines))
                 statement = cis_billing.export_statement(compuserve)
-                self.assertIn("FICTIONAL MEMBER USAGE STATEMENT", statement.read_text(encoding="ascii"))
+                self.assertIn("FICTIONAL MEMBER USAGE STATEMENT", statement.decode("ascii"))
         finally:
             compuserve.BASE_DIR, compuserve.current_user_id, compuserve.live_session_id = original
 
@@ -805,7 +803,7 @@ class NavigationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch.object(compuserve, "BASE_DIR", Path(directory)), patch.object(compuserve, "current_user_id", "70000,0001"):
             self.assertIn("marked", cis_reference.mark_live_record(compuserve, record).lower())
             packet = cis_reference.export_marked(compuserve)
-            exported = packet.read_text(encoding="ascii")
+            exported = packet.decode("ascii")
         self.assertIn("RECORD W123", exported)
         self.assertIn("MODERN CONTENT", exported)
 
@@ -844,7 +842,7 @@ class NavigationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(compuserve, "BASE_DIR", Path(directory)):
                 card = cis_experience.export_command_card(compuserve)
-                self.assertIn("HELP FINANCE", card.read_text(encoding="ascii"))
+                self.assertIn("HELP FINANCE", card.decode("ascii"))
         self.assertIn("passed", smoke_test.run())
 
     def test_live_sessions_and_messages_use_relational_sqlite_tables(self):
@@ -1741,8 +1739,8 @@ class NavigationTests(unittest.TestCase):
                 self.assertEqual(cis_reference.search_history(compuserve)[0]["query"], "MODEM AND SERIAL")
                 self.assertIn("marked", cis_reference.mark_record(compuserve, "L4003").lower())
                 packet = cis_reference.export_marked(compuserve)
-                self.assertTrue(packet.is_file())
-                self.assertIn("SERIAL PORT ASSIGNMENTS", packet.read_text(encoding="ascii"))
+                self.assertIn("SERIAL PORT ASSIGNMENTS", packet.decode("ascii"))
+                self.assertFalse((Path(directory) / "downloads").exists())
                 self.assertTrue(cis_reference.subject_records("library", "COMMUNICATIONS"))
                 cis_reference.clear_history(compuserve)
                 self.assertEqual(cis_reference.search_history(compuserve), [])
@@ -3006,15 +3004,16 @@ class BusinessTravelTests(unittest.TestCase):
                 self.assertTrue(any("100 POINTS" in line for line in lines))
                 self.assertTrue(any(event["payload"]["subject"] == "MARKET FORECAST SCORECARD" for event in cis_dynamic.load_state(compuserve)["events"]))
 
-    def test_finance_and_travel_packets_are_written(self):
+    def test_finance_and_travel_packets_are_streamed(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(compuserve, "BASE_DIR", Path(directory)), patch.object(compuserve, "current_user_id", "70000,0001"):
                 quotes = cis_dynamic.market_quotes(compuserve.service_data["quotes"])
                 cis_business.watchlist(compuserve, "IBM")
                 finance_packet = cis_business.export_packet(compuserve, quotes)
                 travel_packet = cis_travel.export_itinerary(compuserve)
-                self.assertIn("BUSINESS & FINANCIAL", finance_packet.read_text(encoding="ascii"))
-                self.assertIn("FICTIONAL ITINERARY", travel_packet.read_text(encoding="ascii"))
+                self.assertIn("BUSINESS & FINANCIAL", finance_packet.decode("ascii"))
+                self.assertIn("FICTIONAL ITINERARY", travel_packet.decode("ascii"))
+                self.assertFalse((Path(directory) / "downloads").exists())
 
     def test_reservation_progresses_and_trip_folder_tracks_it(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -6235,8 +6234,7 @@ class MagazinePack4Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(compuserve, 'BASE_DIR', Path(directory)), \
                 patch.object(cis_dynamic, 'simulation_day', return_value=date(1988, 12, 31)):
-            path = cis_magazine.export_issue(compuserve, issue)
-            raw = path.read_bytes()
+            raw = cis_magazine.export_issue(compuserve, issue)
             text = raw.decode('ascii')
             flattened = ' '.join(text.split())
             self.assertTrue(all(len(line) <= 72 for line in text.splitlines()))
