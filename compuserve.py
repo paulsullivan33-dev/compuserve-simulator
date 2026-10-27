@@ -1772,12 +1772,14 @@ def library_transfer(file):
             # Accelerated presentation: full duration is recorded in the setup ledger.
             time.sleep(min(0.5, plan['seconds'] / 600))
     try:
-        destination = cis_library.materialize_download(sys.modules[__name__], file, protocol)
+        payload = cis_library.materialize_download(sys.modules[__name__], file, protocol)
     except (OSError, ValueError) as exc:
         ansi_scroll(f'Transfer stopped: {exc}', 0.01)
         return
-    ansi_scroll(f"Transfer complete -- {destination.stat().st_size} bytes received.", 0.01)
-    ansi_scroll(f"Stored as {destination}", 0.01)
+    cis_library.emit_payload(sys.modules[__name__], payload)
+    if payload and not payload.endswith((b"\n", b"\r")):
+        ansi_scroll("", 0.01)
+    ansi_scroll(f"Transfer complete -- {len(payload)} bytes received.", 0.01)
     session_state.note_action("library_downloads")
 
 

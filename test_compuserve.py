@@ -297,7 +297,8 @@ class ComputerCommunityTests(unittest.TestCase):
                     for record in records:
                         expected = cis_communities.download_content(record).encode('ascii')
                         result = cis_library.materialize_download(compuserve, record, 'B')
-                        self.assertEqual(result.read_bytes(), expected)
+                        self.assertEqual(result, expected)
+                        self.assertFalse((Path(directory) / 'downloads' / record['name']).exists())
                         self.assertEqual(record['bytes'], len(expected))
                         self.assertEqual(record['downloads'], 1)
                         self.assertNotIn(b'\x1a', expected)
@@ -1840,7 +1841,7 @@ class NavigationTests(unittest.TestCase):
                 compuserve.library_files = {"test": [file]}
                 with patch.object(compuserve, "BASE_DIR", Path(directory)):
                     output = cis_library.materialize_download(compuserve, file, "B")
-                text = output.read_text(encoding="ascii")
+                text = output.decode("ascii")
             self.assertIn("ATDT", text)
         finally:
             compuserve.library_files = original
@@ -2696,7 +2697,7 @@ class PersistenceTests(unittest.TestCase):
         finally:
             compuserve.premium_charges = original
 
-    def test_library_transfer_creates_real_file_and_updates_count(self):
+    def test_library_transfer_streams_payload_and_updates_count(self):
         original_files = compuserve.library_files
         try:
             with tempfile.TemporaryDirectory() as directory:
@@ -2706,14 +2707,30 @@ class PersistenceTests(unittest.TestCase):
                     "date": "12/15/88", "downloads": 0, "description": "Test file",
                 }
                 compuserve.library_files = {"test": [file]}
+
+                class FakeStdout(io.TextIOBase):
+                    def __init__(self):
+                        self.buffer = io.BytesIO()
+
+                    def write(self, text):
+                        return self.buffer.write(text.encode("utf-8"))
+
+                    def flush(self):
+                        pass
+
+                fake = FakeStdout()
                 with (
                     patch.object(compuserve, "BASE_DIR", directory),
                     patch("builtins.input", return_value="B"),
                     patch.object(compuserve, "ansi_scroll"),
+                    patch("sys.stdout", fake),
                 ):
                     compuserve.library_transfer(file)
-                downloaded = directory / "downloads" / "TEST.TXT"
-                self.assertEqual(downloaded.stat().st_size, 256)
+                # The full payload went to standard output for the
+                # user's terminal program to capture; the host's local
+                # storage was never written (Paul, 2026-10-26).
+                self.assertEqual(len(fake.buffer.getvalue()), 256)
+                self.assertFalse((directory / "downloads" / "TEST.TXT").exists())
                 self.assertEqual(file["downloads"], 1)
         finally:
             compuserve.library_files = original_files
@@ -9036,11 +9053,9 @@ class SessionSummaryTallyTests(unittest.TestCase):
     def test_library_download_is_tallied(self):
         state = SessionState()
         with tempfile.TemporaryDirectory() as directory:
-            received = Path(directory) / "TEST.EXE"
-            received.write_bytes(b"x" * 100)
             fake_library = Mock(
                 download_bytes=Mock(return_value=b"x" * 100),
-                materialize_download=Mock(return_value=received),
+                materialize_download=Mock(return_value=b"x" * 100),
             )
             fake_hardware = Mock(
                 transfer_plan=Mock(return_value={"baud": 2400, "seconds": 5}))
