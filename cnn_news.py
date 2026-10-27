@@ -11,7 +11,7 @@ FEEDS = {
 
 def fetch_cnn_news():
     output = build_news_file(FEEDS, "cnn_news.json")
-    print(f"\nSuccess! CNN news saved to: '{output}'")
+    print(f"\nSuccess! CNN news saved to: '{output.name}'")
 
 if __name__ == "__main__":
     # Remember to run 'pip install feedparser' if you haven't already

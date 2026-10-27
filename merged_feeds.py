@@ -22,7 +22,7 @@ CONFIG = {
 
 def fetch_merged_news():
     output = build_news_file(CONFIG, "merged_news.json", source_field="source")
-    print(f"\nSuccess! Merged news saved to: '{output}'")
+    print(f"\nSuccess! Merged news saved to: '{output.name}'")
 
 if __name__ == "__main__":
     fetch_merged_news()

@@ -249,6 +249,10 @@ class PasswordEchoTest(unittest.TestCase):
         out = buf.getvalue()
         self.assertTrue(out.startswith(compuserve.ECHO_SUPPRESS_MARKER))
         self.assertTrue(out.endswith(compuserve.ECHO_RESTORE_MARKER))
+        # A carriage return ends the suppressed password line (before
+        # echo is restored) so the approval line starts fresh (Paul,
+        # 2026-10-26).
+        self.assertEqual(out, compuserve.ECHO_SUPPRESS_MARKER + "\r\n" + compuserve.ECHO_RESTORE_MARKER)
 
     def test_password_input_uses_getpass_locally(self):
         env = {"CIS_REMOTE_TERMINAL": "", "CIS_WEB_TERMINAL": ""}

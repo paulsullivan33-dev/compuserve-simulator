@@ -1094,6 +1094,21 @@ class NavigationTests(unittest.TestCase):
         self.assertFalse(state.server_echo)
         self.assertTrue(state.enabled)
 
+    def test_password_line_ending_forwards_before_echo_release(self):
+        # password_input writes "\r\n" between the markers (the
+        # suppressed Enter echoed nothing, so the line must be ended
+        # from the server side); the translator passes it through as
+        # data ahead of the WONT ECHO, so the line after the password
+        # starts on a fresh line (Paul, 2026-10-26).
+        state = telnet_app._EchoState()
+        translator = telnet_app._EchoTranslator(state)
+        forward, iac = translator.feed(b"\x00[ECHOOFF]\x00Password: ")
+        self.assertEqual(forward, b"Password: ")
+        self.assertEqual(iac, telnet_app._IAC_WILL_ECHO)
+        forward, iac = translator.feed(b"\r\n\x00[ECHOON]\x00welcome back")
+        self.assertEqual(forward, b"\r\nwelcome back")
+        self.assertEqual(iac, telnet_app._IAC_WONT_ECHO)
+
     def test_telnet_echo_suppressed_when_disabled(self):
         # Password input must reach the sim but never be echoed back.
         # (Raw-socket client: no IAC negotiation, so the server stays

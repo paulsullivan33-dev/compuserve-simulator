@@ -151,7 +151,7 @@ def upload_text(app):
                 raise ValueError('Please choose a plain text file.')
             return '\n'.join(clean(line, LIMIT) for line in body.splitlines())
         except (OSError, UnicodeError, ValueError) as exc:
-            app.ansi_scroll(f'Unable to import text: {exc}', 0.01)
+            app.ansi_scroll(f'Unable to import text: {app.public_error(exc)}', 0.01)
             return None
     app.ansi_scroll('Paste text into the editor; save to finish importing.', 0.01)
     body = app.line_editor()

@@ -22,7 +22,7 @@ def fetch_categorized_news():
     output = BASE_DIR / "compuserve.db"
     for failure in failures:
         print(f"Warning: {failure}")
-    print(f"\nSuccess! News successfully saved to: '{output}'")
+    print(f"\nSuccess! News successfully saved to: '{output.name}'")
     return output
 
 if __name__ == "__main__":

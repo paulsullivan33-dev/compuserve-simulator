@@ -12,7 +12,7 @@ FEEDS = {
 
 def fetch_yahoo_news():
     output = build_news_file(FEEDS, "yahoo_news.json")
-    print(f"\nSuccess! Yahoo news saved to: '{output}'")
+    print(f"\nSuccess! Yahoo news saved to: '{output.name}'")
 
 if __name__ == "__main__":
     # Remember to run 'pip install feedparser' if you haven't already
