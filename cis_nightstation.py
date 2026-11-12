@@ -542,7 +542,6 @@ class NightStationGame:
                 if lock["key"] in self.inventory:
                     self.unlocked.add((room, direction))
                     self.score += 10
-                    dest = ROOMS[room]["exits"][direction]
                     return (f"The {lock['key'].lower()} turns. {lock['label'].capitalize()} "
                             f"swings open. (+10)")
                 return f"You need the {lock['key'].lower()}."

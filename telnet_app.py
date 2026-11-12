@@ -463,7 +463,6 @@ class _EchoTranslator:
         Handles both legacy '\\x00[TERMSELECTED]\\x00' and new
         '\\x00[TERMSELECTED:PRESET]\\x00' formats.
         """
-        end = len(data)
         # Try new format with preset first
         if data.startswith(_TERM_SELECTED_PREFIX, index):
             # Find the suffix

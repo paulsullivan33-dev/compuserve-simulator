@@ -1176,12 +1176,10 @@ class BlackjackGame:
         decision only). Returns (player, dealer, outcome, delta).
         """
         player, dealer = self.deal()
-        doubled = False
         for i, action in enumerate(actions):
             action = action.upper()
             if action == "D" and i == 0 and len(player) == 2 and self.chips >= bet * 2:
                 bet *= 2
-                doubled = True
                 player.append(self.shoe.pop())
                 break
             if action == "H":

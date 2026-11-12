@@ -50,7 +50,6 @@ import cis_yearend
 import cis_cooking
 import cis_aviation
 import cis_scifi
-import cis_giftguide
 import cis_fitness
 import cis_christmas
 import cis_eliza
@@ -63,7 +62,6 @@ import cis_travel
 import cis_experience
 import cis_drafts
 import cis_announcements
-import cis_weather
 import cis_timeline
 import cis_features
 import cis_timecapsule
@@ -4192,9 +4190,6 @@ class SportsContentTests(unittest.TestCase):
 REPO = str(REPO_ROOT)
 sys.path.insert(0, REPO)
 
-import cis_dynamic
-from cis_session import SessionState, active_session
-from cis_timecapsule import pack_for
 
 
 def _head_module():
@@ -4791,9 +4786,7 @@ appear in the output.
 # =======================================================================
 
 import unittest
-from unittest.mock import patch
 
-import cis_weather
 
 
 EXPECTED_TITLES = ("U.S. City Forecasts", "Ski Reports", "Weather Wire Notes", "1988 Weather Retrospective")
@@ -4908,14 +4901,9 @@ class WeatherHelperFunctionsTest(unittest.TestCase):
             self.assertTrue(any(line.strip() for line in lines))
 
 
-import io
-import re
 import unittest
-from contextlib import redirect_stdout
 from datetime import date
-from unittest.mock import patch
 
-import cis_crossword
 from cis_crossword import (
     PUZZLES,
     check_answer,
@@ -5177,11 +5165,9 @@ class PlayLoopTests(unittest.TestCase):
 
 """Unit tests for the Books & Magazines module (cis_books)."""
 
-import re
 import unittest
 from datetime import date
 
-import cis_books
 
 
 class BooksServiceTest(unittest.TestCase):
@@ -5382,7 +5368,6 @@ no interactive I/O or real runtime files are touched.
 """
 import random
 import unittest
-from unittest.mock import patch
 
 import cis_arcade
 from cis_arcade import (
@@ -5871,8 +5856,6 @@ computer_communities.json parses and contains the 16 space posts.
 These tests are read-only: they never modify real runtime files.
 """
 
-import json
-import os
 import re
 import unittest
 
@@ -6026,12 +6009,10 @@ Run: python3 -m unittest test_timecapsule4
 The finisher merges these tests into test_compuserve.py (see
 WIRING-timecapsule.md).
 """
-import json
 import re
 import unittest
 from datetime import date
 
-import cis_timecapsule
 
 # The four new packs delivered by content pack 4: ISO date -> expected label.
 NEW_PACKS = {
@@ -6143,14 +6124,10 @@ magazine_issues.json must stay byte-identical to git HEAD and all original
 article IDs (suffixes 1-10) must be present and unchanged.
 """
 import re
-import subprocess
-import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
-from unittest.mock import patch
 
-import cis_magazine
 
 MAG_REPO_DIR = Path(__file__).resolve().parent
 ISSUE_DATES = {
@@ -7032,8 +7009,6 @@ class SportsMenuWiringTests(unittest.TestCase):
 # --- Content-pack reinstall: bumping the pack id must re-run the merge ---
 
 import copy
-import cis_communities
-import cis_storage
 
 
 class CommunityPackInstallTests(unittest.TestCase):
@@ -7962,7 +7937,6 @@ Run with:
 
 
 
-import cis_eliza
 
 
 class ElizaEngineTests(unittest.TestCase):
@@ -8130,8 +8104,6 @@ Run: cd ~/workspace/compuserve-simulator && PYTHONPATH=. python3 /tmp/pack7_test
 
 
 
-import cis_arcade
-from cis_arcade import RECORDS_KEY
 
 
 # ---------------------------------------------------------------------------
@@ -8443,8 +8415,6 @@ class FakeElizaEngine(types.ModuleType):
 
 sys.modules["cis_eliza"] = FakeElizaEngine("cis_eliza")
 
-import compuserve  # noqa: E402
-import cis_cb  # noqa: E402
 from compuserve import eliza_cb_reply, personality_line, get_channel_personality  # noqa: E402
 
 
@@ -8549,7 +8519,6 @@ class CbElizaTests(unittest.TestCase):
 
 
 
-import cis_pets
 
 REQUIRED_KEYS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
 VALID_SECTIONS = {"pets_dogs", "pets_cats", "pets_birds", "pets_fish", "pets_small", "pets_vet"}
@@ -8611,8 +8580,6 @@ Run: cd ~/workspace/compuserve-simulator && PYTHONPATH=. python3 /tmp/pack7_test
 
 
 
-import cis_photo
-import cis_trains
 
 
 EXPECTED_KEYS = {"content_id", "section", "date", "author", "subject", "body", "parent"}
@@ -8710,7 +8677,6 @@ hamnet board menu option -- in cis_hamnet.py only. Run with:
 
 from datetime import datetime, timezone  # already imported above
 
-import cis_hamnet
 from cis_hamnet import (
     BROADCAST_SERVICES,
     broadcasts_on_now,

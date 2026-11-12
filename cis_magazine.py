@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 from cis_terminal import wrap_terminal_text
-from cis_web_files import offer_download
 
 
 CATALOG = json.loads(Path(__file__).with_name('magazine_issues.json').read_text(encoding='utf-8'))

@@ -1,6 +1,5 @@
 """Curated offline December 1988 historical timeline."""
 
-from cis_web_files import offer_download
 
 import json
 from datetime import date

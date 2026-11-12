@@ -1,8 +1,6 @@
 """Period-style business information and member watch lists."""
 
-from cis_web_files import offer_download
 
-from pathlib import Path
 
 STARTING_CASH = 10000.00
 
@@ -287,7 +285,6 @@ def export_packet(app, quotes):
     return app.cis_library.deliver_document(app, name, payload)
 
 def challenge_lines(app, quotes):
-    portfolio = _portfolio(app)
     state = app.cis_dynamic.load_state(app)
     challenge = state.setdefault("market_challenges", {}).setdefault(app.current_user_id or "GUEST", {"name": "PRESERVE CAPITAL", "started": app.cis_dynamic.simulation_day().isoformat(), "target": STARTING_CASH})
     values = portfolio_lines(app, quotes)

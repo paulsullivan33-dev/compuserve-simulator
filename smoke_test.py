@@ -12,7 +12,6 @@ import build_release
 import cis_business
 import cis_dynamic
 import cis_experience
-import cis_magazine
 import compuserve
 
 

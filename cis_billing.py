@@ -1,9 +1,7 @@
 """Connection-time and simulated billing calculations."""
 
-from cis_web_files import offer_download
 
 from datetime import datetime
-from pathlib import Path
 
 
 def is_prime_time(now=None):

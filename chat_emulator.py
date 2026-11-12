@@ -58,8 +58,8 @@ def generate_expanded_reply(user_text):
 
     templates = [
         f"So you're saying: '{user_text}' — that’s actually pretty fascinating.",
-        f"Let me think about that… okay, yeah, I see where you're coming from.",
-        f"That's one way to look at it. Another angle might be totally different though.",
+        "Let me think about that… okay, yeah, I see where you're coming from.",
+        "That's one way to look at it. Another angle might be totally different though.",
         f"I didn’t expect you to say '{user_text}', but I’m glad you did."
     ]
 

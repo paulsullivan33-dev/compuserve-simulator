@@ -1,6 +1,5 @@
 """Curated, offline multi-chapter historical features."""
 
-from cis_web_files import offer_download
 
 import json
 from pathlib import Path
