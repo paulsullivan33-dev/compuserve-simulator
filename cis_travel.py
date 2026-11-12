@@ -1,6 +1,5 @@
 """Fictional December 1988 travel directory helpers."""
 
-from cis_web_files import offer_download
 
 from datetime import datetime
 

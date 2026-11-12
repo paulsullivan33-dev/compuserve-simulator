@@ -1,9 +1,7 @@
 """Cross-service personal tools for the persistent 1988 simulation."""
 from cis_session import read_input as input
 
-from cis_web_files import offer_download
 
-from pathlib import Path
 
 def guided_tour(app):
     """Visit real services, returning to a resumable first-call checklist."""

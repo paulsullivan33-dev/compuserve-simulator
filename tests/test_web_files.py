@@ -1,6 +1,5 @@
 """Run with: python -m unittest discover -s tests -p test_web_files.py"""
 
-import asyncio
 import json
 from pathlib import Path
 import tempfile

@@ -8,15 +8,13 @@ import os
 import signal
 import uuid
 import textwrap
-import shutil
 import subprocess
-import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
-from cis_security import hash_password, verify_password
+from cis_security import hash_password, verify_password  # noqa: F401 (app.hash_password)
 from cis_migrations import CURRENT_SCHEMA_VERSION, migrate_data
 from cis_session import SessionState, GoNavigation, navigation_prompts, active_session
-from cis_settings import PRESETS, apply_preset, merged_settings
+from cis_settings import apply_preset, merged_settings
 from cis_storage import (
     MUTABLE_DATA_FILES,
     create_backup as storage_create_backup,

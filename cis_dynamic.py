@@ -4,7 +4,7 @@ import hashlib
 import os
 import random
 import re
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 
 from cis_session import session_simulation_date
 from cis_timecapsule import pack_for as _timecapsule_pack_for, cb_conversation as _pack_cb_conversation

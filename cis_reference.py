@@ -1,6 +1,5 @@
 """Search and presentation helpers for the period-style reference databases."""
 
-from cis_web_files import offer_download
 
 import json
 import os
