@@ -17,3 +17,10 @@ activity.log
 
 # GeoIP database (downloaded, not shipped; see cis_geoip.py)
 *.mmdb
+
+# Local leftovers (not part of the project)
+/c
+/fake_lines.json.save
+/old_versions/
+/peerHandshake-fix/
+/.superfetch-test-deps/
