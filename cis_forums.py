@@ -6,14 +6,24 @@ def post(app, section_key, subject, body, parent_id=None):
     note = getattr(app, "session_state", None)
     if note is not None:
         note.note_action("forum_posts")
-    ids = [m.get("id", 0) for messages in app.forum_threads.values() for m in messages]
-    message_id = max(ids, default=1000) + 1
-    app.forum_threads.setdefault(section_key, []).append({
-        "id": message_id, "date": app.SIMULATION_DATE, "parent_id": parent_id,
-        "author": app.current_handle or app.current_user_id,
-        "author_user_id": app.current_user_id, "subject": subject[:120], "body": body[:5000],
-    })
-    app.save_json_atomic("forums.json", app.forum_threads)
+    def append(threads):
+        # Allocate the id from the stored forums so concurrent sessions never
+        # hand out the same message number.
+        ids = [m.get("id", 0) for messages in threads.values() for m in messages]
+        message_id = max(ids, default=1000) + 1
+        threads.setdefault(section_key, []).append({
+            "id": message_id, "date": app.SIMULATION_DATE, "parent_id": parent_id,
+            "author": app.current_handle or app.current_user_id,
+            "author_user_id": app.current_user_id, "subject": subject[:120], "body": body[:5000],
+        })
+        return message_id
+
+    merge_save = getattr(app, "merge_save", None)
+    if callable(merge_save):
+        message_id = merge_save("forums.json", app.forum_threads, mutator=append)
+    else:
+        message_id = append(app.forum_threads)
+        app.save_json_atomic("forums.json", app.forum_threads)
     app.cis_dynamic.record_activity(app, app.current_user_id, "FORUM", f'Posted message #{message_id}: {subject}.', {"section": section_key, "message_id": message_id})
     suggestions = app.cis_reference.suggest_records(f"{subject} {body}", 2)
     if suggestions:

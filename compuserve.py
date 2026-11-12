@@ -28,11 +28,13 @@ from cis_storage import (
     set_cb_presence, remove_cb_presence, list_cb_presence, claim_cb_ambient,
     write_json_atomic as storage_write_json_atomic,
     update_json_atomic as storage_update_json_atomic,
+    merge_json_atomic as storage_merge_json_atomic,
 )
 from cis_sysop import (
     account_rows, pending_uploads, reset_password, set_upload_status,
     toggle_disabled, unlock_account, run_os_command, CommandOutputLimitExceeded,
 )
+import cis_merge
 from cis_terminal import header_line, menu_lines, wrap_terminal_text
 from cis_version import RELEASE_NAME, VERSION
 from cis_web_files import offer_download
@@ -130,12 +132,62 @@ PAGE_PAUSE_LINES = 24
 session_state = SessionState()
 BASE_DIR = Path(__file__).resolve().parent
 
+# Mutable documents this process loaded, with the version it loaded, so a later
+# save can merge its edits into the stored copy instead of overwriting changes
+# other sessions made meanwhile. filename -> [(object, base_dir, snapshot)].
+_document_baselines = {}
+_BASELINES_PER_DOCUMENT = 8
+
+
+def _track_document(filename, data):
+    if filename not in MUTABLE_DATA_FILES or not isinstance(data, (dict, list)):
+        return
+    entries = [entry for entry in _document_baselines.get(filename, []) if entry[0] is not data]
+    entries.append((data, str(BASE_DIR), cis_merge.snapshot(data)))
+    _document_baselines[filename] = entries[-_BASELINES_PER_DOCUMENT:]
+
+
+def _document_baseline(filename, data):
+    for tracked, base_dir, baseline in _document_baselines.get(filename, []):
+        if tracked is data and base_dir == str(BASE_DIR):
+            return baseline
+    return None
+
+
 def load_json(filename, default=None):
     data = storage_load_json(BASE_DIR, filename, default)
     data, changed = migrate_data(filename, data)
     if changed and filename in MUTABLE_DATA_FILES:
         storage_write_json_atomic(BASE_DIR, filename, data)
+    _track_document(filename, data)
     return data
+
+
+def merge_save(filename, data, default=None, mutator=None):
+    """Save ``data`` by merging this session's edits into the stored document.
+
+    ``data`` is then refreshed in place to the merged result, so this session
+    also sees what other sessions stored. ``mutator`` edits the merged document
+    inside the same transaction (allocate ids there) and its result is
+    returned. Documents this process never loaded are written as given.
+    """
+    baseline = _document_baseline(filename, data)
+    if baseline is None:
+        result = mutator(data) if mutator else None
+        storage_write_json_atomic(BASE_DIR, filename, data)
+    else:
+        if default is None:
+            default = {} if isinstance(data, dict) else []
+        merged, result = storage_merge_json_atomic(
+            BASE_DIR, filename, baseline, cis_merge.snapshot(data), default, mutator)
+        cis_merge.refresh_in_place(data, merged)
+    _track_document(filename, data)
+    return result
+
+
+def update_profiles(mutator):
+    """Apply ``mutator`` to the latest stored profiles and save atomically."""
+    return merge_save("profiles.json", profiles, mutator=mutator)
 
 
 def create_data_backup():
@@ -613,7 +665,10 @@ def load_profile(user_id):
     current_profile = cis_accounts.load_profile(sys.modules[__name__], user_id)
 
 def save_json_atomic(filename, data):
-    storage_write_json_atomic(BASE_DIR, filename, data)
+    if filename in MUTABLE_DATA_FILES:
+        merge_save(filename, data)
+    else:
+        storage_write_json_atomic(BASE_DIR, filename, data)
 
 
 def save_profiles():

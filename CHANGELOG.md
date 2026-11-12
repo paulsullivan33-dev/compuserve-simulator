@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed concurrent sessions silently erasing each other's changes. Each session saved
+  its whole startup copy of profiles, forums, mail and library files, which reverted
+  other sessions' registrations, SysOp locks and disables, and forum posts. Saves now
+  three-way merge this session's edits into the stored document (new `cis_merge`
+  module), and new User IDs, forum message numbers and failed-login counts are
+  allocated inside the save transaction.
 - Security: SysOp password resets now issue a one-time temporary password instead of
   clearing the hash, which let any caller claim the reset account (including SysOp
   accounts). Web and Telnet callers can no longer set the first password on an
