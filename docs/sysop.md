@@ -5,7 +5,8 @@
 Log in with a profile marked as SysOp and enter `GO SYSOP`. The console can unlock or
 disable accounts, reset forgotten passwords, approve or reject uploads, review feedback
 and simulated orders, post IBMHW announcements, and create or restore backups. A reset
-removes the old hash; the member establishes a replacement password at next login.
+replaces the password with a one-time temporary password shown to the SysOp; relay it
+privately. The member must choose a new password after signing in with it.
 Simulation World Controls can publish or clear persistent market, weather, travel, and
 catalog bulletins that appear in their corresponding services.
 SysOp option 11 manages scheduled system announcements. Announcements support normal,

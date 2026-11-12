@@ -1,3 +1,14 @@
+import locale
+import os
+import secrets
+import signal
+import subprocess
+import threading
+import time
+
+from cis_security import hash_password
+
+
 def account_rows(profiles):
     rows = []
     for user_id, profile in sorted(profiles.items()):
@@ -25,15 +36,27 @@ def toggle_disabled(profiles, user_id):
     return profile["disabled"]
 
 
+TEMPORARY_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
 def reset_password(profiles, user_id):
+    """Replace a member's password with a one-time temporary password.
+
+    Returns the temporary password for the sysop to relay, or None when the
+    User ID is unknown. The member must choose a new password after signing
+    in with it. The account always keeps a password, so nobody else can claim
+    it in the meantime.
+    """
     profile = profiles.get(user_id)
     if not profile:
-        return False
-    profile.pop("password_hash", None)
+        return None
+    temporary = "".join(secrets.choice(TEMPORARY_PASSWORD_ALPHABET) for _ in range(10))
+    profile["password_hash"] = hash_password(temporary)
+    profile["must_change_password"] = True
     profile["locked"] = False
     profile.pop("locked_at", None)
     profile["failed_logins"] = 0
-    return True
+    return temporary
 
 
 def pending_uploads(library_files):
@@ -54,14 +77,6 @@ def set_upload_status(library_files, number, status):
                 file["status"] = status
                 return True
     return False
-
-
-import subprocess
-import locale
-import os
-import signal
-import threading
-import time
 
 
 MAX_COMMAND_OUTPUT = 1024 * 1024

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Security: SysOp password resets now issue a one-time temporary password instead of
+  clearing the hash, which let any caller claim the reset account (including SysOp
+  accounts). Web and Telnet callers can no longer set the first password on an
+  account that has none. Failed password attempts are saved immediately and counted
+  across connections, so disconnecting between guesses no longer avoids lockout.
 - Bounded SysOp shell capture to 1 MiB, closed command stdin, and added process-tree
   termination on timeout or excess output.
 - Release builds reject missing `cis_*.py` modules; CI now also runs activity-log
