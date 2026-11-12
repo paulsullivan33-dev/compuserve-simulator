@@ -2882,9 +2882,14 @@ class PersistenceTests(unittest.TestCase):
                 "locked": True,
             }
         }
-        self.assertTrue(compuserve.reset_password(accounts, "70000,0001"))
-        self.assertNotIn("password_hash", accounts["70000,0001"])
-        self.assertFalse(accounts["70000,0001"]["locked"])
+        temporary = compuserve.reset_password(accounts, "70000,0001")
+        self.assertTrue(temporary)
+        profile = accounts["70000,0001"]
+        self.assertTrue(compuserve.verify_password(temporary, profile["password_hash"]))
+        self.assertFalse(compuserve.verify_password("forgotten", profile["password_hash"]))
+        self.assertTrue(profile["must_change_password"])
+        self.assertFalse(profile["locked"])
+        self.assertIsNone(compuserve.reset_password(accounts, "99999,9999"))
 
     def test_forum_reply_is_persisted(self):
         original_threads = compuserve.forum_threads

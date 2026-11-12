@@ -10,6 +10,9 @@ from cis_session import read_input as input
 # Failed-password lockouts expire on their own; a manual sysop unlock
 # (cis_sysop.unlock_account) is only needed to clear one early.
 LOCKOUT_MINUTES = 15
+# Failures are counted across connections, so disconnecting between guesses
+# does not reset the budget.
+MAX_FAILED_LOGINS = 3
 
 WELCOME_BODY = (
     "Welcome to the CompuServe Information Service. Enter GO COMMAND for commands, "
@@ -40,6 +43,7 @@ def set_password(app, profile, prompt="New password: "):
         return False
     profile.update({"failed_logins": 0, "locked": False})
     profile.pop("locked_at", None)
+    profile.pop("must_change_password", None)
     app.save_profiles()
     return True
 
@@ -145,16 +149,30 @@ def authenticate(app, user_id):
             app.ansi_scroll("Account locked. Contact the SysOp.", 0.01)
             return False
     if not profile.get("password_hash"):
+        # Whoever sets the first password owns the account, so only the local
+        # operator console may do it; remote callers could otherwise claim it.
+        if os.environ.get("CIS_TRANSPORT", "CONSOLE") != "CONSOLE":
+            _activity(app, "login_denied", user_id=user_id, detail={"reason": "no_password"})
+            app.ansi_scroll("This account has no password. Contact the SysOp.", 0.01)
+            return False
         app.ansi_scroll("A local password must be established for this legacy account.", 0.01)
         return set_password(app, profile)
-    for attempt in range(1, 4):
+    while True:
         if app.verify_password(app.password_input("Password: "), profile["password_hash"]):
             profile["failed_logins"] = 0
             app.save_profiles()
+            if profile.get("must_change_password"):
+                app.ansi_scroll("Your password was reset by the SysOp. Choose a new password.", 0.01)
+                return set_password(app, profile)
             return True
-        _activity(app, "login_failed", user_id=user_id, detail={"attempt": attempt})
+        # Persist every failure immediately so a dropped connection keeps it.
+        failures = profile.get("failed_logins", 0) + 1
+        profile["failed_logins"] = failures
+        _activity(app, "login_failed", user_id=user_id, detail={"attempt": failures})
         app.ansi_scroll("Invalid password.", 0.01)
-    profile["failed_logins"] = profile.get("failed_logins", 0) + 3
+        if failures >= MAX_FAILED_LOGINS:
+            break
+        app.save_profiles()
     profile["locked"] = True
     profile["locked_at"] = datetime.now(timezone.utc).isoformat()
     app.save_profiles()

@@ -1026,12 +1026,13 @@ def sysop_accounts():
             ansi_scroll("User ID not found." if state is None else f'Account {"disabled" if state else "enabled"}.', 0.01)
             save_profiles()
         elif command.startswith("P "):
-            ansi_scroll(
-                "Password reset; member will establish a new one at login."
-                if reset_password(profiles, command[2:].strip()) else "User ID not found.",
-                0.01,
-            )
-            save_profiles()
+            temporary = reset_password(profiles, command[2:].strip())
+            if temporary is None:
+                ansi_scroll("User ID not found.", 0.01)
+            else:
+                ansi_scroll(f"Temporary password: {temporary}", 0.01)
+                ansi_scroll("Give it to the member privately; they must choose a new one at sign-on.", 0.01)
+                save_profiles()
 
 
 def sysop_uploads():

@@ -18,9 +18,11 @@ or current directory. Supplemental cities use fictional `555-01xx` numbers.
 numbers; it does not dial them or change the session's baud setting.
 
 User IDs use the form `70000,0001`. Existing
-legacy accounts establish a local password on their next login. Unknown IDs can create
-a new local account. Passwords are stored as salted PBKDF2 hashes, never as plain text.
-Three failed attempts lock the account until a local SysOp unlocks it.
+legacy accounts without a password establish one on their next login at the local
+console; Web and Telnet callers are told to contact the SysOp instead. Unknown IDs can
+create a new local account. Passwords are stored as salted PBKDF2 hashes, never as plain
+text. Three failed attempts lock the account for 15 minutes. Failures count across
+calls, so hanging up between guesses does not reset them. A SysOp can unlock early.
 
 User ID `77777,0001` is designated as the initial local SysOp account. Its password is
 established on first login.
