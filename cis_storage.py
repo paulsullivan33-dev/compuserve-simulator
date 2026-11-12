@@ -218,6 +218,36 @@ def update_json_atomic(base_dir, filename, default, mutator):
     return result
 
 
+def merge_json_atomic(base_dir, filename, base, mine, default, mutator=None):
+    """Merge one session's edits into the latest stored document, atomically.
+
+    ``base`` is the version this session loaded and ``mine`` its edited copy
+    (both JSON-normalized). Changes other sessions stored since ``base`` are
+    kept; see ``cis_merge``. ``mutator``, if given, then edits the merged
+    document inside the same transaction, which makes it the safe place to
+    allocate ids. Returns ``(merged, mutator_result)``.
+    """
+    import cis_merge
+
+    if filename not in MUTABLE_DATA_FILES:
+        raise ValueError(f"Transactional updates require a mutable document: {filename}")
+    base_dir = Path(base_dir)
+    with _write_lock(base_dir):
+        migrate_json_to_sqlite(base_dir, (filename,))
+        with _connect(base_dir) as database:
+            database.execute("BEGIN IMMEDIATE")
+            row = database.execute("SELECT payload FROM documents WHERE filename = ?", (filename,)).fetchone()
+            theirs = json.loads(row[0]) if row else default
+            merged = cis_merge.merge(base, mine, theirs)
+            result = mutator(merged) if mutator else None
+            database.execute(
+                "INSERT INTO documents(filename, payload, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(filename) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at",
+                (filename, _serialize(merged), datetime.now(timezone.utc).isoformat(timespec="seconds")),
+            )
+    return merged, result
+
+
 def install_content_pack(base_dir, pack_id, mutators):
     """Install additive content once, atomically with its completion marker."""
     if not set(mutators) <= MUTABLE_DATA_FILES:

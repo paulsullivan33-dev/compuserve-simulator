@@ -67,6 +67,7 @@
     "cis_hardware.py",
     "cis_library.py",
     "cis_magazine.py",
+    "cis_merge.py",
     "cis_mail.py",
     "cis_migrations.py",
     "cis_news.py",

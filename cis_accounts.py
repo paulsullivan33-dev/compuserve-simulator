@@ -56,10 +56,28 @@ def _send_welcome_mail(app, user_id):
     app.cis_dynamic.schedule_event(app, "mail", {"to": user_id, "from": "COMPUSERVE", "subject": "WELCOME TO COMPUSERVE", "body": WELCOME_BODY})
 
 
+def _update_profiles(app, mutator):
+    """Apply ``mutator`` to the latest stored profiles and save them.
+
+    Sessions are separate processes, so ids and counters must be computed from
+    the stored copy inside the save transaction, not from this process's copy.
+    """
+    updater = getattr(app, "update_profiles", None)
+    if callable(updater):
+        return updater(mutator)
+    result = mutator(app.profiles)
+    app.save_profiles()
+    return result
+
+
 def next_user_id(app):
     """Allocate the next free numeric User ID (form 70000,0001)."""
+    return _next_free_user_id(app.profiles)
+
+
+def _next_free_user_id(profiles):
     taken = set()
-    for uid in app.profiles:
+    for uid in profiles:
         match = re.fullmatch(r"(\d{5}),(\d{4})", uid)
         if match:
             taken.add(int(match.group(1) + match.group(2)))
@@ -86,13 +104,17 @@ def register_new_account(app):
 
     Returns the new User ID, or None if they abandoned password setup.
     """
-    user_id = next_user_id(app)
+    def reserve(profiles):
+        user_id = _next_free_user_id(profiles)
+        profiles[user_id] = _new_profile(app)
+        return user_id
+
+    user_id = _update_profiles(app, reserve)
     app.ansi_scroll(f"Your new User ID is {user_id}.", 0.01)
     app.ansi_scroll("Choose a password for this account.", 0.01)
-    profile = _new_profile(app)
-    app.profiles[user_id] = profile
+    profile = app.profiles[user_id]
     if not set_password(app, profile):
-        app.profiles.pop(user_id, None)
+        _update_profiles(app, lambda profiles: profiles.pop(user_id, None))
         _activity(app, "register_abandoned", user_id=user_id)
         return None
     _send_welcome_mail(app, user_id)
@@ -123,10 +145,18 @@ def authenticate(app, user_id):
     if profile is None:
         if input("User ID is not registered. Create account [Y/N]? ").strip().upper() != "Y":
             return False
-        profile = _new_profile(app)
-        app.profiles[user_id] = profile
+        def claim(profiles):
+            if user_id in profiles:
+                return False
+            profiles[user_id] = _new_profile(app)
+            return True
+
+        if not _update_profiles(app, claim):
+            app.ansi_scroll("That User ID was just registered. Please sign on again.", 0.01)
+            return False
+        profile = app.profiles[user_id]
         if not set_password(app, profile):
-            app.profiles.pop(user_id, None)
+            _update_profiles(app, lambda profiles: profiles.pop(user_id, None))
             _activity(app, "register_abandoned", user_id=user_id)
             return False
         _send_welcome_mail(app, user_id)
@@ -165,17 +195,23 @@ def authenticate(app, user_id):
                 app.ansi_scroll("Your password was reset by the SysOp. Choose a new password.", 0.01)
                 return set_password(app, profile)
             return True
-        # Persist every failure immediately so a dropped connection keeps it.
-        failures = profile.get("failed_logins", 0) + 1
-        profile["failed_logins"] = failures
+        # Count every failure in the stored profile immediately, so neither a
+        # dropped connection nor parallel sessions reset the budget.
+        def record_failure(profiles):
+            stored = profiles.get(user_id)
+            if stored is None:
+                return MAX_FAILED_LOGINS
+            stored["failed_logins"] = stored.get("failed_logins", 0) + 1
+            if stored["failed_logins"] >= MAX_FAILED_LOGINS:
+                stored["locked"] = True
+                stored["locked_at"] = datetime.now(timezone.utc).isoformat()
+            return stored["failed_logins"]
+
+        failures = _update_profiles(app, record_failure)
         _activity(app, "login_failed", user_id=user_id, detail={"attempt": failures})
         app.ansi_scroll("Invalid password.", 0.01)
         if failures >= MAX_FAILED_LOGINS:
             break
-        app.save_profiles()
-    profile["locked"] = True
-    profile["locked_at"] = datetime.now(timezone.utc).isoformat()
-    app.save_profiles()
     _activity(app, "account_locked", user_id=user_id)
     app.ansi_scroll("Account locked after three failed attempts.", 0.01)
     return False
