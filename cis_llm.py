@@ -117,13 +117,14 @@ def _current_config():
         mtime = path.stat().st_mtime
     except OSError:
         return None
+    config = _cache["config"]
     if _cache["path"] != path or _cache["mtime"] != mtime:
         try:
             config = load_config(path)
         except (OSError, ValueError):
             config = None
         _cache.update(path=path, mtime=mtime, config=config)
-    return _cache["config"]
+    return config
 
 
 def role_config(role):
@@ -207,7 +208,7 @@ def reply(role, text, persona=None, context=None, post=None, clock=time.monotoni
     """
     try:
         config, settings = role_config(role)
-        if not settings or not str(text or "").strip():
+        if not config or not settings or not str(text or "").strip():
             return None
         with _lock:
             now = clock()
