@@ -56,6 +56,7 @@ Run `python telnet_app.py` to start the gateway. Its environment settings are:
 | `CIS_TELNET_IDLE_TIMEOUT` | `900` | Input idle timeout in seconds |
 | `CIS_ACTIVITY_LOG` | `activity.log` beside the module | JSON-lines activity log |
 | `CIS_NTFY_URL` | unset | Full ntfy topic URL; unset disables notifications |
+| `CIS_LLM_CONFIG` | `llm_config.json` beside the module | Optional local-model replies (see below) |
 | `CIS_TELNET_DEBUG` | unset | Set to `1` for raw protocol tracing |
 
 Review recent activity with `python cis_activity.py --tail 50`, or filter using
@@ -70,13 +71,65 @@ appropriate for the member identifiers and client addresses in the alerts.
 Protocol tracing can contain raw input, including passwords; enable it only for
 controlled troubleshooting and protect the trace output.
 
+## Optional local-model replies
+
+Without any setup, every simulated reply is scripted. Operators who run an
+[Ollama](https://ollama.com) server can let small local models answer members
+instead. This is entirely optional: if `llm_config.json` does not exist, nothing
+contacts a model server and nothing changes.
+
+To turn it on, copy `llm_config.example.json` to `llm_config.json` beside
+`compuserve.py` (or point `CIS_LLM_CONFIG` at another file), set `ollama_url`,
+and choose a model and prompt for each role. `llm_config.json` is local
+configuration: git ignores it and release builds never include it, and upgrades
+leave it in place. Check it with:
+
+```text
+python cis_llm.py --check
+```
+
+which lists each role, its model, and whether the server has that model.
+
+| Role | Where it answers | How the member gets it |
+| --- | --- | --- |
+| `cb_chat` | CB Simulator: a simulated member replies to a live user's message, with recent scrollback as context. ELIZA's channel 4 keeps the ELIZA engine. | In the channel, while the member waits |
+| `customer_service` | Feedback to Customer Service | On screen after "Your feedback has been recorded", while the member waits |
+| `representative` | Questions to the Travel, Finance and Store representatives | EasyPlex mail; the model writes in the background |
+| `warranty` | Equipment warranty cases | EasyPlex mail; the model writes in the background |
+
+Each role has `model` and `prompt` (both required) and may set `enabled`,
+`max_chars`, `temperature`, `timeout_seconds`, `context_lines` and
+`multiline` (keep paragraph breaks; use it for mail). The prompt may use
+`{placeholders}`: `{member}` everywhere, `{handle}`, `{channel}` and
+`{channel_description}` for CB chat, `{name}` and `{department}` for
+representatives, and `{product}` for warranty cases. Top-level settings are
+`ollama_url`, `timeout_seconds`, `min_seconds_between_calls` (per session and
+role), `max_input_chars` and `keep_alive` (how long the server keeps a model
+loaded). Set `"enabled": false` at the top level to turn everything off. Edits
+take effect on the next reply; no restart is needed.
+
+Replies always fall back to the scripted text: when a role is missing or
+disabled, the server is down or slow, the answer is empty, or calls come too
+fast. Mailed replies are scheduled with the scripted text first and replaced
+only if the model finishes before delivery, so members never wait for them.
+Model output is cleaned for the terminal: ASCII only, no escape or control
+characters, no markdown, and cut to `max_chars`.
+
+Choosing models: live roles keep a member waiting, so use a small, fast model
+there (on a CPU-only server, a 1-2B model answers in a few seconds; a 4B model
+can take 10-25 seconds, longer when it must first load). Avoid models that
+print their reasoning even with thinking turned off. Members' text goes to the
+model server, and on a public Telnet gateway anyone can try to steer the
+model, so keep prompts specific about staying in character and in 1988.
+
 ## Deployment checklist
 
 1. Build and verify the package with `python tests/check_installed_package.py`;
    run `python smoke_test.py` and the regression commands below.
 2. Back up `compuserve.db` and preserve runtime data before upgrading.
 3. Configure a dedicated service account, the four marked systemd paths/settings,
-   connection limits, a writable activity log, and optional ntfy topic.
+   connection limits, a writable activity log, optional ntfy topic, and the
+   optional `llm_config.json` (check it with `python cis_llm.py --check`).
 4. Start the service and inspect `systemctl status compuserve-telnet` and
    `journalctl -u compuserve-telnet` for startup errors.
 5. Connect with a real terminal: verify login, password masking on negotiating
@@ -113,6 +166,7 @@ The targeted operational checks are:
 
 ```text
 python -m unittest -q test_compuserve.SysopOsShellTests test_activity_log test_ntfy
+python -m unittest -q tests.test_llm
 python tests/check_installed_package.py
 ```
 

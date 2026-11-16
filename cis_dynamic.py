@@ -205,6 +205,28 @@ def schedule_event(app, event_type, payload, due_at=None):
     return result["id"]
 
 
+def update_event_payload(app, event_id, changes):
+    """Change a scheduled event's payload if it has not been delivered yet.
+
+    Returns True when the change was applied. Used to swap a scripted reply for
+    a model-written one (cis_llm.reply_later) without racing the delivery.
+    """
+    result = {"applied": False}
+
+    def mutate(state):
+        for event in state.get("events", []):
+            if event.get("id") == event_id and not event.get("processed"):
+                event.setdefault("payload", {}).update(changes)
+                result["applied"] = True
+    if hasattr(app, "update_json_atomic"):
+        app.update_json_atomic("dynamic_state.json", {}, mutate)
+    else:
+        state = load_state(app)
+        mutate(state)
+        save_state(app, state)
+    return result["applied"]
+
+
 def _deliver_mail(app, payload):
     messages = app.load_json("easyplex.json", default=[])
     messages.append({"id": max((m.get("id", 0) for m in messages), default=0) + 1, "from": payload.get("from", "COMPUSERVE"), "to": payload["to"], "date": simulation_day().strftime("%m/%d/%y"), "subject": payload["subject"][:120], "body": payload["body"][:5000], "read": False})

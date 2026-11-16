@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added optional local-model replies (new `cis_llm` module). When an operator
+  creates `llm_config.json` (format in `llm_config.example.json`), small Ollama
+  models can answer members in CB chat, reply to Customer Service feedback, and
+  write the Travel/Finance/Store representative and warranty-case mail, each
+  with its own model and prompt. Without the file nothing changes and no model
+  server is contacted. The real configuration is ignored by git and excluded
+  from releases. Every reply falls back to the scripted text on any failure;
+  mailed replies are written in the background so members never wait. Output is
+  cleaned to plain ASCII with no escape sequences. `python cis_llm.py --check`
+  validates a configuration. See "Optional local-model replies" in `docs/sysop.md`.
+
 - Fixed concurrent sessions silently erasing each other's changes. Each session saved
   its whole startup copy of profiles, forums, mail and library files, which reverted
   other sessions' registrations, SysOp locks and disables, and forum posts. Saves now

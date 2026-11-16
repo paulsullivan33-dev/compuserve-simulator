@@ -1,5 +1,6 @@
 """Persistent ownership and after-sale support for fictional catalog products."""
 from cis_session import read_input as input
+import cis_llm
 
 
 def receive_order(app, order):
@@ -78,7 +79,12 @@ def warranty(app, asset_id, description):
     asset["status"] = "WARRANTY REVIEW"
     cases.append({"number": number, "asset": asset["id"], "user_id": app.current_user_id, "status": "OPEN", "description": description[:500]})
     app.cis_dynamic.save_state(app, state)
-    app.cis_dynamic.schedule_event(app, "mail", {"to": app.current_user_id, "from": "Helen/Orders", "subject": f'WARRANTY CASE W{number}', "body": f'We received your report for {asset["name"]}: {description[:500]}\n\nA vendor response and return guidance will follow.'})
+    opening = f'We received your report for {asset["name"]}: {description[:500]}'
+    event_id = app.cis_dynamic.schedule_event(app, "mail", {"to": app.current_user_id, "from": "Helen/Orders", "subject": f'WARRANTY CASE W{number}', "body": f'{opening}\n\nA vendor response and return guidance will follow.'})
+    # Optional add-on: a local model may write the vendor's reply before the mail is delivered.
+    cis_llm.reply_later("warranty", description, lambda text: app.cis_dynamic.update_event_payload(
+        app, event_id, {"body": f"{opening}\n\n{text}"}), persona={
+        "product": asset["name"], "member": getattr(app, "current_handle", None) or getattr(app, "current_user_id", None) or "Guest"})
     app.cis_dynamic.remember_member_for_user(app, app.current_user_id, "Helen/Orders", "warranty support", description)
     section = app.forum_threads.setdefault("ibmhw_tech", [])
     ids = [message.get("id", 0) for messages in app.forum_threads.values() for message in messages]

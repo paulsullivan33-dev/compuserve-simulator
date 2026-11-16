@@ -24,3 +24,6 @@ activity.log
 /old_versions/
 /peerHandshake-fix/
 /.superfetch-test-deps/
+
+# Local-model add-on settings (see llm_config.example.json); local only, never committed
+llm_config.json
