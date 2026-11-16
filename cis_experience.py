@@ -1,5 +1,6 @@
 """Cross-service personal tools for the persistent 1988 simulation."""
 from cis_session import read_input as input
+import cis_llm
 
 
 
@@ -165,7 +166,12 @@ def request_representative(app, department, question):
     if department not in agents or not question.strip():
         return "Choose TRAVEL, FINANCE, or STORE and enter a question."
     name, answer = agents[department]
-    app.cis_dynamic.schedule_event(app, "mail", {"to": app.current_user_id, "from": name, "subject": f"RE: {department} SERVICE QUESTION", "body": f"Your question: {question[:500]}\n\n{answer}"})
+    event_id = app.cis_dynamic.schedule_event(app, "mail", {"to": app.current_user_id, "from": name, "subject": f"RE: {department} SERVICE QUESTION", "body": f"Your question: {question[:500]}\n\n{answer}"})
+    # Optional add-on: a local model may rewrite the answer before the mail is delivered.
+    cis_llm.reply_later("representative", question, lambda text: app.cis_dynamic.update_event_payload(
+        app, event_id, {"body": f"Your question: {question[:500]}\n\n{text}"}), persona={
+        "name": name, "department": department.title(),
+        "member": getattr(app, "current_handle", None) or getattr(app, "current_user_id", None) or "Guest"})
     app.cis_dynamic.remember_member_for_user(app, app.current_user_id, name, department.lower(), question)
     return f"Question sent to {name}; an EasyPlex reply will follow."
 

@@ -42,6 +42,7 @@ import cis_accounts
 import cis_activity
 import cis_geoip
 import cis_ntfy
+import cis_llm
 import cis_communities
 import cis_phones
 import cis_forums
@@ -2103,6 +2104,12 @@ def customer_support(choice):
             })
             save_json_atomic("feedback.json", feedback)
             ansi_scroll("Thank you. Your feedback has been recorded.", 0.01)
+            answer = None
+            if cis_llm.enabled("customer_service"):
+                ansi_scroll("Customer Service is reading your note...", 0.01)
+                answer = cis_llm.reply("customer_service", message, persona={"member": current_handle or current_user_id or "Guest"})
+            if answer:
+                ansi_scroll(f"Customer Service: {answer}", 0.01)
             time.sleep(1)
     elif choice == "5":
         account_settings()
@@ -3289,6 +3296,12 @@ def cb_chat(channel):
                 exchange += 1
                 if response:
                     user, line = response
+                    if cis_llm.enabled("cb_chat"):
+                        scrollback = [f"<{sender}> {body}" for _, sender, body, _ in recent_live_messages(BASE_DIR, room, 12)
+                                      if sender != "SYSTEM"]
+                        line = cis_llm.reply("cb_chat", argument, context=scrollback[:-1], persona={
+                            "handle": user, "channel": channel, "channel_description": cis_cb.description(channel),
+                            "member": current_handle}) or line
                     last_message_id = post_live_message(BASE_DIR, room, user, line)
                     ansi_scroll(f"<{user}> {line}", 0.01)
             elif command not in ("SAY",):
