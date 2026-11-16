@@ -1,7 +1,7 @@
 {
   "_comment": "Example only. Copy to llm_config.json (ignored by git, never shipped) and edit. Delete llm_config.json, or set \"enabled\": false, to go back to scripted replies. Check it with: python cis_llm.py --check. Live roles (cb_chat, customer_service) keep a member waiting at the prompt, so use a small fast model there. Avoid models that print their reasoning even with thinking turned off.",
   "enabled": true,
-  "ollama_url": "http://192.168.1.236:11434",
+  "ollama_url": "http://localhost:11434",
   "timeout_seconds": 20,
   "min_seconds_between_calls": 2,
   "max_input_chars": 1000,
