@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- The activity log now records what members write, not just that they
+  visited. A new `wrote` event (emitted by `compuserve.record_write`)
+  captures forum posts, EasyPlex mail, CB lines and private CB messages,
+  and library uploads — who wrote it, where it went (section, recipient,
+  channel), and the text itself, capped at 1,000 characters with a
+  truncation marker; the full text stays in the service's own stores.
+  Review with `python3 cis_activity.py --writes`, or inside the service
+  from the SysOp console's new option 13, Visitor activity log, which
+  renders the recent log (writes included) as readable pages.
+
 - Added optional local-model replies (new `cis_llm` module). When an operator
   creates `llm_config.json` (format in `llm_config.example.json`), small Ollama
   models can answer members in CB chat, reply to Customer Service feedback, and

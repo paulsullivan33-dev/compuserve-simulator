@@ -126,6 +126,9 @@ def compose(app, recipient=None, subject_default="", initial_lines=None, resume_
     note = getattr(app, "session_state", None)
     if note is not None:
         note.note_action("mail_sent")
+    recorder = getattr(app, "record_write", None)
+    if callable(recorder):
+        recorder("mail", to=recipient, subject=subject, text=body)
     app.ansi_scroll("Message accepted by EasyPlex.", 0.01)
 
 

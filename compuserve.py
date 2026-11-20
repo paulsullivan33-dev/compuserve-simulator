@@ -935,6 +935,7 @@ def sysop_console():
         ansi_scroll("10 Simulation world controls", 0.01)
         ansi_scroll("11 System announcements", 0.01)
         ansi_scroll("12 Operating system command", 0.01)
+        ansi_scroll("13 Visitor activity log", 0.01)
         ansi_scroll("M  Return to service", 0.01)
         choice = input("SYSOP ! ").strip().upper()
         if choice == "M":
@@ -983,6 +984,17 @@ def sysop_console():
             sysop_announcements()
         elif choice == "12":
             sysop_os_shell()
+        elif choice == "13":
+            sysop_visitor_log()
+
+
+def sysop_visitor_log():
+    """Show the recent activity log: who connected, where they went,
+    and — for ``wrote`` events — what they left behind."""
+    lines = []
+    for event in cis_activity.read_events(limit=100):
+        lines.extend(cis_activity.format_event(event))
+    text_page("sysop", "VISITOR ACTIVITY LOG", lines or ["No activity recorded."])
 
 
 def sysop_announcements():
@@ -1897,6 +1909,8 @@ def library_upload(screen_key):
     library_files.setdefault(screen_key, []).append(record)
     save_json_atomic("library_files.json", library_files)
     session_state.note_action("library_uploads")
+    record_write("library_upload", library=screen_key,
+                 number=record["number"], filename=name, text=description)
     ansi_scroll(f'Upload #{record["number"]} is pending SysOp approval.', 0.01)
 
 
@@ -3261,6 +3275,7 @@ def cb_chat(channel):
                     return messages
                 storage_update_json_atomic(BASE_DIR, "cb_mail.json", [], _store_cb_mail)
                 session_state.note_action("cb_messages")
+                record_write("cb_private", to=recipient[:40], text=text)
                 ansi_scroll(f"Private message stored for {recipient}.", 0.01)
             elif command == "IGNORE" and argument:
                 key = argument[:40]
@@ -3287,6 +3302,7 @@ def cb_chat(channel):
             elif command == "SAY" and argument:
                 last_message_id = post_live_message(BASE_DIR, room, current_handle, argument)
                 session_state.note_action("cb_messages")
+                record_write("cb", channel=channel, text=argument)
                 ansi_scroll(f"<{current_handle}> {argument}", 0.01)
                 if channel == "4":
                     exchange += 1
@@ -4181,6 +4197,42 @@ def _session_summary_lines():
     if actions:
         lines.append("Activity: " + ", ".join(actions))
     return lines
+
+
+_WRITE_TEXT_LIMIT = 1000
+
+
+def record_write(area, text=None, **fields):
+    """Record something a member wrote in the activity log.
+
+    Emits a ``wrote`` event (forum post, mail message, CB line, library
+    upload) so the sysop's log shows not just that a visitor came and
+    went, but what they left behind. The text is capped at
+    ``_WRITE_TEXT_LIMIT`` characters — the log is a record, not a second
+    content store; the full text lives in the service's own stores.
+    Best-effort, like all activity logging: never raises, so it can
+    never break a session. Feature modules reach this through
+    ``app.record_write`` (see cis_forums.post, cis_mail.compose).
+    """
+    try:
+        detail = {"area": area, "handle": current_handle or current_user_id}
+        detail.update(fields)
+        if text is not None:
+            text = str(text)
+            if len(text) > _WRITE_TEXT_LIMIT:
+                detail["text"] = text[:_WRITE_TEXT_LIMIT]
+                detail["truncated"] = True
+            else:
+                detail["text"] = text
+        cis_activity.log_event(
+            "wrote",
+            session_id=live_session_id,
+            client_ip=os.environ.get("CIS_CLIENT_IP") or None,
+            user_id=current_user_id,
+            detail=detail,
+        )
+    except Exception:
+        pass
 
 
 def _record_logout():

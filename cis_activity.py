@@ -3,7 +3,11 @@
 Both the telnet gateway (telnet_app.py) and the sim subprocess
 (compuserve.py) record events here so the sysop can review who connected,
 who logged in, and who failed — e.g. ``tail -f activity.log`` or
-``python3 cis_activity.py --tail 50``.
+``python3 cis_activity.py --tail 50``. ``wrote`` events record what a
+member left behind (forum posts, mail, CB lines, library uploads, with
+the text capped) — ``python3 cis_activity.py --writes`` shows just
+those. The same log is readable inside the service from the SysOp
+console (option 13, Visitor activity log).
 
 One JSON object per line. Writes are best-effort and never raise, so
 logging can never break a session. Concurrent writers are safe: every
@@ -84,18 +88,63 @@ def _format(event):
     return " ".join(parts)
 
 
+def format_event(event):
+    """Render one event as display lines (CLI review + SysOp console).
+
+    Most events are a single line. A ``wrote`` event gets a header line
+    (when, who, what kind of writing, where it went) followed by the
+    text itself, indented — the point of the event is the writing.
+    """
+    if event.get("event") != "wrote":
+        return [_format(event)]
+    detail = event.get("detail") or {}
+    who = event.get("user_id") or detail.get("handle") or "?"
+    head = f'{event.get("ts", "?")} wrote {detail.get("area", "?")} user={who}'
+    if event.get("client_ip"):
+        head += " ip=" + str(event["client_ip"])
+    bits = []
+    if detail.get("section"):
+        bits.append("section=" + str(detail["section"]))
+    if detail.get("message_id"):
+        bits.append("#" + str(detail["message_id"]))
+    if detail.get("to"):
+        bits.append("to=" + str(detail["to"]))
+    if detail.get("channel"):
+        bits.append("channel=" + str(detail["channel"]))
+    if detail.get("library"):
+        bits.append("library=" + str(detail["library"]))
+    if detail.get("filename"):
+        bits.append("file=" + str(detail["filename"]))
+    if detail.get("subject"):
+        bits.append("subject=" + str(detail["subject"]))
+    if bits:
+        head += " " + " ".join(bits)
+    lines = [head]
+    text = detail.get("text")
+    if text:
+        lines.extend("    " + line for line in str(text).splitlines() or [""])
+        if detail.get("truncated"):
+            lines.append("    [... truncated in the log; full text is in the service stores]")
+    return lines
+
+
 def main(argv=None):
     import argparse
 
     parser = argparse.ArgumentParser(description="Review the CompuServe activity log.")
     parser.add_argument("--tail", type=int, default=50, help="show the last N events")
     parser.add_argument("--event", help="only show this event kind")
+    parser.add_argument("--writes", action="store_true",
+                        help="only show what members wrote (forum posts, mail, CB, uploads)")
     args = parser.parse_args(argv)
     events = read_events(limit=args.tail if args.tail > 0 else 10**9)
+    if args.writes:
+        args.event = "wrote"
     if args.event:
         events = [e for e in events if e.get("event") == args.event]
     for event in events:
-        print(_format(event))
+        for line in format_event(event):
+            print(line)
 
 
 if __name__ == "__main__":

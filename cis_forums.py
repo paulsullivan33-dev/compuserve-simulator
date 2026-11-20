@@ -25,6 +25,10 @@ def post(app, section_key, subject, body, parent_id=None):
         message_id = append(app.forum_threads)
         app.save_json_atomic("forums.json", app.forum_threads)
     app.cis_dynamic.record_activity(app, app.current_user_id, "FORUM", f'Posted message #{message_id}: {subject}.', {"section": section_key, "message_id": message_id})
+    recorder = getattr(app, "record_write", None)
+    if callable(recorder):
+        recorder("forum_post", section=section_key, message_id=message_id,
+                 subject=subject[:120], text=body)
     suggestions = app.cis_reference.suggest_records(f"{subject} {body}", 2)
     if suggestions:
         app.ansi_scroll("Reference Data Bases: " + "; ".join(f"{record[0]} {record[1]}" for _, record in suggestions), 0.005)
