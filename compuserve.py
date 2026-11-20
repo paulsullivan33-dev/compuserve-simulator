@@ -3269,9 +3269,9 @@ def cb_chat(channel):
                 post_live_message(BASE_DIR, room, "SYSTEM", f"*** {current_handle} joined {channel} ***")
             elif command == "MSG" and " " in argument:
                 recipient, text = argument.split(" ", 1)
-                def _store_cb_mail(messages):
+                def _store_cb_mail(messages, _recipient=recipient, _text=text):
                     messages = messages if isinstance(messages, list) else []
-                    messages.append({"from": current_handle, "to": recipient[:40], "date": cis_dynamic.simulation_day().strftime("%m/%d/%y"), "text": text[:1000]})
+                    messages.append({"from": current_handle, "to": _recipient[:40], "date": cis_dynamic.simulation_day().strftime("%m/%d/%y"), "text": _text[:1000]})
                     return messages
                 storage_update_json_atomic(BASE_DIR, "cb_mail.json", [], _store_cb_mail)
                 session_state.note_action("cb_messages")

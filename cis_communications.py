@@ -185,7 +185,7 @@ def personal_files(app, use_for_mail=False):
             number = input('File number ! ').strip()
             if number.isdigit() and 1 <= int(number) <= len(names) and input('Delete file [Y/N] ! ').upper() == 'Y':
                 name = names[int(number) - 1]
-                change(app, lambda data: data.setdefault('files', {}).setdefault(uid, {}).pop(name, None))
+                change(app, lambda data, _name=name: data.setdefault('files', {}).setdefault(uid, {}).pop(_name, None))
         elif command.isdigit() and 1 <= int(command) <= len(names):
             name = names[int(command) - 1]
             if use_for_mail:
